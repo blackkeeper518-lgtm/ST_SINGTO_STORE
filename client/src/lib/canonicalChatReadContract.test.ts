@@ -113,6 +113,27 @@ describe("ChatHub read contract v5", () => {
     expect(withoutStatus.delivery_status).toBeNull();
   });
 
+  it("deduplicates repeated chat rows by message_id while preserving same text with distinct IDs", () => {
+    const duplicate = {
+      _source_table: CHAT_CUSTOMER_TABLE,
+      page_id: "page-1",
+      thread_id: "thread-1",
+      message_id: "meta-message-1",
+      dedupe_key: "room:meta-message-1",
+      speaker: "customer",
+      message_text: "สวัสดีค่ะ",
+      occurred_at: "2026-11-14T10:00:00.000Z",
+    };
+    const messages = mapChatRowsToMessages([
+      duplicate,
+      { ...duplicate, id: 9002, occurred_at: "2026-11-14T10:00:02.000Z" },
+      { ...duplicate, message_id: "meta-message-2", dedupe_key: "room:meta-message-2" },
+    ]);
+
+    expect(messages).toHaveLength(2);
+    expect(messages.map(message => message.messageId)).toEqual(["meta-message-1", "meta-message-2"]);
+  });
+
   it("uses facebook_name first and never displays the bill customer_name as the room name", () => {
     const [thread] = mapChatRowsToThreads([
       {
