@@ -975,3 +975,110 @@ body {
   content: "SINGTO NAVY // GOLD";
   color: rgba(191, 239, 255, .58);
 }
+
+/* SINGTO ORANGE ONLY — no purple, no pink */
+:root {
+  --primary: #ff8a18;
+  --primary-foreground: #180b03;
+  --sidebar-primary: #ff9f2d;
+  --sidebar-primary-foreground: #180b03;
+  --background: #120b07;
+  --foreground: #fff3e2;
+  --card: #21140d;
+  --card-foreground: #fff3e2;
+  --popover: #2a180d;
+  --popover-foreground: #fff3e2;
+  --secondary: #3a1c0b;
+  --secondary-foreground: #ffd7a3;
+  --muted: #301b10;
+  --muted-foreground: #d8a878;
+  --accent: #6b2d0e;
+  --accent-foreground: #fff1de;
+  --border: rgba(255, 138, 24, .30);
+  --input: rgba(255, 138, 24, .34);
+  --ring: #ff9f2d;
+  --sidebar: #160c07;
+  --sidebar-foreground: #fff0dc;
+  --sidebar-accent: #4a210d;
+  --sidebar-accent-foreground: #ffe0b3;
+  --sidebar-border: rgba(255, 138, 24, .26);
+  --sidebar-ring: #ff9f2d;
+}
+
+body {
+  background-color: #120b07;
+  background-image:
+    radial-gradient(circle at 12% 0%, rgba(255, 138, 24, .16), transparent 30rem),
+    radial-gradient(circle at 90% 16%, rgba(214, 72, 12, .12), transparent 30rem),
+    linear-gradient(rgba(255, 138, 24, .018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 138, 24, .018) 1px, transparent 1px);
+}
+
+::selection { background: rgba(255, 138, 24, .55); color: #180b03; }
+::-webkit-scrollbar-track { background: #160c07; }
+::-webkit-scrollbar-thumb { border-color: #160c07; background: linear-gradient(#ff9f2d, #b53f0b); }
+
+.chat-cosmos-shell,
+.cosmic-stage,
+.singto-cyber-edge,
+.blackbox-room,
+.script-atelier {
+  background-color: #120b07 !important;
+  background-image:
+    radial-gradient(circle at 10% 0%, rgba(255, 138, 24, .13), transparent 28rem),
+    radial-gradient(circle at 92% 88%, rgba(214, 72, 12, .12), transparent 30rem) !important;
+}
+
+.chat-cosmos-timeline {
+  background:
+    radial-gradient(circle at 82% 8%, rgba(255, 138, 24, .14), transparent 28%),
+    radial-gradient(circle at 12% 74%, rgba(214, 72, 12, .10), transparent 30%),
+    linear-gradient(135deg, #160c07, #32170a 56%, #100805) !important;
+}
+
+.chat-cosmos-composer,
+.chat-cosmos-tools,
+.neon-sign,
+.chat-cosmos-shell .bg-\[\#0b111c\]\/95,
+.chat-cosmos-shell .bg-\[\#0b101b\]\/95 {
+  background: linear-gradient(145deg, rgba(53, 27, 12, .98), rgba(22, 12, 7, .98)) !important;
+  border-color: rgba(255, 138, 24, .32) !important;
+  box-shadow: 0 8px 34px rgba(0, 0, 0, .36), inset 0 0 24px rgba(255, 138, 24, .045) !important;
+}
+
+.neon-sign {
+  background: linear-gradient(100deg, #1b0d07, #6a2b0d 52%, #261007) !important;
+  border-color: rgba(255, 159, 45, .50) !important;
+  box-shadow: 0 0 16px rgba(255, 138, 24, .18), 0 0 28px rgba(214, 72, 12, .12), inset 0 0 22px rgba(255, 159, 45, .07) !important;
+}
+
+.chat-neon-ticker {
+  border-color: rgba(255, 138, 24, .46) !important;
+  background: linear-gradient(100deg, #160b06, #54230b 48%, #1b0c06) !important;
+  color: #ffe0b3 !important;
+  box-shadow: inset 0 0 18px rgba(255, 138, 24, .09), 0 0 18px rgba(214, 72, 12, .14) !important;
+}
+.chat-neon-ticker-title { color: #ffbd62 !important; text-shadow: 0 0 8px rgba(255, 138, 24, .55) !important; }
+.chat-neon-ticker-title i { background: #ff9f2d !important; box-shadow: 0 0 10px #ff8a18 !important; }
+.chat-neon-ticker-chip { border-color: rgba(255, 159, 45, .46) !important; color: #ffe2b5 !important; background: rgba(255, 138, 24, .11) !important; }
+.chat-neon-ticker-room { border-color: rgba(255, 138, 24, .38) !important; color: #ffd19a !important; background: rgba(214, 72, 12, .15) !important; }
+
+/* Remap old neon utility classes to orange shades. */
+[class*="border-cyan-"], [class*="border-fuchsia-"], [class*="border-violet-"] { border-color: rgba(255, 138, 24, .30) !important; }
+[class*="text-cyan-"], [class*="text-fuchsia-"], [class*="text-violet-"] { color: #ffd9ad !important; }
+[class*="bg-cyan-"], [class*="bg-fuchsia-"], [class*="bg-violet-"] { background-color: rgba(255, 138, 24, .11) !important; }
+[class*="from-cyan-"], [class*="from-violet-"], [class*="from-fuchsia-"] { --tw-gradient-from: #ff8a18 !important; --tw-gradient-to: rgb(255 138 24 / 0) !important; }
+[class*="to-cyan-"], [class*="to-violet-"], [class*="to-fuchsia-"], [class*="to-emerald-"] { --tw-gradient-to: #a63b0c !important; }
+[class*="focus-visible:ring-cyan-"], [class*="focus-visible:ring-fuchsia-"], [class*="focus-visible:ring-violet-"] { --tw-ring-color: #ff9f2d !important; }
+
+.chat-cosmos-shell button.bg-gradient-to-r,
+.chat-cosmos-shell button.bg-gradient-to-br {
+  background-image: linear-gradient(135deg, #ffb347, #c9570e) !important;
+  color: #180b03 !important;
+  box-shadow: 0 0 16px rgba(255, 138, 24, .28) !important;
+}
+
+.neon-sign::after {
+  content: "SINGTO ORANGE // LION MODE";
+  color: rgba(255, 215, 163, .62);
+}
