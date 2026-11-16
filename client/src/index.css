@@ -981,3 +981,162 @@ body { background-image:radial-gradient(circle at 13% 0%,rgba(223,133,24,.13),tr
 .script-search,.script-dropzone { border-color:rgba(236,160,44,.27);background:rgba(14,12,8,.8);color:#eac56b; }
 .live-chip { border-color:rgba(242,173,54,.34);color:#f0c964;background:rgba(225,148,35,.08); }
 .live-dot { background:#f2a62b;box-shadow:0 0 11px rgba(246,174,46,.68); }
+
+/* SINGTO BASE STRUCTURE — pure black, white text, gold borders, orange accents */
+:root {
+  --primary: #f28c18;
+  --primary-foreground: #080808;
+  --sidebar-primary: #f5b62e;
+  --sidebar-primary-foreground: #080808;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #050505;
+  --card-foreground: #ffffff;
+  --popover: #080808;
+  --popover-foreground: #ffffff;
+  --secondary: #101010;
+  --secondary-foreground: #ffffff;
+  --muted: #0c0c0c;
+  --muted-foreground: #d7d7d7;
+  --accent: #2a1605;
+  --accent-foreground: #ffffff;
+  --border: rgba(245, 182, 46, .55);
+  --input: rgba(245, 182, 46, .55);
+  --ring: #f5b62e;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #17100a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(245, 182, 46, .50);
+  --sidebar-ring: #f5b62e;
+}
+
+html, body {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+body {
+  background-image: none !important;
+}
+
+.chat-cosmos-shell,
+.cosmic-stage,
+.singto-cyber-edge,
+.blackbox-room,
+.script-atelier,
+.order-control-room,
+.chat-cosmos-timeline {
+  background: #000000 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+.chat-cosmos-shell *,
+.order-control-room * {
+  text-shadow: none;
+}
+
+/* All structural containers: black fill with restrained gold outline. */
+.chat-cosmos-shell .rounded-3xl,
+.chat-cosmos-shell .rounded-2xl,
+.chat-cosmos-shell .rounded-xl,
+.order-control-room .rounded-3xl,
+.order-control-room .rounded-2xl,
+.order-control-room .rounded-xl {
+  background-color: #050505 !important;
+  border-color: rgba(245, 182, 46, .48) !important;
+}
+
+.chat-cosmos-composer,
+.chat-cosmos-tools,
+.neon-sign,
+.chat-neon-ticker,
+.order-control-room .order-safety-radar,
+.order-control-room .order-summary-well,
+.order-control-room .order-detail-card section[aria-live="polite"] {
+  background: #050505 !important;
+  border: 1px solid rgba(245, 182, 46, .58) !important;
+  box-shadow: none !important;
+}
+
+.neon-sign {
+  background: #080808 !important;
+  border-color: #f5b62e !important;
+}
+
+.chat-neon-ticker {
+  color: #ffffff !important;
+  border-color: #f5b62e !important;
+}
+
+/* White typography by default; gold headings/labels; orange actions. */
+.chat-cosmos-shell p,
+.chat-cosmos-shell span,
+.chat-cosmos-shell label,
+.chat-cosmos-shell h1,
+.chat-cosmos-shell h2,
+.chat-cosmos-shell h3,
+.chat-cosmos-shell h4,
+.order-control-room p,
+.order-control-room span,
+.order-control-room label,
+.order-control-room h1,
+.order-control-room h2,
+.order-control-room h3,
+.order-control-room h4 {
+  color: #ffffff !important;
+}
+
+[class*="text-cyan-"], [class*="text-fuchsia-"], [class*="text-violet-"], [class*="text-purple-"], [class*="text-amber-"] {
+  color: #ffffff !important;
+}
+
+[class*="border-cyan-"], [class*="border-fuchsia-"], [class*="border-violet-"], [class*="border-purple-"], [class*="border-amber-"] {
+  border-color: rgba(245, 182, 46, .58) !important;
+}
+
+[class*="bg-cyan-"], [class*="bg-fuchsia-"], [class*="bg-violet-"], [class*="bg-purple-"] {
+  background-color: #080808 !important;
+}
+
+[class*="from-cyan-"], [class*="from-violet-"], [class*="from-fuchsia-"], [class*="from-purple-"] {
+  --tw-gradient-from: #080808 !important;
+  --tw-gradient-to: rgb(8 8 8 / 0) !important;
+}
+[class*="via-cyan-"], [class*="via-violet-"], [class*="via-fuchsia-"], [class*="via-purple-"] { --tw-gradient-via: #080808 !important; }
+[class*="to-cyan-"], [class*="to-violet-"], [class*="to-fuchsia-"], [class*="to-purple-"] { --tw-gradient-to: #000000 !important; }
+
+.chat-cosmos-shell button.bg-gradient-to-r,
+.chat-cosmos-shell button.bg-gradient-to-br,
+.order-control-room button.bg-gradient-to-r,
+.order-control-room button.bg-gradient-to-br {
+  background: #e87912 !important;
+  color: #ffffff !important;
+  border: 1px solid #f5b62e !important;
+  box-shadow: none !important;
+}
+
+.chat-cosmos-shell button:hover:not(:disabled),
+.order-control-room button:hover:not(:disabled) {
+  background: #ff941f !important;
+  color: #000000 !important;
+}
+
+.chat-neon-ticker-title,
+.chat-neon-ticker-chip,
+.neon-sign::after {
+  color: #f5b62e !important;
+}
+
+.chat-neon-ticker-title i {
+  background: #f5b62e !important;
+  box-shadow: none !important;
+}
+
+.neon-sign::after {
+  content: "SINGTO BASE // BLACK + GOLD + ORANGE";
+}
+
+::-webkit-scrollbar-track { background: #000000 !important; }
+::-webkit-scrollbar-thumb { background: #f5b62e !important; border-color: #000000 !important; }
