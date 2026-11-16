@@ -1140,3 +1140,147 @@ body {
 
 ::-webkit-scrollbar-track { background: #000000 !important; }
 ::-webkit-scrollbar-thumb { background: #f5b62e !important; border-color: #000000 !important; }
+
+/* SINGTO GRIDLINE — black-green base with yellow-green accents */
+:root {
+  --primary: #d8ed24;
+  --primary-foreground: #070b09;
+  --sidebar-primary: #c9e51b;
+  --sidebar-primary-foreground: #070b09;
+  --background: #050b0a;
+  --foreground: #eef8ef;
+  --card: #091311;
+  --card-foreground: #eef8ef;
+  --popover: #0c1916;
+  --popover-foreground: #eef8ef;
+  --secondary: #10231e;
+  --secondary-foreground: #dcebdc;
+  --muted: #10201c;
+  --muted-foreground: #9eb7ab;
+  --accent: #1c332b;
+  --accent-foreground: #f0ffd0;
+  --border: rgba(216, 237, 36, .34);
+  --input: rgba(216, 237, 36, .34);
+  --ring: #d8ed24;
+  --sidebar: #040908;
+  --sidebar-foreground: #eaf5e9;
+  --sidebar-accent: #162b23;
+  --sidebar-accent-foreground: #e5f32a;
+  --sidebar-border: rgba(216, 237, 36, .28);
+  --sidebar-ring: #d8ed24;
+}
+
+html, body {
+  background: #050b0a !important;
+  color: #eef8ef !important;
+}
+
+body {
+  background-image:
+    linear-gradient(rgba(114, 190, 139, .055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(114, 190, 139, .055) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(216, 237, 36, .08), transparent 34rem) !important;
+  background-size: 42px 42px, 42px 42px, auto !important;
+  background-position: center top, center top, center top !important;
+}
+
+.chat-cosmos-shell,
+.cosmic-stage,
+.singto-cyber-edge,
+.blackbox-room,
+.script-atelier,
+.order-control-room,
+.chat-cosmos-timeline {
+  background-color: rgba(5, 11, 10, .96) !important;
+  background-image:
+    linear-gradient(rgba(114, 190, 139, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(114, 190, 139, .045) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(11, 37, 29, .78), rgba(5, 11, 10, .98)) !important;
+  background-size: 42px 42px, 42px 42px, auto !important;
+}
+
+.chat-cosmos-shell .rounded-3xl,
+.chat-cosmos-shell .rounded-2xl,
+.chat-cosmos-shell .rounded-xl,
+.order-control-room .rounded-3xl,
+.order-control-room .rounded-2xl,
+.order-control-room .rounded-xl,
+.chat-cosmos-composer,
+.chat-cosmos-tools,
+.neon-sign,
+.chat-neon-ticker {
+  background: rgba(7, 16, 14, .94) !important;
+  border-color: rgba(216, 237, 36, .30) !important;
+  box-shadow: none !important;
+}
+
+.neon-sign {
+  border-color: rgba(216, 237, 36, .65) !important;
+}
+
+.chat-cosmos-shell p,
+.chat-cosmos-shell span,
+.chat-cosmos-shell label,
+.chat-cosmos-shell h1,
+.chat-cosmos-shell h2,
+.chat-cosmos-shell h3,
+.chat-cosmos-shell h4,
+.order-control-room p,
+.order-control-room span,
+.order-control-room label,
+.order-control-room h1,
+.order-control-room h2,
+.order-control-room h3,
+.order-control-room h4 {
+  color: #eef8ef !important;
+}
+
+[class*="border-cyan-"], [class*="border-fuchsia-"], [class*="border-violet-"], [class*="border-purple-"], [class*="border-amber-"] {
+  border-color: rgba(216, 237, 36, .38) !important;
+}
+[class*="text-cyan-"], [class*="text-fuchsia-"], [class*="text-violet-"], [class*="text-purple-"], [class*="text-amber-"] {
+  color: #e3f238 !important;
+}
+[class*="bg-cyan-"], [class*="bg-fuchsia-"], [class*="bg-violet-"], [class*="bg-purple-"] {
+  background-color: rgba(24, 54, 41, .72) !important;
+}
+[class*="from-cyan-"], [class*="from-violet-"], [class*="from-fuchsia-"], [class*="from-purple-"] {
+  --tw-gradient-from: #11281f !important;
+  --tw-gradient-to: rgb(17 40 31 / 0) !important;
+}
+[class*="via-cyan-"], [class*="via-violet-"], [class*="via-fuchsia-"], [class*="via-purple-"] { --tw-gradient-via: #182f25 !important; }
+[class*="to-cyan-"], [class*="to-violet-"], [class*="to-fuchsia-"], [class*="to-purple-"] { --tw-gradient-to: #070e0c !important; }
+
+.chat-cosmos-shell button.bg-gradient-to-r,
+.chat-cosmos-shell button.bg-gradient-to-br,
+.order-control-room button.bg-gradient-to-r,
+.order-control-room button.bg-gradient-to-br {
+  background: #d8ed24 !important;
+  color: #070b09 !important;
+  border: 1px solid #eef85a !important;
+  box-shadow: none !important;
+}
+
+.chat-cosmos-shell button:hover:not(:disabled),
+.order-control-room button:hover:not(:disabled) {
+  background: #efff45 !important;
+  color: #070b09 !important;
+}
+
+.chat-neon-ticker-title,
+.chat-neon-ticker-chip,
+.neon-sign::after {
+  color: #d8ed24 !important;
+}
+
+.chat-neon-ticker-title i {
+  background: #d8ed24 !important;
+  box-shadow: none !important;
+}
+
+.neon-sign::after {
+  content: "SINGTO GRIDLINE // GREEN SIGNAL";
+}
+
+::-webkit-scrollbar-track { background: #050b0a !important; }
+::-webkit-scrollbar-thumb { background: #b8d51b !important; border-color: #050b0a !important; }
