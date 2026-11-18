@@ -47,11 +47,11 @@ const orderSources = [
 ];
 
 const livePipelines = [
-  { icon: "💬", name: "👑BB_CHAT", detail: "สายแชท เก็บและส่งต่อเหตุการณ์สนทนาของลูกค้าและเพจ", tone: "pink" as const },
-  { icon: "🧾", name: "👑BB_ORDER_SYSTEMS", detail: "ออเดอร์หลัก รับและประกอบข้อมูลออเดอร์ สินค้า COD และคีย์กลาง", tone: "cyan" as const },
-  { icon: "📦", name: "👑BB_EXPRESS_ORDERS", detail: "ส่งออเดอร์เข้าแพ็ก เตรียมข้อมูลสินค้า จำนวน และ COD ให้ฝ่ายแพ็ก", tone: "amber" as const },
-  { icon: "📡", name: "👑BB_SIGNALS", detail: "สายสัญญาณออเดอร์และแชทล่าสุดสำหรับส่งต่อสถานะการทำงาน", tone: "slate" as const },
-  { icon: "🚚", name: "👑BB_TRACK", detail: "สายส่งเลข ดึงเลขจาก parcels จับคู่กับออเดอร์ และสร้างข้อความแจ้งเลข", tone: "amber" as const },
+  { icon: "💬", name: "👑ST_CHAT", detail: "สายแชท เก็บและส่งต่อเหตุการณ์สนทนาของลูกค้าและเพจ", tone: "pink" as const },
+  { icon: "🧾", name: "👑ST_ORDER_SYSTEMS", detail: "ออเดอร์หลัก รับและประกอบข้อมูลออเดอร์ สินค้า COD และคีย์กลาง", tone: "cyan" as const },
+  { icon: "📦", name: "👑ST_EXPRESS_ORDERS", detail: "ส่งออเดอร์เข้าแพ็ก เตรียมข้อมูลสินค้า จำนวน และ COD ให้ฝ่ายแพ็ก", tone: "amber" as const },
+  { icon: "📡", name: "👑ST_SIGNALS", detail: "สายสัญญาณออเดอร์และแชทล่าสุดสำหรับส่งต่อสถานะการทำงาน", tone: "slate" as const },
+  { icon: "🚚", name: "👑ST_TRACK", detail: "สายส่งเลข ดึงเลขจาก parcels จับคู่กับออเดอร์ และสร้างข้อความแจ้งเลข", tone: "amber" as const },
 ];
 
 const parcelStages: Array<{
@@ -244,15 +244,15 @@ export default function SystemManual() {
           <div className="mt-5 grid gap-3 lg:grid-cols-3">
             <div className="rounded-2xl border border-fuchsia-300/15 bg-fuchsia-300/[0.045] p-4">
               <p className="text-sm font-semibold text-fuchsia-100">แหล่งข้อมูลแชท</p>
-              <p className="mt-1 text-xs leading-5 text-slate-300/65">BB_CHAT เป็นสายเหตุการณ์สนทนา ไม่ใช่แหล่งเลขพัสดุ</p>
+              <p className="mt-1 text-xs leading-5 text-slate-300/65">ST_CHAT เป็นสายเหตุการณ์สนทนา ไม่ใช่แหล่งเลขพัสดุ</p>
             </div>
             <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.045] p-4">
               <p className="text-sm font-semibold text-cyan-100">แหล่งข้อมูลออเดอร์</p>
-              <p className="mt-1 text-xs leading-5 text-slate-300/65">BB_ORDER_SYSTEMS เป็นแหล่งข้อมูลหลักของลูกค้า สินค้า และ COD</p>
+              <p className="mt-1 text-xs leading-5 text-slate-300/65">ST_ORDER_SYSTEMS เป็นแหล่งข้อมูลหลักของลูกค้า สินค้า และ COD</p>
             </div>
             <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.045] p-4">
               <p className="text-sm font-semibold text-amber-100">แหล่งข้อมูลเลขพัสดุ</p>
-              <p className="mt-1 text-xs leading-5 text-slate-300/65">BB_TRACK ใช้เลขจาก parcels และจับคู่กับออเดอร์ด้วยข้อมูลที่กำหนด</p>
+              <p className="mt-1 text-xs leading-5 text-slate-300/65">ST_TRACK ใช้เลขจาก parcels และจับคู่กับออเดอร์ด้วยข้อมูลที่กำหนด</p>
             </div>
           </div>
         </section>
@@ -871,7 +871,7 @@ export default function SystemManual() {
             <div>
               <div className="flex items-center gap-3">
                 <Download className="h-5 w-5 text-cyan-300" />
-                <h2 className="text-lg font-semibold text-white">คู่มือแอดมิน · ติดตั้ง BB STORE Inbox เป็นแอป</h2>
+                <h2 className="text-lg font-semibold text-white">คู่มือแอดมิน · ติดตั้ง ST STORE Inbox เป็นแอป</h2>
               </div>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300/70">
                 เปิด Mobile Inbox ผ่าน Chrome บน Android หรือ Safari บน iPhone แล้วเพิ่มไว้ที่หน้าจอหลัก

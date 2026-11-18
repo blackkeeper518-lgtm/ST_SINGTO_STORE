@@ -1055,7 +1055,7 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .mobile-inbox-emoji { display:flex; gap:6px; margin-bottom:6px; }
 .mobile-inbox-emoji button { width:34px; height:34px; border:0; border-radius:9px; background:#edf4f3; font-size:18px; }
 @media (min-width:768px) { .mobile-inbox-page { max-width:520px; margin:0 auto; border-inline:1px solid #dce8e6; } }
-/* MOBILE INBOX DARK SKIN · Meta flow, BB STORE identity */
+/* MOBILE INBOX DARK SKIN · Meta flow, ST STORE identity */
 .mobile-inbox-page { background:#080b14; color:#eef5ff; }
 .mobile-inbox-header,.mobile-inbox-tabs,.mobile-inbox-list-panel { background:#080b14; }
 .mobile-inbox-kicker { color:#7f8da8; }
@@ -1311,3 +1311,38 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 @media (max-width:767px) {
   .mobile-inbox-filters select { width:112px; max-width:112px; min-width:112px; padding:0 20px 0 9px; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
 }
+
+
+/* ST STORE BRAND THEME: black, gold, amber, orange. */
+.singto-cyber-edge {
+  --st-gold: #fbbf24;
+  --st-amber: #f59e0b;
+  --st-orange: #f97316;
+  --st-black: #090706;
+  background: var(--st-black);
+}
+.singto-cyber-edge [class*="text-fuchsia-"],
+.singto-cyber-edge [class*="text-violet-"],
+.singto-cyber-edge [class*="text-purple-"],
+.singto-cyber-edge [class*="text-pink-"] { color: #fde68a !important; }
+.singto-cyber-edge [class*="border-fuchsia-"],
+.singto-cyber-edge [class*="border-violet-"],
+.singto-cyber-edge [class*="border-purple-"],
+.singto-cyber-edge [class*="border-pink-"] { border-color: rgba(245, 158, 11, .30) !important; }
+.singto-cyber-edge [class*="bg-fuchsia-"],
+.singto-cyber-edge [class*="bg-violet-"],
+.singto-cyber-edge [class*="bg-purple-"],
+.singto-cyber-edge [class*="bg-pink-"] { background-color: rgba(245, 158, 11, .10) !important; }
+.singto-cyber-edge [class*="from-fuchsia-"],
+.singto-cyber-edge [class*="from-violet-"],
+.singto-cyber-edge [class*="from-purple-"],
+.singto-cyber-edge [class*="from-pink-"] { --tw-gradient-from: #f59e0b var(--tw-gradient-from-position) !important; }
+.singto-cyber-edge [class*="to-fuchsia-"],
+.singto-cyber-edge [class*="to-violet-"],
+.singto-cyber-edge [class*="to-purple-"],
+.singto-cyber-edge [class*="to-pink-"] { --tw-gradient-to: #111827 var(--tw-gradient-to-position) !important; }
+.singto-cyber-edge .text-cyan-300,
+.singto-cyber-edge .text-cyan-200,
+.singto-cyber-edge .text-cyan-100 { color: #fbbf24 !important; }
+.singto-cyber-edge .border-cyan-300,
+.singto-cyber-edge .border-cyan-200 { border-color: rgba(251, 191, 36, .32) !important; }
