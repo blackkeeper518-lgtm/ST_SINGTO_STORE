@@ -24,16 +24,35 @@ async function pageToken(pageId: string, credentials?: ChatSupabaseCredentials) 
   const headers = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` };
   try {
     // The Chat page-token vault is keyed by page_id and belongs to the Chat project only.
-    const params = new URLSearchParams({ select: "page_id,page_name,access_token", page_id: `eq.${pageId}`, limit: "1" });
+    const params = new URLSearchParams({ select: "page_id,page_name,access_token,status", page_id: `eq.${pageId}`, limit: "1" });
     const response = await fetch(`${supabaseUrl}/rest/v1/${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?${params}`, { headers });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 240)}`);
     const rows = await response.json() as Array<Record<string, unknown>>;
     const row = rows[0];
+    const status = String(row?.status ?? "ON").trim().toUpperCase();
+    if (!["ON", "TRUE", "1", "ACTIVE"].includes(status)) throw new Error(`Meta page ${pageId} is disabled (status=${status})`);
     const token = row?.access_token;
     return typeof token === "string" && token.trim() ? token.trim() : undefined;
   } catch (error) {
     throw new Error(`Page token lookup failed: CHAT: ${error instanceof Error ? error.message : String(error)}`);
   }
+}
+
+const profileCache = new Map<string, { expiresAt: number; value: { name: string | null; profilePictureUrl: string | null } }>();
+
+export async function fetchMetaProfile(input: { pageId: string; userId: string }, credentials?: ChatSupabaseCredentials) {
+  const cacheKey = `${input.pageId}:${input.userId}`;
+  const cached = profileCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  const accessToken = await pageToken(input.pageId, credentials);
+  if (!accessToken) return { name: null, profilePictureUrl: null };
+  const params = new URLSearchParams({ fields: "name,profile_pic,picture", access_token: accessToken });
+  const response = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(input.userId)}?${params.toString()}`);
+  const body = await response.json().catch(() => ({})) as Record<string, any>;
+  if (!response.ok) throw new Error(`META_PROFILE_FAILED: ${body.error?.message || `HTTP ${response.status}`}`);
+  const value = { name: typeof body.name === "string" ? body.name : null, profilePictureUrl: typeof body.profile_pic === "string" ? body.profile_pic : (typeof body.picture?.data?.url === "string" ? body.picture.data.url : null) };
+  profileCache.set(cacheKey, { expiresAt: Date.now() + 6 * 60 * 60 * 1000, value });
+  return value;
 }
 
 export function verifyMetaSignature(rawBody: string, signature: string | undefined) {

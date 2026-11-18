@@ -1,18 +1,29 @@
 import { z } from "zod";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
-import { sendMetaMessage } from "./meta";
-import { storagePut } from "./storage";
-import { checkChatConnection, fetchChatMessageRows, fetchChatThreadRows, fetchParcelMappingQueue, purgeOldParcels, recordOutgoingChatMessage, supabaseGet, supabasePost } from "./supabase";
+import { fetchMetaProfile, sendMetaMessage } from "./meta";
+import { assertChatPageEnabled, checkChatConnection, fetchChatMessageRows, fetchChatNotificationRows, fetchChatPages, fetchChatThreadRows, fetchParcelMappingQueue, purgeOldParcels, recordOutgoingChatMessage, setChatPageWebStatus, supabaseGet, supabasePost } from "./supabase";
+import { checkLineConnection, fetchLineConversations, fetchLineMessages, sendLineText } from "./line";
 import * as db from "./db";
 
 const ownerId = (ctx: { user: { id: number } | null }) => ctx.user?.id ?? 0;
 const kind = z.enum(["code", "sql", "workflow", "document", "config", "other"]);
 function requireBrowserChatConfig(ctx: { chatSupabaseCredentials?: { url: string; serviceRoleKey: string } }) {
-  const credentials = ctx.chatSupabaseCredentials;
+  const credentials = ctx.chatSupabaseCredentials ?? {
+    url: process.env.CHAT_SUPABASE_URL?.trim() ?? "",
+    serviceRoleKey: process.env.CHAT_SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "",
+  };
   if (!credentials?.url || !credentials.serviceRoleKey) {
     throw new Error("กรอก Chat Supabase URL และ service-role key ใน ROOM 02 ก่อนใช้งานแชท");
   }
+  return credentials;
+}
+function requireServerChatConfig() {
+  const credentials = {
+    url: process.env.CHAT_SUPABASE_URL?.trim() ?? "",
+    serviceRoleKey: process.env.CHAT_SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "",
+  };
+  if (!credentials.url || !credentials.serviceRoleKey) throw new Error("ยังไม่ได้ตั้งค่า CHAT_SUPABASE_URL และ CHAT_SUPABASE_SERVICE_ROLE_KEY บน Render");
   return credentials;
 }
 async function persistOutgoingChatBestEffort(
@@ -36,21 +47,57 @@ export const appRouter = router({
   }),
 
   chat: router({
-    connection: protectedProcedure.query(({ ctx }) => checkChatConnection(requireBrowserChatConfig(ctx))),
-    threads: protectedProcedure.query(({ ctx }) => fetchChatThreadRows(requireBrowserChatConfig(ctx))),
-    messages: protectedProcedure.input(z.object({ pageId: z.string().min(1), threadId: z.string().min(1) })).query(({ input, ctx }) => fetchChatMessageRows(input, requireBrowserChatConfig(ctx))),
-    sendReply: publicProcedure.input(z.object({ pageId: z.string(), pageName: z.string().optional(), portalKey: z.string().optional(), chatLinkKey: z.string().optional(), threadId: z.string(), recipientId: z.string(), text: z.string().optional(), imageUrl: z.string().optional(), stickerId: z.string().optional() })).mutation(async ({ input, ctx }) => {
+    configured: publicProcedure.query(({ ctx }) => ({ configured: Boolean(ctx.chatSupabaseCredentials?.url && ctx.chatSupabaseCredentials.serviceRoleKey) })),
+    // Connection test only verifies the configured Supabase objects. Reading rooms
+    // and sending replies remain protected below, but saving/testing config must not
+    // redirect an admin away when an auth session has expired.
+    connection: publicProcedure.query(({ ctx }) => checkChatConnection(requireBrowserChatConfig(ctx))),
+    pages: protectedProcedure.query(({ ctx }) => fetchChatPages(requireBrowserChatConfig(ctx))),
+    setPageWebStatus: protectedProcedure.input(z.object({ pageId: z.string().min(1), enabled: z.boolean() })).mutation(({ input, ctx }) => setChatPageWebStatus(input.pageId, input.enabled, requireBrowserChatConfig(ctx))),
+    threads: protectedProcedure.input(z.object({ surface: z.enum(["web", "mobile"]).default("web") }).optional()).query(({ input, ctx }) => fetchChatThreadRows(requireBrowserChatConfig(ctx), input?.surface ?? "web")),
+    profile: protectedProcedure.input(z.object({ pageId: z.string().min(1), userId: z.string().min(1) })).query(({ input, ctx }) => fetchMetaProfile(input, requireBrowserChatConfig(ctx))),
+    pollNotifications: protectedProcedure.input(z.object({ afterRowId: z.string().regex(/^\d+$/).nullable() })).mutation(({ input, ctx }) => fetchChatNotificationRows(input.afterRowId, requireBrowserChatConfig(ctx))),
+    messages: protectedProcedure.input(z.object({ pageId: z.string().min(1), threadId: z.string().min(1), surface: z.enum(["web", "mobile"]).default("web") })).query(({ input, ctx }) => fetchChatMessageRows(input, requireBrowserChatConfig(ctx), input.surface)),
+    sendReply: protectedProcedure.input(z.object({ pageId: z.string(), pageName: z.string().optional(), portalKey: z.string().optional(), chatLinkKey: z.string().optional(), threadId: z.string(), recipientId: z.string(), text: z.string().optional(), imageUrl: z.string().optional(), imageSendUrl: z.string().optional(), imageUrls: z.array(z.string().url()).max(4).optional(), stickerId: z.string().optional(), surface: z.enum(["web", "mobile"]).default("web") })).mutation(async ({ input, ctx }) => {
       const credentials = requireBrowserChatConfig(ctx);
-      const result = await sendMetaMessage(input, credentials);
-      void persistOutgoingChatBestEffort({ portalKey: input.portalKey, chatLinkKey: input.chatLinkKey, pageId: input.pageId, pageName: input.pageName, threadId: input.threadId, recipientId: input.recipientId, messageId: result.message_id, text: input.text }, credentials);
-      void persistLocalChatBestEffort({ pageId: input.pageId, threadId: input.threadId, senderId: input.pageId, senderType: "page", direction: "outbound", text: input.text, attachments: input.imageUrl ? [{ url: input.imageUrl }] : undefined, adminUserId: ctx.user?.id, providerMessageId: result.message_id });
-      return result;
+      await assertChatPageEnabled(input.pageId, credentials, input.surface ?? "web");
+      const text = input.text?.trim() || "";
+      const imageUrl = input.imageUrl?.trim() || "";
+      const imageSendUrl = input.imageSendUrl?.trim() || imageUrl;
+      const imageUrls = (input.imageUrls ?? []).map(url => url.trim()).filter(Boolean).slice(0, 4);
+      const imagesToSend = imageUrls.length ? imageUrls : (imageSendUrl ? [imageSendUrl] : []);
+      const outgoing: Array<{ text?: string; imageUrl?: string; stickerId?: string; result?: Awaited<ReturnType<typeof sendMetaMessage>> }> = [];
+      if (text) outgoing.push({ text });
+      imagesToSend.forEach(url => outgoing.push({ imageUrl: url }));
+      if (!outgoing.length) outgoing.push({ stickerId: input.stickerId });
+      let finalResult: Awaited<ReturnType<typeof sendMetaMessage>> | undefined;
+      for (const item of outgoing) {
+        try {
+          const result = await sendMetaMessage({ pageId: input.pageId, recipientId: input.recipientId, text: item.text, imageUrl: item.imageUrl, stickerId: item.stickerId }, credentials);
+          item.result = result;
+          finalResult = result;
+        } catch (error) {
+          if (outgoing.some(sent => sent.result)) {
+            throw new Error(`ส่งข้อความแล้ว แต่ส่งรูปไม่สำเร็จ: ${error instanceof Error ? error.message : String(error)}`);
+          }
+          throw error;
+        }
+        const result = finalResult;
+        if (!result) throw new Error("Meta did not return a message result");
+        void persistOutgoingChatBestEffort({ portalKey: input.portalKey, chatLinkKey: input.chatLinkKey, pageId: input.pageId, pageName: input.pageName, threadId: input.threadId, recipientId: input.recipientId, messageId: result.message_id, text: item.text || (item.imageUrl ? "📷 ส่งรูปภาพ" : undefined) }, credentials);
+        void persistLocalChatBestEffort({ pageId: input.pageId, threadId: input.threadId, senderId: input.pageId, senderType: "page", direction: "outbound", text: item.text, attachments: item.imageUrl ? [{ url: item.imageUrl }] : undefined, adminUserId: ctx.user?.id, providerMessageId: result.message_id });
+        void db.createAuditLog({ actorUserId: ctx.user.id, actorName: ctx.user.name, action: "CHAT_REPLY_SENT", entityType: "chat_message", entityId: result.message_id, pageId: input.pageId, threadId: input.threadId, metadata: { deviceId: ctx.adminDeviceId || null, userAgent: ctx.userAgent || null, hasText: Boolean(item.text), hasImage: Boolean(item.imageUrl) } });
+      }
+      if (!finalResult) throw new Error("ไม่มีข้อความหรือรูปภาพสำหรับส่ง");
+      return finalResult;
     }),
-    uploadImage: publicProcedure.input(z.object({ fileName: z.string(), contentType: z.string(), base64: z.string() })).mutation(async ({ input }) => {
-      const comma = input.base64.indexOf(",");
-      const raw = comma >= 0 ? input.base64.slice(comma + 1) : input.base64;
-      return storagePut(`chat/${input.fileName}`, Buffer.from(raw, "base64"), input.contentType);
-    }),
+  }),
+
+  line: router({
+    status: protectedProcedure.input(z.object({ oaId: z.string().optional() }).optional()).query(({ input, ctx }) => checkLineConnection(input?.oaId, requireBrowserChatConfig(ctx))),
+    conversations: protectedProcedure.query(({ ctx }) => fetchLineConversations(requireBrowserChatConfig(ctx))),
+    messages: protectedProcedure.input(z.object({ conversationId: z.string().min(1), lineUserId: z.string().min(1), oaId: z.string().optional() })).query(({ input, ctx }) => fetchLineMessages(input.conversationId, input.lineUserId, input.oaId ?? "", requireBrowserChatConfig(ctx))),
+    send: protectedProcedure.input(z.object({ lineUserId: z.string().min(1), oaId: z.string().optional(), text: z.string().trim().min(1).max(5000) })).mutation(({ input, ctx }) => sendLineText(input.lineUserId, input.text, input.oaId, requireBrowserChatConfig(ctx))),
   }),
 
   parcels: router({

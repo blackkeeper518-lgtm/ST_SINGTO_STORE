@@ -1,7 +1,7 @@
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner.tsx";
+import { TooltipProvider } from "@/components/ui/tooltip.tsx";
 import NotFound from "@/pages/NotFound";
-import { Redirect, Route, Switch } from "wouter";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import DashboardLayout from "./components/DashboardLayout";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -23,19 +23,33 @@ import CloseJobHistory from "./pages/CloseJobHistory";
 import TelegramSentHistory from "./pages/TelegramSentHistory";
 import OrderEditor from "./pages/OrderEditor";
 import ScriptAtelier from "./pages/ScriptAtelier";
+import MobileInbox from "./pages/MobileInbox";
+import LineChat from "./pages/LineChat";
+import { useEffect } from "react";
 
 function Shell({ children }: { children: React.ReactNode }) { return <DashboardLayout>{children}</DashboardLayout>; }
+function HomeRoute() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    const userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent;
+    const isPhone = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+    setLocation(isPhone ? "/mobile-inbox" : "/orders");
+  }, [setLocation]);
+  return null;
+}
 function Router() {
   return <Switch>
     <Route path="/connect"><Redirect to="/secret-gallery/connect" /></Route>
     <Route path="/secret-gallery/connect"><SecretGallery /></Route>
     <Route path="/secret-gallery/images"><SecretGallery /></Route>
     <Route path="/secret-gallery"><SecretGallery /></Route>
+    <Route path="/mobile-inbox"><MobileInbox /></Route>
     <Route path="/orders"><Shell><OrderControl /></Shell></Route>
     <Route path="/order-editor"><Shell><OrderEditor /></Shell></Route>
     <Route path="/script-atelier"><Shell><ScriptAtelier /></Shell></Route>
     <Route path="/parcel-mapping"><Shell><ParcelMapping /></Shell></Route>
     <Route path="/chats"><Shell><ChatHub /></Shell></Route>
+    <Route path="/line-chat"><Shell><LineChat /></Shell></Route>
     <Route path="/close-job-history"><Shell><CloseJobHistory /></Shell></Route>
     <Route path="/telegram-delivery"><Shell><TelegramDeliveryRoom /></Shell></Route>
     <Route path="/andromeda"><Shell><TelegramDeliveryRoom /></Shell></Route>
@@ -49,7 +63,7 @@ function Router() {
     <Route path="/order-buckets"><Shell><OrderBuckets /></Shell></Route>
     <Route path="/daily-chat-summary"><Shell><DailyChatSummary /></Shell></Route>
     <Route path="/order-history"><Shell><OrderHistory /></Shell></Route>
-    <Route path="/"><Redirect to="/orders" /></Route>
+    <Route path="/"><HomeRoute /></Route>
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />
   </Switch>;

@@ -98,18 +98,81 @@ async function fetchChatRows(filter: ChatReadFilter = {}, credentials?: ChatSupa
     ...pageRows.map(row => ({ ...row, _source_table: CHAT_PAGE_TABLE })),
   ];
 }
-export async function fetchChatThreadRows(credentials?: ChatSupabaseCredentials) {
-  return fetchChatRows({}, credentials);
+function isChatStatusEnabled(value: unknown) {
+  const status = String(value ?? "").trim().toUpperCase();
+  if (!status) return false;
+  if (["OFF", "FALSE", "0", "INACTIVE", "DISABLED", "CLOSED", "ปิด", "ปิดใช้งาน"].some(disabled => status === disabled || status.includes(disabled))) return false;
+  return ["ON", "TRUE", "1", "ACTIVE", "เปิด", "เปิดใช้งาน", "ใช้งาน", "✅", "🟢"].some(enabled => status === enabled || status.includes(enabled));
 }
-export async function fetchChatMessageRows(input: { pageId: string; threadId: string }, credentials?: ChatSupabaseCredentials) {
+function effectiveWebStatus(row: Record<string, unknown>) {
+  return Object.prototype.hasOwnProperty.call(row, "status_web") && String(row.status_web ?? "").trim() ? row.status_web : row.status;
+}
+function effectiveChatStatus(row: Record<string, unknown>, surface: "web" | "mobile") {
+  return surface === "mobile" ? row.status : effectiveWebStatus(row);
+}
+async function getActiveChatPageIds(credentials?: ChatSupabaseCredentials, surface: "web" | "mobile" = "web") {
+  const query = new URLSearchParams({ select: "page_id,status,status_web", limit: "5000" });
+  const rows = await supabaseGet<Array<Record<string, unknown>>>(`${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?${query.toString()}`, "chat", credentials);
+  if (!rows.some(row => Object.prototype.hasOwnProperty.call(row, "status_web") || Object.prototype.hasOwnProperty.call(row, "status"))) return null;
+  return new Set(rows.filter(row => isChatStatusEnabled(effectiveChatStatus(row, surface))).map(row => String(row.page_id ?? "").trim()).filter(Boolean));
+}
+export async function fetchChatPages(credentials?: ChatSupabaseCredentials) {
+  const query = new URLSearchParams({ select: "page_id,page_name,status,status_web", order: "page_name.asc", limit: "5000" });
+  const rows = await supabaseGet<Array<Record<string, unknown>>>(`${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?${query.toString()}`, "chat", credentials);
+  return rows.map(row => ({ pageId: String(row.page_id ?? "").trim(), pageName: String(row.page_name ?? "ไม่ระบุเพจ").trim() || "ไม่ระบุเพจ", status: row.status ?? null, statusWeb: row.status_web ?? row.status ?? null, enabledMobile: isChatStatusEnabled(row.status), enabledWeb: isChatStatusEnabled(effectiveWebStatus(row)) })).filter(row => row.pageId);
+}
+export async function setChatPageWebStatus(pageId: string, enabled: boolean, credentials?: ChatSupabaseCredentials) {
+  const query = `${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?page_id=eq.${encodeURIComponent(pageId)}`;
+  return supabasePatch<Array<Record<string, unknown>>>(query, { status_web: enabled ? "ON" : "OFF" }, "chat", credentials);
+}
+export async function assertChatPageEnabled(pageId: string, credentials?: ChatSupabaseCredentials, surface: "web" | "mobile" = "web") {
+  const activeIds = await getActiveChatPageIds(credentials, surface);
+  if (activeIds && !activeIds.has(pageId.trim())) throw new Error("เพจนี้ถูกปิดใช้งานโดยผู้ดูแลระบบ");
+}
+export async function fetchChatThreadRows(credentials?: ChatSupabaseCredentials, surface: "web" | "mobile" = "web") {
+  const [rows, activeIds] = await Promise.all([fetchChatRows({}, credentials), getActiveChatPageIds(credentials, surface)]);
+  return activeIds ? rows.filter(row => activeIds.has(String(row.page_id ?? "").trim())) : rows;
+}
+export async function fetchChatNotificationRows(afterRowId: string | null, credentials?: ChatSupabaseCredentials) {
+  const relation = encodeURIComponent(CHAT_CUSTOMER_TABLE);
+  if (afterRowId === null) {
+    const query = new URLSearchParams({ select: "message_row_id", order: "message_row_id.desc", limit: "1" });
+    const latest = await supabaseGet<Array<Record<string, unknown>>>(`${relation}?${query.toString()}`, "chat", credentials);
+    return { rows: [], cursorRowId: String(latest[0]?.message_row_id ?? "0") };
+  }
+  if (!/^\d+$/.test(afterRowId)) throw new Error("Chat notification cursor ไม่ถูกต้อง");
+
+  const pageSize = 1000;
+  const rows: Array<Record<string, unknown>> = [];
+  let pageCursor = BigInt(afterRowId).toString();
+  while (true) {
+    const query = new URLSearchParams({
+      select: "*",
+      message_row_id: `gt.${pageCursor}`,
+      order: "message_row_id.asc",
+      limit: String(pageSize),
+    });
+    const page = await supabaseGet<Array<Record<string, unknown>>>(`${relation}?${query.toString()}`, "chat", credentials);
+    if (!Array.isArray(page)) throw new Error("Chat notification response ไม่ใช่รายการข้อมูล");
+    rows.push(...page.map(row => ({ ...row, _source_table: CHAT_CUSTOMER_TABLE })));
+    if (page.length < pageSize) break;
+
+    const lastRowId = String(page[page.length - 1]?.message_row_id ?? "");
+    if (!/^\d+$/.test(lastRowId) || BigInt(lastRowId) <= BigInt(pageCursor)) {
+      throw new Error("Chat notification page cursor ไม่ขยับ; หยุดเพื่อป้องกันการข้ามข้อความ");
+    }
+    pageCursor = lastRowId;
+  }
+  const cursorRowId = String(rows[rows.length - 1]?.message_row_id ?? afterRowId);
+  return { rows, cursorRowId };
+}
+export async function fetchChatMessageRows(input: { pageId: string; threadId: string }, credentials?: ChatSupabaseCredentials, surface: "web" | "mobile" = "web") {
+  await assertChatPageEnabled(input.pageId, credentials, surface);
   return fetchChatRows({ pageId: input.pageId, threadId: input.threadId }, credentials, true);
 }
 const CHAT_CONNECTION_CHECKS = [
-  { name: CHAT_CUSTOMER_TABLE, columns: "id,page_id,thread_id,message_text,phone" },
-  { name: CHAT_PAGE_TABLE, columns: "id,page_id,thread_id,message_text" },
-  { name: CHAT_MATRIX_VIEW, columns: "id,page_id,thread_id,speaker,message_text" },
-  { name: "🌓VAGABOND_xXx_DISMISS", columns: "id" },
-  { name: "🏴‍☠️SIRIUS_xXx_CRASH", columns: "case_id" },
+  { name: CHAT_CUSTOMER_TABLE, columns: "id,page_id,thread_id,message_text,customer_message_text,phone" },
+  { name: CHAT_PAGE_TABLE, columns: "id,page_id,thread_id,message_text,page_message_text" },
   { name: CHAT_PAGE_TOKEN_TABLE, columns: "page_id,access_token" },
 ] as const;
 export async function checkChatConnection(credentials?: ChatSupabaseCredentials) {
@@ -121,13 +184,14 @@ export async function checkChatConnection(credentials?: ChatSupabaseCredentials)
   return { checked: CHAT_CONNECTION_CHECKS.map(({ name }) => name) };
 }
 export async function supabasePost<T>(path: string, body: unknown, project: SupabaseProject = "main", prefer?: string, browserChatCredentials?: ChatSupabaseCredentials): Promise<T> { const { baseUrl, key } = config(project, browserChatCredentials); const headers: Record<string, string> = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" }; if (prefer) headers.Prefer = prefer; const response = await fetch(`${baseUrl}/rest/v1/${path}`, { method: "POST", headers, body: JSON.stringify(body) }); if (!response.ok) throw new Error(`Supabase returned HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`); return response.json() as Promise<T>; }
+export async function supabasePatch<T>(path: string, body: unknown, project: SupabaseProject = "main", browserChatCredentials?: ChatSupabaseCredentials): Promise<T> { const { baseUrl, key } = config(project, browserChatCredentials); const response = await fetch(`${baseUrl}/rest/v1/${path.replace(/^\/+/, "")}`, { method: "PATCH", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=representation" }, body: JSON.stringify(body) }); if (!response.ok) throw new Error(`Supabase returned HTTP ${response.status}: ${(await response.text()).slice(0, 500)}`); const text = await response.text(); return (text ? JSON.parse(text) : []) as T; }
 export async function recordOutgoingChatMessage(input: { portalKey?: string; chatLinkKey?: string; pageId: string; pageName?: string; threadId: string; recipientId: string; messageId?: string; text?: string; occurredAt?: Date }, credentials?: ChatSupabaseCredentials) {
   const occurredAt = input.occurredAt ?? new Date();
   const iso = occurredAt.toISOString();
   const messageId = input.messageId?.trim() || null;
   const chatLinkKey = input.chatLinkKey?.trim() || `${input.pageId}_t_${input.threadId}`;
   const payload = { chat_link_key: chatLinkKey, page_id: input.pageId, page_name: input.pageName?.trim() || null, portal_key: input.portalKey?.trim() || null, thread_id: input.threadId, recipient_id: input.recipientId, message_id: messageId, speaker: "page", is_sent: true, time: iso, occurred_at: iso, message_time_display: iso, message_text: input.text?.trim() || null, page_latest_message: input.text?.trim() || null, page_message_time_th: iso, sync_status: "SENT", dedupe_key: messageId ? `${chatLinkKey}:${messageId}` : `${chatLinkKey}:${iso}` };
-  const pageMessagePayload = { chat_link_key: chatLinkKey, page_id: input.pageId, page_name: input.pageName?.trim() || null, portal_key: input.portalKey?.trim() || null, thread_id: input.threadId, recipient_id: input.recipientId, sender_id: input.pageId, sender_name: input.pageName?.trim() || null, speaker_type: "page", speaker: "page", side: "right", is_sent: true, message_id: messageId, message_text: input.text?.trim() || null, time: iso, occurred_at: iso, dedupe_key: messageId ? `${chatLinkKey}:${messageId}` : `${chatLinkKey}:${iso}` };
+  const pageMessagePayload = { chat_link_key: chatLinkKey, page_id: input.pageId, page_name: input.pageName?.trim() || null, portal_key: input.portalKey?.trim() || null, thread_id: input.threadId, recipient_id: input.recipientId, sender_id: input.pageId, sender_name: input.pageName?.trim() || null, speaker_type: "page", speaker: "page", side: "right", is_sent: true, message_id: messageId, page_message_text: input.text?.trim() || null, message_text: input.text?.trim() || null, time: iso, occurred_at: iso, dedupe_key: messageId ? `${chatLinkKey}:${messageId}` : `${chatLinkKey}:${iso}` };
   // เพิ่มแถวใหม่ต่อทุกข้อความตอบกลับ; ไม่ใช้ upsert หรือบังคับ unique key
   try { await supabasePost<Record<string, unknown>[]>(encodeURIComponent(CHAT_PAGE_TABLE), pageMessagePayload, "chat", "return=representation", credentials); }
   catch (error) { console.error("[chat] canonical page-message write failed", error); }

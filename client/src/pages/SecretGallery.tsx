@@ -14,11 +14,14 @@ import {
   LogOut,
   MessageCircle,
   PackageOpen,
+  Palette,
   Pencil,
+  Play,
   Search,
   Save,
   Sparkles,
   Trash2,
+  Volume2,
   X,
 } from "lucide-react";
 import {
@@ -44,7 +47,9 @@ import {
 } from "@/lib/canonical";
 import { trpc } from "@/lib/trpc";
 import { clearBrowserChatConfig, readBrowserChatConfig, saveBrowserChatConfig } from "@/lib/chat-config";
-import { THEME_LAB_ROOMS, readThemeLab, saveThemeLab, type ThemeLabSettings } from "@/lib/theme-lab";
+import { CyberFrameVault } from "@/components/CyberFrameVault";
+import { CustomizationAdmin } from "@/components/CustomizationAdmin";
+import { CYBER_THEME_PRESETS, readCyberTheme, saveCyberTheme, type CyberTheme } from "@/lib/theme-lab";
 
 type CodeLanguage = "sql" | "java" | "md";
 type VaultDoc = {
@@ -60,24 +65,8 @@ const ROOM_PASSWORD = "1234";
 const DOCS_KEY = "nightops-secret-vault-v2";
 const IMAGES_KEY = "nightops-secret-gallery-v1";
 const SOUND_KEY = "nightops-chat-sound-v1";
-const FRAME_LAB_KEY = "nightops-cyber-frame-lab-v1";
-type FrameLabSettings = {
-  accent: string;
-  secondary: string;
-  borderWidth: number;
-  radius: number;
-  glow: number;
-  mode: "pulse" | "scan" | "static";
-};
-const DEFAULT_FRAME_LAB: FrameLabSettings = {
-  accent: "#39ffb6",
-  secondary: "#c44dff",
-  borderWidth: 2,
-  radius: 22,
-  glow: 70,
-  mode: "pulse",
-};
-type ChatSoundSettings = { enabled: boolean; tone: "ping" | "bell" | "pop"; volume: number };
+type ChatSoundSettings = { enabled: boolean; tone: "ping" | "bell" | "pop"; volume: number; soundKey?: string };
+type SoundRow = { sound_key: string; name: string; event_type: string; storage_bucket: string | null; storage_path: string | null; mime_type: string | null; volume: number | null; is_enabled: boolean };
 const DEFAULT_SOUND_SETTINGS: ChatSoundSettings = { enabled: true, tone: "ping", volume: 0.35 };
 const languageMeta: Record<
   CodeLanguage,
@@ -140,17 +129,21 @@ export default function SecretGallery() {
   const [soundSettings, setSoundSettings] = useState<ChatSoundSettings>(() =>
     readLocal(SOUND_KEY, DEFAULT_SOUND_SETTINGS)
   );
-  const [frameLab, setFrameLab] = useState<FrameLabSettings>(() =>
-    readLocal(FRAME_LAB_KEY, DEFAULT_FRAME_LAB)
-  );
-  const [themeLab, setThemeLab] = useState<ThemeLabSettings>(() => readThemeLab());
-  const [savedThemeLab, setSavedThemeLab] = useState<ThemeLabSettings>(() => readThemeLab());
+  const [soundFile, setSoundFile] = useState<File | null>(null);
+  const [soundName, setSoundName] = useState("");
+  const [soundEvent, setSoundEvent] = useState<"new_message" | "message_sent" | "message_failed" | "new_order" | "custom">("custom");
+  const [soundUploadMessage, setSoundUploadMessage] = useState("");
+  const [soundRows, setSoundRows] = useState<SoundRow[]>([]);
+  const [selectedSoundKey, setSelectedSoundKey] = useState("");
+  const [soundListBusy, setSoundListBusy] = useState(false);
+  const soundFileRef = useRef<HTMLInputElement>(null);
   const [activeId, setActiveId] = useState<string | null>(
     () => readLocal<VaultDoc[]>(DOCS_KEY, [])[0]?.id ?? null
   );
   const [draggedDocId, setDraggedDocId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<"vault" | "images" | "connect">("vault");
+  const [view, setView] = useState<"vault" | "images" | "connect" | "cyber" | "theme" | "sound">("vault");
+  const [cyberTheme, setCyberTheme] = useState<CyberTheme>(() => readCyberTheme());
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [preview, setPreview] = useState<GalleryItem | null>(null);
@@ -158,23 +151,35 @@ export default function SecretGallery() {
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
   const [imageMessage, setImageMessage] = useState("");
-  const setGalleryView = (next: "vault" | "images" | "connect") => {
+  const setGalleryView = (next: "vault" | "images" | "connect" | "cyber" | "theme" | "sound") => {
     setView(next);
     setLocation(
       next === "images"
         ? "/secret-gallery/images"
         : next === "connect"
           ? "/secret-gallery/connect"
-          : "/secret-gallery"
+          : next === "cyber"
+            ? "/secret-gallery?tab=cyber-frames"
+            : next === "theme"
+              ? "/secret-gallery?tab=theme"
+              : next === "sound"
+                ? "/secret-gallery?tab=sound"
+                : "/secret-gallery"
     );
   };
   useEffect(() => {
     setView(
-      location === "/secret-gallery/images"
-        ? "images"
+        location === "/secret-gallery/images"
+          ? "images"
         : location === "/secret-gallery/connect"
           ? "connect"
-          : "vault"
+          : location.includes("tab=cyber-frames")
+            ? "cyber"
+            : location.includes("tab=theme")
+              ? "theme"
+              : location.includes("tab=sound")
+                ? "sound"
+                : "vault"
     );
   }, [location]);
   const activeDoc = docs.find(doc => doc.id === activeId) ?? null;
@@ -213,30 +218,60 @@ export default function SecretGallery() {
     localStorage.setItem(SOUND_KEY, JSON.stringify(soundSettings));
   }, [soundSettings]);
   useEffect(() => {
-    localStorage.setItem(FRAME_LAB_KEY, JSON.stringify(frameLab));
-  }, [frameLab]);
-  const commitThemeLab = () => {
-    saveThemeLab(themeLab);
-    setSavedThemeLab(themeLab);
+    localStorage.setItem(SOUND_KEY, JSON.stringify({ ...soundSettings, soundKey: selectedSoundKey || undefined }));
+  }, [selectedSoundKey, soundSettings]);
+  const loadSoundRows = useCallback(async () => {
+    const api = getSupabase("vault");
+    if (!api) return;
+    setSoundListBusy(true);
+    const result = await api.from("app_sounds").select("sound_key,name,event_type,storage_bucket,storage_path,mime_type,volume,is_enabled").eq("is_enabled", true).order("sort_order", { ascending: true });
+    if (!result.error) {
+      const nextRows = (result.data ?? []) as SoundRow[];
+      setSoundRows(nextRows);
+      setSelectedSoundKey(current => current && nextRows.some(row => row.sound_key === current) ? current : nextRows[0]?.sound_key ?? "");
+    }
+    setSoundListBusy(false);
+  }, []);
+  useEffect(() => { if (view === "sound" && unlocked) void loadSoundRows(); }, [loadSoundRows, view, unlocked]);
+  const uploadSoundFile = async () => {
+    const file = soundFile;
+    if (!file) { setSoundUploadMessage("เลือกไฟล์เสียงก่อนครับ"); return; }
+    if (!file.type.startsWith("audio/")) { setSoundUploadMessage("รองรับเฉพาะไฟล์เสียงเท่านั้น"); return; }
+    if (file.size > 20_000_000) { setSoundUploadMessage("ไฟล์เสียงต้องไม่เกิน 20 MB"); return; }
+    const assets = getSupabaseConfig(camp, "vault");
+    if (!assets) { setSoundUploadMessage("กรุณาตั้งค่า Private Vault URL และ Anon/Publishable Key ใน ROOM 04 ก่อน"); return; }
+    const api = getSupabase("vault");
+    if (!api) { setSoundUploadMessage("สร้าง Assets Supabase client ไม่สำเร็จ"); return; }
+    const name = soundName.trim() || file.name.replace(/\.[^.]+$/, "");
+    const safeName = name.toLowerCase().replace(/[^a-z0-9ก-๙]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "custom-sound";
+    const extension = file.name.split(".").pop()?.toLowerCase() || "audio";
+    const storagePath = `sounds/${Date.now()}-${safeName}.${extension}`;
+    setSoundUploadMessage("กำลังโยนไฟล์เสียง…");
+    try {
+      const upload = await api.storage.from("chat-sounds").upload(storagePath, file, { contentType: file.type, upsert: false });
+      if (upload.error) throw upload.error;
+      const soundKey = `sound-${safeName}-${Date.now()}`;
+      const insert = await api.from("app_sounds").insert({ sound_key: soundKey, name, description: `อัปโหลดจาก Secret Gallery · ${file.name}`, event_type: soundEvent, storage_bucket: "chat-sounds", storage_path: storagePath, mime_type: file.type, volume: soundSettings.volume, is_enabled: true, sort_order: 100 });
+      if (insert.error) { await api.storage.from("chat-sounds").remove([storagePath]); throw insert.error; }
+      setSoundUploadMessage(`บันทึกแล้ว · ${name}`);
+      setSoundFile(null); setSoundName("");
+      if (soundFileRef.current) soundFileRef.current.value = "";
+      await loadSoundRows();
+    } catch (error) {
+      setSoundUploadMessage(`โยนไฟล์ไม่สำเร็จ: ${error instanceof Error ? error.message : String(error)}`);
+    }
   };
-  const themeLabDirty = JSON.stringify(themeLab) !== JSON.stringify(savedThemeLab);
-  const previewSound = () => {
-    if (typeof window === "undefined") return;
-    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const context = new AudioContextClass();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const frequency = soundSettings.tone === "bell" ? 880 : soundSettings.tone === "pop" ? 520 : 660;
-    oscillator.type = soundSettings.tone === "pop" ? "square" : "sine";
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(Math.max(0.01, soundSettings.volume), context.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + (soundSettings.tone === "bell" ? 0.42 : 0.18));
-    oscillator.connect(gain).connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.45);
-    window.setTimeout(() => void context.close(), 700);
+  const previewSound = async () => {
+    const selected = soundRows.find(row => row.sound_key === selectedSoundKey);
+    if (!selected?.storage_path) { setSoundUploadMessage("ยังไม่มีไฟล์เสียงจริงให้ทดลองเล่น"); return; }
+    const api = getSupabase("vault");
+    if (!api) return;
+    const bucket = selected.storage_bucket || "chat-sounds";
+    const signed = await api.storage.from(bucket).createSignedUrl(selected.storage_path, 3600);
+    if (signed.error || !signed.data?.signedUrl) { setSoundUploadMessage(`เปิดเสียงไม่สำเร็จ: ${signed.error?.message || "หาไฟล์ไม่เจอ"}`); return; }
+    const audio = new Audio(signed.data.signedUrl);
+    audio.volume = Math.max(0, Math.min(1, Number(selected.volume ?? soundSettings.volume)));
+    await audio.play();
   };
   const saveConnection = async () => {
     setConnectionBusy(true);
@@ -328,7 +363,7 @@ export default function SecretGallery() {
       if (!api) throw new Error("สร้าง Private Vault Supabase client ไม่สำเร็จ");
       const { error: authError } = await api.auth.getSession();
       if (authError) throw authError;
-      setVaultMessage("เชื่อมต่อแล้ว · ใช้ sales_script_cards + sales-script-images");
+      setVaultMessage("เชื่อมต่อแล้ว · ใช้ sales_script_cards + sales-script-images + app_sounds + chat-sounds");
     } catch (e) {
       setVaultMessage(e instanceof Error ? e.message : String(e));
     } finally {
@@ -614,10 +649,10 @@ export default function SecretGallery() {
                 <label className="grid gap-1 text-[11px] text-cyan-100/70">CHAT SUPABASE URL<Input value={chatUrl} onChange={event => setChatUrl(event.target.value)} placeholder="https://zxmczmgmtbnammtljdls.supabase.co" className="border-cyan-300/25 bg-black/35 text-white placeholder:text-cyan-100/30" /></label>
                 <label className="grid gap-1 text-[11px] text-cyan-100/70">CHAT SERVICE-ROLE KEY<Input type="password" autoComplete="new-password" value={chatServiceRoleKey} onChange={event => setChatServiceRoleKey(event.target.value)} placeholder="วาง service-role key ของโปรเจกต์ Chat" className="border-cyan-300/25 bg-black/35 font-mono text-white placeholder:text-cyan-100/30" /></label>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" onClick={() => void saveAndCheckChatConnection()} disabled={chatBusy} className="bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-600 text-[#06101e] shadow-[0_0_22px_rgba(34,211,238,.3)] hover:brightness-110">{chatBusy ? "กำลังตรวจ…" : "บันทึกและตรวจ Chat"}</Button>
+              <div className="flex min-h-10 flex-wrap items-center gap-2">
+                <Button type="button" onClick={() => void saveAndCheckChatConnection()} disabled={chatBusy} className="w-56 justify-center bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-600 text-[#06101e] shadow-[0_0_22px_rgba(34,211,238,.3)] hover:brightness-110">{chatBusy ? "กำลังตรวจ…" : "บันทึกและตรวจ Chat"}</Button>
                 <Button type="button" variant="outline" onClick={clearChatBrowserConnection} className="border-cyan-300/25 bg-black/20 text-cyan-100 hover:bg-cyan-300/10">ล้างค่า</Button>
-                <span className="text-xs text-cyan-100/70">{chatMessage}</span>
+                <span className="min-h-5 text-xs text-cyan-100/70" aria-live="polite">{chatMessage}</span>
               </div>
               <p className="text-[10px] leading-4 text-cyan-100/45">เก็บเฉพาะ browser นี้ · ถ้าไม่กรอก ระบบจะไม่เรียกฐานข้อมูลแชท · ไม่ fallback ไป Main/Tracking หรือ table/token column อื่น</p>
             </CardContent>
@@ -657,72 +692,6 @@ export default function SecretGallery() {
             <p className="text-[10px] leading-4 text-emerald-100/45 md:col-span-2">ใส่เฉพาะ Anon/Publishable Key · ห้ามใส่ service-role · ตารางของภาพ สคริปต์ และบทความจะกำหนดแยกในแต่ละฟีเจอร์</p>
           </CardContent>
         </Card>
-        <Card className="neon-card rounded-3xl border-fuchsia-400/20 bg-black/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-white"><span className="text-lg">🔔</span> LOCAL VAULT · AUTOSAVE · เสียงแจ้งเตือนแชท</CardTitle>
-            <p className="text-xs text-fuchsia-100/50">ตั้งค่าเก็บไว้ในเครื่องนี้เท่านั้น ไม่ส่งไป Supabase</p>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-[auto_1fr_1fr_auto] md:items-center">
-            <label className="flex items-center gap-2 text-sm text-white"><input type="checkbox" checked={soundSettings.enabled} onChange={event => setSoundSettings(current => ({ ...current, enabled: event.target.checked }))} className="h-4 w-4 accent-fuchsia-500" /> เปิดเสียง</label>
-            <label className="grid gap-1 text-xs text-fuchsia-100/60">โทนเสียง<select value={soundSettings.tone} onChange={event => setSoundSettings(current => ({ ...current, tone: event.target.value as ChatSoundSettings["tone"] }))} className="h-9 rounded-lg border border-fuchsia-400/20 bg-[#160d22] px-2 text-sm text-white"><option value="ping">Ping · ใส</option><option value="bell">Bell · กังวาน</option><option value="pop">Pop · สั้น</option></select></label>
-            <label className="grid gap-1 text-xs text-fuchsia-100/60">ระดับเสียง · {Math.round(soundSettings.volume * 100)}%<input type="range" min="0.05" max="1" step="0.05" value={soundSettings.volume} onChange={event => setSoundSettings(current => ({ ...current, volume: Number(event.target.value) }))} className="accent-cyan-400" /></label>
-            <Button type="button" variant="outline" onClick={previewSound} className="border-cyan-400/25 text-cyan-200">ทดสอบเสียง</Button>
-          </CardContent>
-        </Card>
-        <Card className="neon-card relative overflow-hidden rounded-3xl border-cyan-300/25 bg-[radial-gradient(ellipse_at_top_right,rgba(34,211,238,.14),transparent_42%),linear-gradient(135deg,rgba(8,20,38,.96),rgba(22,8,38,.94))]">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full border border-cyan-300/15 shadow-[0_0_70px_rgba(34,211,238,.2)]" />
-          <CardHeader className="relative">
-            <CardTitle className="flex items-center gap-2 text-sm text-white"><Sparkles className="h-4 w-4 text-cyan-300" /> CYBER FRAME LAB · ทดลองขอบการ์ด</CardTitle>
-            <p className="text-xs text-cyan-100/55">กดแล้วเห็นผลทันที · บันทึกเฉพาะเครื่องนี้ · ยังไม่เปลี่ยนหน้าห้องหลัก</p>
-          </CardHeader>
-          <CardContent className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,420px)]">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <label className="grid gap-1 text-xs text-cyan-100/65">สีหลัก
-                <span className="flex h-10 items-center gap-2 rounded-xl border border-cyan-300/20 bg-black/25 px-2"><input type="color" value={frameLab.accent} onChange={event => setFrameLab(current => ({ ...current, accent: event.target.value }))} className="h-7 w-9 cursor-pointer rounded border-0 bg-transparent" /><span className="font-mono text-[11px] text-white/70">{frameLab.accent}</span></span>
-              </label>
-              <label className="grid gap-1 text-xs text-fuchsia-100/65">สีรอง
-                <span className="flex h-10 items-center gap-2 rounded-xl border border-fuchsia-300/20 bg-black/25 px-2"><input type="color" value={frameLab.secondary} onChange={event => setFrameLab(current => ({ ...current, secondary: event.target.value }))} className="h-7 w-9 cursor-pointer rounded border-0 bg-transparent" /><span className="font-mono text-[11px] text-white/70">{frameLab.secondary}</span></span>
-              </label>
-              <label className="grid gap-1 text-xs text-cyan-100/65">โหมดไฟ
-                <select value={frameLab.mode} onChange={event => setFrameLab(current => ({ ...current, mode: event.target.value as FrameLabSettings["mode"] }))} className="h-10 rounded-xl border border-cyan-300/20 bg-[#0b1222] px-3 text-sm text-white"><option value="pulse">PULSE · เต้น</option><option value="scan">SCAN · ปาด</option><option value="static">STATIC · นิ่ง</option></select>
-              </label>
-              <label className="grid gap-1 text-xs text-cyan-100/65">ความหนาขอบ · {frameLab.borderWidth}px<input type="range" min="1" max="5" value={frameLab.borderWidth} onChange={event => setFrameLab(current => ({ ...current, borderWidth: Number(event.target.value) }))} className="accent-cyan-400" /></label>
-              <label className="grid gap-1 text-xs text-cyan-100/65">ความโค้ง · {frameLab.radius}px<input type="range" min="4" max="36" value={frameLab.radius} onChange={event => setFrameLab(current => ({ ...current, radius: Number(event.target.value) }))} className="accent-fuchsia-400" /></label>
-              <label className="grid gap-1 text-xs text-cyan-100/65">ความสว่าง · {frameLab.glow}%<input type="range" min="10" max="100" value={frameLab.glow} onChange={event => setFrameLab(current => ({ ...current, glow: Number(event.target.value) }))} className="accent-violet-400" /></label>
-              <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-3">
-                {[["COSMIC", "#39ffb6", "#c44dff"], ["CYBER PINK", "#ff4fd8", "#5ce1ff"], ["VIOLET CORE", "#a855f7", "#facc15"]].map(([label, accent, secondary]) => <Button key={label} type="button" variant="outline" onClick={() => setFrameLab(current => ({ ...current, accent, secondary }))} className="border-cyan-300/20 bg-black/20 text-[10px] text-cyan-100 hover:border-cyan-200/60">{label}</Button>)}
-                <Button type="button" variant="outline" onClick={() => setFrameLab(DEFAULT_FRAME_LAB)} className="border-pink-300/20 bg-black/20 text-[10px] text-pink-100">คืนค่าเดิม</Button>
-              </div>
-            </div>
-            <div className="relative min-h-[190px] overflow-hidden rounded-3xl border border-white/10 bg-black/25 p-3">
-              <div className={`relative flex h-full min-h-[160px] flex-col justify-between overflow-hidden p-5 ${frameLab.mode === "static" ? "" : "animate-pulse"}`} style={{ border: `${frameLab.borderWidth}px solid ${frameLab.accent}`, borderRadius: `${frameLab.radius}px`, background: `linear-gradient(135deg, ${frameLab.accent}12, ${frameLab.secondary}18 55%, rgba(2,6,23,.94))`, boxShadow: `0 0 ${Math.round(frameLab.glow * 0.35)}px ${frameLab.accent}66, 0 0 ${frameLab.glow}px ${frameLab.secondary}33, inset 0 0 28px ${frameLab.accent}18` }}>
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${frameLab.secondary}, ${frameLab.accent}, transparent)` }} />
-                <div><p className="font-mono text-[10px] tracking-[0.25em]" style={{ color: frameLab.accent }}>FRAME PREVIEW · LIVE</p><h3 className="mt-2 text-xl font-semibold text-white">การ์ดนีออนของจารย์</h3><p className="mt-1 text-xs text-white/55">ปรับค่าด้านซ้าย แล้วดูแสงขอบเปลี่ยนทันที</p></div>
-                <div className="flex items-center justify-between text-[10px] text-white/55"><span style={{ color: frameLab.secondary }}>LOCAL AUTOSAVE</span><span>GLOW {frameLab.glow}%</span></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="neon-card relative overflow-hidden rounded-3xl border-fuchsia-300/25 bg-[#100817]">
-          <CardHeader className="relative">
-            <CardTitle className="flex items-center gap-2 text-sm text-white"><Code2 className="h-4 w-4 text-fuchsia-300" /> THEME LAB · ใส่ CSS ให้ห้องจริง</CardTitle>
-            <p className="text-xs text-fuchsia-100/55">ติ๊กห้องปลายทาง แล้ววางโค้ด CSS ที่คัดลอกจากหน้าเว็บได้เลย · มีผลเฉพาะห้องที่เลือก</p>
-          </CardHeader>
-          <CardContent className="relative grid gap-4 lg:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]">
-            <div className="grid content-start gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/60">เลือกห้องที่จะเปลี่ยน</p>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                {THEME_LAB_ROOMS.map(room => <label key={room.key} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs transition ${themeLab.rooms.includes(room.key) ? "border-cyan-300/55 bg-cyan-300/10 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/20 text-white/55 hover:border-fuchsia-300/30"}`}><input type="checkbox" checked={themeLab.rooms.includes(room.key)} onChange={event => setThemeLab(current => ({ ...current, rooms: event.target.checked ? [...current.rooms, room.key] : current.rooms.filter(item => item !== room.key) }))} className="h-4 w-4 accent-cyan-400" /><span>{room.label}</span></label>)}
-              </div>
-              <p className="text-[10px] leading-4 text-white/35">ถ้าไม่ติ๊กห้องใด CSS จะยังไม่ถูกฉีดเข้าไป · ค่าเก็บใน browser นี้เท่านั้น</p>
-            </div>
-            <div className="grid gap-2">
-              <div className="flex flex-wrap items-center justify-between gap-2"><label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fuchsia-200/70">CUSTOM CSS · CARD FRAME</label><div className="flex gap-2"><Button type="button" variant="outline" onClick={() => void navigator.clipboard?.writeText(themeLab.css)} className="h-7 border-cyan-300/20 bg-black/20 px-2 text-[10px] text-cyan-100">คัดลอก CSS</Button><Button type="button" variant="outline" onClick={() => setThemeLab({ rooms: [], css: "" })} className="h-7 border-pink-300/20 bg-black/20 px-2 text-[10px] text-pink-100">ล้าง</Button></div></div>
-              <textarea value={themeLab.css} onChange={event => setThemeLab(current => ({ ...current, css: event.target.value }))} spellCheck={false} className="min-h-[210px] w-full resize-y rounded-2xl border border-fuchsia-300/20 bg-[#080611] p-4 font-mono text-xs leading-5 text-cyan-100 outline-none placeholder:text-white/25 focus:border-cyan-300/55" placeholder={'/* วาง CSS จากหน้าเว็บตรงนี้ */\n.neon-card {\n  border: 2px solid #39ffb6;\n  box-shadow: 0 0 24px #39ffb666;\n}'} />
-              <div className="flex flex-wrap items-center justify-between gap-2"><span className={`text-[10px] ${themeLabDirty ? "text-amber-300/80" : "text-emerald-300/80"}`}>{themeLabDirty ? (themeLab.rooms.length ? `แก้ไขค้างอยู่ · เลือก ${themeLab.rooms.length} ห้อง` : "ยังไม่ได้เลือกห้อง") : themeLab.rooms.length ? `บันทึกแล้ว · ใช้กับ ${themeLab.rooms.length} ห้อง` : "ยังไม่ได้เลือกห้อง"}</span><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => setThemeLab(current => ({ ...current, css: `/* CYBER FRAME · แก้ selector ได้ตามต้องการ */\n.neon-card {\n  border-color: #39ffb6 !important;\n  box-shadow: 0 0 26px #39ffb666, inset 0 0 18px #c44dff22 !important;\n}` }))} className="h-8 border-fuchsia-300/20 bg-black/20 px-3 text-[10px] text-fuchsia-100">ใส่ CSS ตัวอย่าง</Button><Button type="button" onClick={commitThemeLab} disabled={!themeLab.rooms.length || !themeLab.css.trim() || !themeLabDirty} className="h-8 bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-600 px-3 text-[10px] font-semibold text-[#06101e] disabled:opacity-40"><Save className="mr-1.5 h-3.5 w-3.5" />บันทึกและใช้จริง</Button></div></div>
-            </div>
-          </CardContent>
-        </Card>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -736,6 +705,34 @@ export default function SecretGallery() {
             >
               <Code2 className="mr-2 h-4 w-4" />
               CODE VAULT · {docs.length}
+            </Button>
+            <Button
+              onClick={() => setGalleryView("cyber")}
+              variant="outline"
+              className={
+                view === "cyber"
+                  ? "border-cyan-400/50 bg-cyan-500/15 text-cyan-200"
+                  : "border-white/10 bg-transparent text-white/60"
+              }
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              CYBER FRAME · 40 แบบ
+            </Button>
+            <Button
+              onClick={() => setGalleryView("theme")}
+              variant="outline"
+              className={view === "theme" ? "border-violet-400/50 bg-violet-500/15 text-violet-200" : "border-white/10 bg-transparent text-white/60"}
+            >
+              <Palette className="mr-2 h-4 w-4" />
+              ธีมแอป
+            </Button>
+            <Button
+              onClick={() => setGalleryView("sound")}
+              variant="outline"
+              className={view === "sound" ? "border-amber-400/50 bg-amber-500/15 text-amber-200" : "border-white/10 bg-transparent text-white/60"}
+            >
+              <Volume2 className="mr-2 h-4 w-4" />
+              เสียงแชท
             </Button>
             <Button
               onClick={() => setGalleryView("images")}
@@ -767,7 +764,25 @@ export default function SecretGallery() {
             LOCAL VAULT · AUTOSAVE
           </div>
         </div>
-        {view === "connect" ? (
+        {view === "theme" ? (
+          <>
+          <Card className="neon-card overflow-hidden rounded-3xl border-violet-400/25 bg-[#100c20]">
+            <CardHeader className="border-b border-violet-300/10"><CardTitle className="flex items-center gap-2 text-base text-white"><Palette className="h-5 w-5 text-violet-300" /> APPEARANCE THEME STUDIO · 20 แบบ</CardTitle><p className="text-xs leading-5 text-violet-100/60">เลือกธีมศูนย์กลางจากเว็บ แล้ว Mobile Inbox จะอ่านค่าชุดเดียวกันอัตโนมัติ</p></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{CYBER_THEME_PRESETS.map(preset => <button type="button" key={preset.name} onClick={() => { setCyberTheme(preset); saveCyberTheme(preset); }} className={`rounded-2xl border p-3 text-left transition ${cyberTheme.name === preset.name ? "border-violet-300 bg-violet-400/15 shadow-[0_0_22px_rgba(167,139,250,.22)]" : "border-white/10 bg-black/20 hover:border-cyan-300/40"}`} style={{ background: `linear-gradient(135deg, ${preset.bg}, ${preset.surface})` }}><span className="mb-3 block h-2 rounded-full" style={{ background: `linear-gradient(90deg, ${preset.primary}, ${preset.accent})` }} /><strong className="block truncate text-xs text-white">{preset.name}</strong><small className="mt-1 block text-[10px] text-white/50">{preset.border} · glow {preset.glow}</small>{cyberTheme.name === preset.name ? <Check className="mt-2 h-4 w-4 text-emerald-300" /> : null}</button>)}</CardContent>
+          </Card>
+          <CustomizationAdmin defaultType="theme" />
+          </>
+        ) : view === "sound" ? (
+          <>
+          <Card className="neon-card rounded-3xl border-amber-400/20 bg-[#171208]"><CardHeader><CardTitle className="flex items-center gap-2 text-base text-white"><Volume2 className="h-5 w-5 text-amber-300" /> SOUND LAB · เสียงแจ้งเตือนแชท</CardTitle><p className="text-xs leading-5 text-amber-100/60">ตั้งค่าเสียง และโยนไฟล์เสียงจริงเข้า chat-sounds พร้อมสร้างแถว app_sounds อัตโนมัติ</p></CardHeader><CardContent className="grid gap-4"><div className="grid gap-3 md:grid-cols-[auto_1fr_1fr_auto]"><label className="flex items-center gap-2 text-sm text-white"><input type="checkbox" checked={soundSettings.enabled} onChange={event => setSoundSettings(current => ({ ...current, enabled: event.target.checked }))} className="h-4 w-4 accent-amber-500" /> เปิดเสียง</label><label className="grid gap-1 text-xs text-amber-100/60">เสียงจาก ROOM 04<select value={selectedSoundKey} onChange={event => setSelectedSoundKey(event.target.value)} disabled={soundListBusy} className="h-9 rounded-lg border border-amber-400/20 bg-[#21170a] px-2 text-sm text-white"><option value="">{soundListBusy ? "กำลังโหลดเสียง…" : soundRows.length ? "เลือกเสียงที่อัปโหลด" : "ยังไม่มีเสียงในตาราง"}</option>{soundRows.map(row => <option key={row.sound_key} value={row.sound_key}>{row.name} · {row.event_type}</option>)}</select></label><label className="grid gap-1 text-xs text-amber-100/60">ระดับเสียง · {Math.round(soundSettings.volume * 100)}%<input type="range" min="0.05" max="1" step="0.05" value={soundSettings.volume} onChange={event => setSoundSettings(current => ({ ...current, volume: Number(event.target.value) }))} className="accent-amber-400" /></label><Button type="button" variant="outline" onClick={() => void previewSound()} disabled={!selectedSoundKey || soundListBusy} className="border-amber-400/30 text-amber-200"><Play className="mr-2 h-4 w-4" /> ทดลองเล่นเสียงจริง</Button></div><div className="grid gap-3 rounded-2xl border border-amber-300/15 bg-black/20 p-3 md:grid-cols-[1fr_1fr_auto]"><label className="grid gap-1 text-xs text-amber-100/60">ชื่อเสียง<Input value={soundName} onChange={event => setSoundName(event.target.value)} placeholder="เช่น Ragnarok · ปิดยอดสำเร็จ" /></label><label className="grid gap-1 text-xs text-amber-100/60">เหตุการณ์<select value={soundEvent} onChange={event => setSoundEvent(event.target.value as typeof soundEvent)} className="h-10 rounded-lg border border-amber-400/20 bg-[#21170a] px-2 text-sm text-white"><option value="custom">กำหนดเอง</option><option value="new_message">ข้อความใหม่</option><option value="message_sent">ส่งสำเร็จ</option><option value="message_failed">ส่งไม่สำเร็จ</option><option value="new_order">ออเดอร์ใหม่</option></select></label><div className="flex items-end gap-2"><input ref={soundFileRef} hidden type="file" accept="audio/*" onChange={event => setSoundFile(event.target.files?.[0] ?? null)} /><Button type="button" variant="outline" onClick={() => soundFileRef.current?.click()} className="border-cyan-400/30 text-cyan-200">เลือกไฟล์</Button><Button type="button" onClick={() => void uploadSoundFile()} disabled={!soundFile} className="bg-gradient-to-r from-amber-400 to-orange-500 text-black">โยนและบันทึก</Button></div><p className="text-[11px] text-amber-100/60 md:col-span-3">{soundFile ? `ไฟล์ที่เลือก: ${soundFile.name}` : "รองรับไฟล์เสียงไม่เกิน 20 MB"} · {soundUploadMessage}</p></div></CardContent></Card>
+          <CustomizationAdmin defaultType="sound" />
+          </>
+        ) : view === "cyber" ? (
+          <>
+          <CyberFrameVault />
+          <CustomizationAdmin defaultType="frame" />
+          </>
+        ) : view === "connect" ? (
           <ConnectSupabase />
         ) : view === "images" ? (
           <Card className="neon-card rounded-3xl border-fuchsia-500/20 bg-[#100817]">
