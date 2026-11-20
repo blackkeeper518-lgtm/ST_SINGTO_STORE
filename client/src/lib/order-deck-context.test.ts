@@ -4,7 +4,7 @@ import { buildOrderDeckContextMessage, getLatestBBChatCustomerMessage, getSelect
 describe("Order Deck chat context", () => {
   it("sends no page or customer data when the Order Deck is only opened", () => {
     const message = buildOrderDeckContextMessage({
-      pageName: "BB Store",
+      pageName: "ST Singto Store",
       selectedCustomerMessage: "อภิโชค เสระ 0655310082 ที่อยู่ลูกค้า",
     });
 
@@ -13,14 +13,14 @@ describe("Order Deck chat context", () => {
 
   it("sends the page name and only the one customer message after explicit import", () => {
     const message = buildOrderDeckContextMessage({
-      pageName: " BB Store ",
+      pageName: " ST Singto Store ",
       selectedCustomerMessage: "  อภิโชค เสระ 0655310082 ที่อยู่ลูกค้า  ",
     }, true);
 
     expect(message).toEqual({
       type: "BB_ORDER_DECK_CONTEXT",
       importSelectedCustomerMessage: true,
-      pageName: "BB Store",
+      pageName: "ST Singto Store",
       selectedCustomerMessage: "อภิโชค เสระ 0655310082 ที่อยู่ลูกค้า",
     });
     expect(message).not.toHaveProperty("customerMessages");
@@ -29,7 +29,7 @@ describe("Order Deck chat context", () => {
   });
 
   it("does not import the page when no message has been selected", () => {
-    const message = buildOrderDeckContextMessage({ pageName: "BB Store", selectedCustomerMessage: "  " }, true);
+    const message = buildOrderDeckContextMessage({ pageName: "ST Singto Store", selectedCustomerMessage: "  " }, true);
     expect(message).toEqual({ type: "BB_ORDER_DECK_CONTEXT" });
   });
 
@@ -74,7 +74,7 @@ describe("Order Deck chat context", () => {
   });
 
   it("caps imported text at 2,400 characters", () => {
-    const message = buildOrderDeckContextMessage({ pageName: "BB Store", selectedCustomerMessage: "x".repeat(3_000) }, true);
+    const message = buildOrderDeckContextMessage({ pageName: "ST Singto Store", selectedCustomerMessage: "x".repeat(3_000) }, true);
     expect(message).toMatchObject({ selectedCustomerMessage: "x".repeat(2_400) });
   });
 });

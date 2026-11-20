@@ -52,7 +52,7 @@ export const PROJECT_ROOM_GROUPS: { title: string; rooms: ProjectRoom[] }[] = [
       { table: "🔮SHADOW_xXx_RECALL", label: "Shadow Recall" },
       { table: "🛒product_master", label: "Product Master" },
       { table: "🦅ROGUE_xXx_SHIPPINGz", label: "Rogue Shipping" },
-      { table: "🧿BB_xXx_ORDERCONTROL", label: "BB Order Control" },
+      { table: "🧿ST_xXx_ORDERCONTROL", label: "ST Order Control" },
     ],
   },
   {

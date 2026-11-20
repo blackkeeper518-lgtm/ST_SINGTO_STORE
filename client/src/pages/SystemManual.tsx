@@ -871,7 +871,7 @@ export default function SystemManual() {
             <div>
               <div className="flex items-center gap-3">
                 <Download className="h-5 w-5 text-cyan-300" />
-                <h2 className="text-lg font-semibold text-white">คู่มือแอดมิน · ติดตั้ง BB STORE Inbox เป็นแอป</h2>
+                <h2 className="text-lg font-semibold text-white">คู่มือแอดมิน · ติดตั้ง ST SINGTO STORE Inbox เป็นแอป</h2>
               </div>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300/70">
                 เปิด Mobile Inbox ผ่าน Chrome บน Android หรือ Safari บน iPhone แล้วเพิ่มไว้ที่หน้าจอหลัก

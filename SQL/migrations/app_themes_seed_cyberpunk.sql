@@ -1,4 +1,4 @@
--- SUPHABASS / BB STORE
+-- SUPHABASS / ST SINGTO STORE
 -- Dynamic mobile-app themes. Run safely more than once.
 -- app_themes is the source of truth for the Mobile Inbox theme picker.
 

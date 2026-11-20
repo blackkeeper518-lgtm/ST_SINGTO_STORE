@@ -55,7 +55,7 @@ select
   ord.facebook_tracking_message
 from
   parcels parcel
-  left join "🧿BB_xXx_ORDERCONTROL" ord on regexp_replace(
+  left join "🧿ST_xXx_ORDERCONTROL" ord on regexp_replace(
     COALESCE(ord.phone, ''::text),
     '[^0-9]'::text,
     ''::text,

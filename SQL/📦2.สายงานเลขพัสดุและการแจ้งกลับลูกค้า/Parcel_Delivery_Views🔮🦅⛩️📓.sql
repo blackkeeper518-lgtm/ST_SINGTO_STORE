@@ -127,7 +127,7 @@ select
   ord.drakside_tracking_message,
   ord.chat_link_key
 from public."🔮SHADOW_xXx_RECALL" pcl
-join public."🧿BB_xXx_ORDERCONTROL" ord on ord.upsert_key = pcl.upsert_key
+join public."🧿ST_xXx_ORDERCONTROL" ord on ord.upsert_key = pcl.upsert_key
 where nullif(btrim(pcl.tracking_number), '') is not null
   and upper(btrim(coalesce(ord.facebook_tracking_status, ''))) not in ('SENT', 'DELIVERED', '🔥SENT', '⚡SENT', 'SENT_TO_TELEGRAM', 'SUCCESS', 'COMPLETED')
   and upper(btrim(coalesce(ord.parcel_status_emoji, ''))) not in ('SENT', 'DELIVERED', '🔥SENT', '⚡SENT', 'SENT_TO_TELEGRAM', 'SUCCESS', 'COMPLETED')
@@ -271,7 +271,7 @@ select
   ord.chat_link_key,
   ord.drakside_tracking_message
 from public.parcels parcel
-left join public."🧿BB_xXx_ORDERCONTROL" ord
+left join public."🧿ST_xXx_ORDERCONTROL" ord
   on regexp_replace(coalesce(ord.phone, ''), '[^0-9]', '', 'g') = regexp_replace(coalesce(parcel.phone_number, ''), '[^0-9]', '', 'g')
   or regexp_replace(coalesce(ord.extracted_phone, ''), '[^0-9]', '', 'g') = regexp_replace(coalesce(parcel.phone_number, ''), '[^0-9]', '', 'g')
   or regexp_replace(coalesce(ord.phone, ''), '[^0-9]', '', 'g') = regexp_replace(coalesce(parcel.order_phone, ''), '[^0-9]', '', 'g')

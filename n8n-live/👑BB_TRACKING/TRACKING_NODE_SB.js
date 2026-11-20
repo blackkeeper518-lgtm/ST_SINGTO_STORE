@@ -92,7 +92,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "Zh6TPBgVH5JoqWt6",
-          "name": "🧿BB_xXx_ORDERCONTROL"
+          "name": "🧿ST_xXx_ORDERCONTROL"
         }
       },
       "onError": "continueRegularOutput"

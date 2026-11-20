@@ -42,7 +42,7 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 @media (prefers-reduced-motion:reduce) { .singto-cyber-edge::before { animation:none; } }
 
 
-/* BB Telegram delivery room: pink-violet identity, moving light, no orange UI */
+/* ST Telegram delivery room: pink-violet identity, moving light, no orange UI */
 .bb-telegram-room { background: radial-gradient(circle at 15% 0%, rgba(184, 70, 255, .14), transparent 28rem), radial-gradient(circle at 90% 10%, rgba(255, 55, 192, .12), transparent 26rem); }
 .bb-telegram-room .bb-running-line { background: linear-gradient(90deg, transparent, #ff4fc8, #9b5cff, #57e9ff, transparent); background-size: 220% 100%; animation: bb-running-light 2.8s linear infinite; box-shadow: 0 0 18px rgba(255, 79, 200, .7); }
 .bb-running-light { background: #ff55c9; box-shadow: 0 0 12px #ff55c9; animation: bb-pulse-light 1.3s ease-in-out infinite; }
@@ -252,7 +252,7 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .code-highlight .token.function, .code-highlight .token.class-name { color: #6ee7f9; }
 .code-highlight .token.regex, .code-highlight .token.important, .code-highlight .token.variable { color: #ffb86c; }
 
-/* BB SCRIPT ATELIER — Notion-like writing room in neon violet / pink */
+/* ST SCRIPT ATELIER — Notion-like writing room in neon violet / pink */
 .script-atelier { background:radial-gradient(circle at 12% 0%,rgba(183,72,255,.14),transparent 32rem),radial-gradient(circle at 92% 18%,rgba(255,72,202,.12),transparent 30rem),#0a0612; container-type:inline-size; width:100%; }
 .script-atelier-hero { position:relative; isolation:isolate; border-color:rgba(246,112,255,.28); background:linear-gradient(120deg,rgba(34,10,52,.94),rgba(19,8,35,.92) 58%,rgba(48,8,44,.88)); box-shadow:0 0 30px rgba(218,71,255,.12),inset 0 0 44px rgba(255,83,207,.06); }
 .script-atelier-hero::after { content:""; position:absolute; inset:auto 8% -1px 8%; height:1px; background:linear-gradient(90deg,transparent,#ff58d1,#b276ff,transparent); box-shadow:0 0 18px #ff58d1; }
@@ -1059,7 +1059,7 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .mobile-inbox-emoji { display:flex; gap:6px; margin-bottom:6px; }
 .mobile-inbox-emoji button { width:34px; height:34px; border:0; border-radius:9px; background:#edf4f3; font-size:18px; }
 @media (min-width:768px) { .mobile-inbox-page { max-width:520px; margin:0 auto; border-inline:1px solid #dce8e6; } }
-/* MOBILE INBOX DARK SKIN · Meta flow, BB STORE identity */
+/* MOBILE INBOX DARK SKIN · Meta flow, ST SINGTO STORE identity */
 .mobile-inbox-page { background:#080b14; color:#eef5ff; }
 .mobile-inbox-header,.mobile-inbox-tabs,.mobile-inbox-list-panel { background:#080b14; }
 .mobile-inbox-kicker { color:#7f8da8; }
@@ -1109,7 +1109,7 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .mobile-inbox-filters select:focus { border-color:#57d9ff; box-shadow:0 0 12px rgba(87,217,255,.16); }
 .mobile-inbox-bottom-nav { justify-content:center; gap:44px; }
 
-/* ChatHub room labels: BB is the discreet frame picker; Parcel carries the work status. */
+/* ChatHub room labels: ST is the discreet frame picker; Parcel carries the work status. */
 .chat-room-code-label.cyber-frame-picker-trigger { cursor:pointer; }
 .chat-room-code-label.cyber-frame-picker-trigger:not(.cod-room-sign):not(.time-slot-room-sign):not(.parcel-status-chip) { border-color:rgba(104,224,255,.38) !important; background:rgba(14,54,76,.34) !important; color:#d8f7ff !important; text-shadow:0 0 5px rgba(104,224,255,.65); box-shadow:0 0 7px rgba(40,190,255,.2), inset 0 0 8px rgba(40,190,255,.08); }
 .chat-room-code-label.cyber-frame-picker-trigger:hover { border-color:#8cffff !important; box-shadow:0 0 10px rgba(108,240,255,.55), inset 0 0 8px rgba(108,240,255,.14); }
@@ -1124,7 +1124,7 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .parcel-status-chip { border-color:rgba(255,156,225,.62); background:rgba(121,15,81,.34); color:#ffe7f7; text-shadow:0 0 3px #fff,0 0 7px rgba(255,128,218,.75); box-shadow:0 0 7px rgba(255,60,190,.38),inset 0 0 8px rgba(255,78,195,.12); }
 .parcel-status-chip--order { border-color:#8CFF00; background:rgba(140,255,0,.22); color:#E8FFD0; text-shadow:0 0 3px #fff,0 0 9px rgba(140,255,0,.98); box-shadow:0 0 4px rgba(255,255,255,.72),0 0 11px rgba(140,255,0,.96),0 0 22px rgba(140,255,0,.62),inset 0 0 8px rgba(140,255,0,.25); }
 
-/* The single room badge is Parcel; BB is no longer printed on the card. */
+/* The single room badge is Parcel; ST is no longer printed on the card. */
 .chat-room-code-label.cyber-frame-picker-trigger.parcel-status-chip { border-color:rgba(255,156,225,.62) !important; background:rgba(121,15,81,.34) !important; color:#ffe7f7 !important; text-shadow:0 0 3px #fff,0 0 7px rgba(255,128,218,.75) !important; box-shadow:0 0 7px rgba(255,60,190,.38),inset 0 0 8px rgba(255,78,195,.12) !important; }
 .chat-room-code-label.cyber-frame-picker-trigger.parcel-status-chip.parcel-status-chip--order { border-color:#8CFF00 !important; background:rgba(140,255,0,.22) !important; color:#E8FFD0 !important; text-shadow:0 0 3px #fff,0 0 9px rgba(140,255,0,.98) !important; box-shadow:0 0 4px rgba(255,255,255,.72),0 0 11px rgba(140,255,0,.96),0 0 22px rgba(140,255,0,.62),inset 0 0 8px rgba(140,255,0,.25) !important; }
 
@@ -1368,7 +1368,7 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
   box-shadow:0 12px 28px rgba(0,0,0,.28), inset 0 -1px 0 color-mix(in srgb, var(--depth-accent) 22%, transparent);
 }
 .mobile-inbox-page.mobile-inbox-themed .mobile-inbox-header::before {
-  content:"BB";
+  content:"ST";
   position:absolute;
   left:18px;
   top:23px;

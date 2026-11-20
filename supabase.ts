@@ -406,5 +406,5 @@ export async function recordOutgoingChatMessage(input: {
     sync_status: "SENT",
     dedupe_key: dedupeKey,
   };
-  return supabasePost<Record<string, unknown>[]>(encodeURIComponent("🧿BB_xXx_ORDERCONTROL"), orderControlPayload, "chat");
+  return supabasePost<Record<string, unknown>[]>(encodeURIComponent("🧿ST_xXx_ORDERCONTROL"), orderControlPayload, "chat");
 }

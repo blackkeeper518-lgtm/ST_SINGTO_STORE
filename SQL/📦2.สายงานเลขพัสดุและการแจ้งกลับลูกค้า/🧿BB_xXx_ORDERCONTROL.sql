@@ -1,4 +1,4 @@
-create table public."🧿BB_xXx_ORDERCONTROL" (
+create table public."🧿ST_xXx_ORDERCONTROL" (
   upsert_key text not null,
   page_id text not null,
   "threadId" text null,
@@ -128,11 +128,11 @@ create table public."🧿BB_xXx_ORDERCONTROL" (
   "dedupeKey" text null,
   time_slot_label text null,
   source_lane text null,
-  constraint "🧿BB_xXx_ORDERCONTROL_pkey" primary key (upsert_key),
+  constraint "🧿ST_xXx_ORDERCONTROL_pkey" primary key (upsert_key),
   constraint ordercontrol_message_id_key unique (message_id)
 ) TABLESPACE pg_default;
 
-create index IF not exists ordercontrol_phone_digits_idx on public."🧿BB_xXx_ORDERCONTROL" using btree (
+create index IF not exists ordercontrol_phone_digits_idx on public."🧿ST_xXx_ORDERCONTROL" using btree (
   regexp_replace(
     COALESCE(phone, ''::text),
     '[^0-9]'::text,
@@ -155,6 +155,6 @@ where
     ) is not null
   );
 
-create unique INDEX IF not exists bb_ordercontrol_dedupe_key_uidx on public."🧿BB_xXx_ORDERCONTROL" using btree (dedupe_key) TABLESPACE pg_default;
+create unique INDEX IF not exists st_ordercontrol_dedupe_key_uidx on public."🧿ST_xXx_ORDERCONTROL" using btree (dedupe_key) TABLESPACE pg_default;
 
-create unique INDEX IF not exists bb_ordercontrol_chat_link_key_uidx on public."🧿BB_xXx_ORDERCONTROL" using btree (chat_link_key) TABLESPACE pg_default;
+create unique INDEX IF not exists st_ordercontrol_chat_link_key_uidx on public."🧿ST_xXx_ORDERCONTROL" using btree (chat_link_key) TABLESPACE pg_default;

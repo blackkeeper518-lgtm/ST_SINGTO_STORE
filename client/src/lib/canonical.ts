@@ -1,7 +1,7 @@
 // ⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
-// 🎯 BB OrderControl : DATA ROUTE RULES
+// 🎯 ST OrderControl : DATA ROUTE RULES
 // ⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
-// Scope: BB only · อ่านและตรวจออเดอร์
+// Scope: ST only · อ่านและตรวจออเดอร์
 // โต๊ะหลัก: 🗝️HERMES_ARCHIVE
 // สินค้า/หัวบิล: ฟิลด์จาก FOUR_SEND_BILL_BUILDER
 // หน้าเว็บอ่าน projection ที่ตรงกับ schema ปัจจุบันและใช้ upsert_key เป็นคีย์
@@ -12,13 +12,13 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const CONFIG_KEY = "bb-supabase-config";
-const TRACKING_CONFIG_KEY = "bb-tracking-supabase-config";
-const PARCEL_CONFIG_KEY = "bb-parcel-supabase-config";
-const VAULT_CONFIG_KEY = "bb-vault-supabase-config";
-export type Camp = "BB";
+const CONFIG_KEY = "st-supabase-config";
+const TRACKING_CONFIG_KEY = "st-tracking-supabase-config";
+const PARCEL_CONFIG_KEY = "st-parcel-supabase-config";
+const VAULT_CONFIG_KEY = "st-vault-supabase-config";
+export type Camp = "ST";
 export type SupabaseProject = "main" | "tracking" | "parcel" | "vault";
-const DEPLOYMENT_CAMP: Camp = "BB";
+const DEPLOYMENT_CAMP: Camp = "ST";
 export type SupabaseConfig = { url: string; anonKey: string; orderTable?: string };
 // Browser client ใช้เฉพาะ Anon/Publishable key; Chat ต้องผ่าน protected server route เท่านั้น
 const DEPLOYMENT_SUPABASE_URL = String(import.meta.env.VITE_SUPABASE_URL ?? "").trim().replace(/\/$/, "");
@@ -148,7 +148,7 @@ function hasChatAttachment(row: any) {
   return Boolean(row?.has_attachment || chatAttachmentPayload(row) !== "[]");
 }
 export type CanonicalOrder = Record<string, any> & { upsert_key: string; order_time_display: string };
-const ORDER_SOURCE_TABLE_BY_CAMP: Record<Camp, string> = { BB: "🗝️HERMES_ARCHIVE" };
+const ORDER_SOURCE_TABLE_BY_CAMP: Record<Camp, string> = { ST: "🧿ST_xXx_ORDERCONTROL" };
 // Order screens load at most 1,000 rows per explicit refresh.
 const ORDER_OPERATIONAL_LIMIT = 1000;
 function defaultOrderView(camp: Camp) { return ORDER_SOURCE_TABLE_BY_CAMP[camp]; }
@@ -443,7 +443,7 @@ export async function readBlackboxRoom(search = "") {
 export async function updateBbOrder(upsertKey: string | number, patch: Record<string, unknown>) {
   const api = getSupabase();
   if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
-  const { data, error } = await api.from(defaultOrderView("BB")).update(patch).eq("upsert_key", String(upsertKey)).select("upsert_key");
+  const { data, error } = await api.from(defaultOrderView("ST")).update(patch).eq("upsert_key", String(upsertKey)).select("upsert_key");
   if (error) fail(error);
   if (!data?.length) fail({ message: `ไม่พบออเดอร์ upsert_key=${upsertKey} หรือสิทธิ์ RLS ไม่อนุญาตให้อัปเดต` });
   if (data.length > 1) fail({ message: `พบออเดอร์ซ้ำ ${data.length} แถวด้วย upsert_key=${upsertKey}` });

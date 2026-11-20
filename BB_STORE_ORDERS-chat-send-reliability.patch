@@ -145,7 +145,7 @@ index 88aafbd..0aee5dd 100644
 +  // Always append each outgoing reply; no upsert/unique-key requirement.
 +  try { await supabasePost<Record<string, unknown>[]>("chat_page_messages", pageMessagePayload, "chat", "return=representation"); }
 +  catch (error) { console.error("[chat] canonical page-message write failed", error); }
-+  const relation = encodeURIComponent("🧿BB_xXx_ORDERCONTROL");
++  const relation = encodeURIComponent("🧿ST_xXx_ORDERCONTROL");
 +  return supabasePost<Record<string, unknown>[]>(relation, payload, "chat", "return=representation");
 +}
  export async function fetchParcelMappingQueue(input: { status: "all" | "sent"; limit: number }) {

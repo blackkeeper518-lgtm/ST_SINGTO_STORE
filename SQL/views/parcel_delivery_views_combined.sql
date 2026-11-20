@@ -1,4 +1,4 @@
--- BB STORE ORDERS · Parcel Delivery Views
+-- ST SINGTO STORE ORDERS · Parcel Delivery Views
 -- รวมจากไฟล์แนบ pasted_content_2.txt
 -- ลำดับ dependency: SHADOW -> ROGUE -> VOID -> DEAD
 -- คง logic ของ SQL เดิม ไม่ได้เพิ่มเงื่อนไขทางธุรกิจ
@@ -28,7 +28,7 @@ from
       ord.parcel_status_emoji,
       ord.upsert_key
     from
-      "🧿BB_xXx_ORDERCONTROL" ord
+      "🧿ST_xXx_ORDERCONTROL" ord
     where
       NULLIF(btrim(ord.portal_key), ''::text) is not null
       and (
@@ -174,7 +174,7 @@ select
   ord.dedupe_key
 from
   "🔮SHADOW_xXx_RECALL" pcl
-  join "🧿BB_xXx_ORDERCONTROL" ord on ord.upsert_key = pcl.upsert_key
+  join "🧿ST_xXx_ORDERCONTROL" ord on ord.upsert_key = pcl.upsert_key
 where
   NULLIF(btrim(pcl.tracking_number), ''::text) is not null
   and (
@@ -354,7 +354,7 @@ select
   ord.facebook_tracking_message
 from
   parcels parcel
-  left join "🧿BB_xXx_ORDERCONTROL" ord on regexp_replace(
+  left join "🧿ST_xXx_ORDERCONTROL" ord on regexp_replace(
     COALESCE(ord.phone, ''::text),
     '[^0-9]'::text,
     ''::text,

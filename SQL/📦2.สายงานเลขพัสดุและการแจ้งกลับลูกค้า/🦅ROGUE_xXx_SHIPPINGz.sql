@@ -67,7 +67,7 @@ select
   ord.chat_link_key
 from
   "🔮SHADOW_xXx_RECALL" pcl
-  join "🧿BB_xXx_ORDERCONTROL" ord on ord.upsert_key = pcl.upsert_key
+  join "🧿ST_xXx_ORDERCONTROL" ord on ord.upsert_key = pcl.upsert_key
 where
   NULLIF(btrim(pcl.tracking_number), ''::text) is not null
   and (

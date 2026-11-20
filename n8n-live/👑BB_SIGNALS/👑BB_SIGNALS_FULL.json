@@ -616,7 +616,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://efieodrwkmpcxftnlaqx.supabase.co/rest/v1/🧿BB_xXx_ORDERCONTROL?on_conflict=upsert_key",
+        "url": "https://efieodrwkmpcxftnlaqx.supabase.co/rest/v1/🧿ST_xXx_ORDERCONTROL?on_conflict=upsert_key",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -655,7 +655,7 @@
         }
       },
       "id": "6925396f-03e7-46fe-b202-0845d02b472b",
-      "name": "🧿BB_xXx_ORDERCONTROL",
+      "name": "🧿ST_xXx_ORDERCONTROL",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -1481,7 +1481,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://efieodrwkmpcxftnlaqx.supabase.co/rest/v1/🧿BB_xXx_ORDERCONTROL?on_conflict=upsert_key",
+        "url": "https://efieodrwkmpcxftnlaqx.supabase.co/rest/v1/🧿ST_xXx_ORDERCONTROL?on_conflict=upsert_key",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -1520,7 +1520,7 @@
         }
       },
       "id": "9102c3f3-27bf-45c7-86cf-9a6f22809694",
-      "name": "🧿BB_xXx_ORDERCONTROL2",
+      "name": "🧿ST_xXx_ORDERCONTROL2",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -1721,7 +1721,7 @@
       "main": [
         [
           {
-            "node": "🧿BB_xXx_ORDERCONTROL",
+            "node": "🧿ST_xXx_ORDERCONTROL",
             "type": "main",
             "index": 0
           }
@@ -1786,7 +1786,7 @@
       "main": [
         [
           {
-            "node": "🧿BB_xXx_ORDERCONTROL2",
+            "node": "🧿ST_xXx_ORDERCONTROL2",
             "type": "main",
             "index": 0
           }

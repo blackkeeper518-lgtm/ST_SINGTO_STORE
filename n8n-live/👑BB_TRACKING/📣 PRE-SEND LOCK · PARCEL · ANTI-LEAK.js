@@ -5,7 +5,7 @@
 // 1. คัดรายการที่ลง Facebook แล้วออกจากคิว
 // 2. กันรายการซ้ำที่มาจาก ROGUE สองฝั่ง
 // 3. แยกสี 🟢 🟡 🔴 ให้ไหลต่อไปพร้อมกัน
-// 4. ปั๊ม ⚡SENT ลง 🧿BB_xXx_ORDERCONTROL ก่อน Facebook API
+// 4. ปั๊ม ⚡SENT ลง 🧿ST_xXx_ORDERCONTROL ก่อน Facebook API
 // 5. ให้ Rogue ตัดออกจากคิวทันที และ Dead Note รับไปแสดงประวัติ
 //
 // สถานะ:

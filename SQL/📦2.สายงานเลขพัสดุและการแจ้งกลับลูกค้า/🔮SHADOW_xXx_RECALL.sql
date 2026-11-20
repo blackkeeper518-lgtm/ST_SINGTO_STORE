@@ -24,7 +24,7 @@ from
       o.order_time,
       o.updated_at
     from
-      "🧿BB_xXx_ORDERCONTROL" o
+      "🧿ST_xXx_ORDERCONTROL" o
     where
       regexp_replace(
         COALESCE(o.phone, ''::text),

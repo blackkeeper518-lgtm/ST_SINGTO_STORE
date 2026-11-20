@@ -35,7 +35,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "Zh6TPBgVH5JoqWt6",
-          "name": "🧿BB_xXx_ORDERCONTROL"
+          "name": "🧿ST_xXx_ORDERCONTROL"
         }
       }
     },
@@ -206,7 +206,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://efieodrwkmpcxftnlaqx.supabase.co/rest/v1/🧿BB_xXx_ORDERCONTROL?on_conflict=upsert_key",
+        "url": "https://efieodrwkmpcxftnlaqx.supabase.co/rest/v1/🧿ST_xXx_ORDERCONTROL?on_conflict=upsert_key",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -245,7 +245,7 @@
         }
       },
       "id": "65620772-1895-4e27-b3b3-d89781d8ad94",
-      "name": "🧿BB_xXx_ORDERCONTROL",
+      "name": "🧿ST_xXx_ORDERCONTROL",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -260,7 +260,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://efieodrwkmpcxftnlaqx.supabase.co/rest/v1/🧿BB_xXx_ORDERCONTROL?on_conflict=upsert_key",
+        "url": "https://efieodrwkmpcxftnlaqx.supabase.co/rest/v1/🧿ST_xXx_ORDERCONTROL?on_conflict=upsert_key",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -299,7 +299,7 @@
         }
       },
       "id": "643cd74e-09ab-4e8d-bd32-21c5080ee0e8",
-      "name": "🧿BB_xXx_ORDERCONTROL4",
+      "name": "🧿ST_xXx_ORDERCONTROL4",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -718,14 +718,14 @@
       "main": [
         [
           {
-            "node": "🧿BB_xXx_ORDERCONTROL",
+            "node": "🧿ST_xXx_ORDERCONTROL",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "🧿BB_xXx_ORDERCONTROL": {
+    "🧿ST_xXx_ORDERCONTROL": {
       "main": [
         [
           {
@@ -736,7 +736,7 @@
         ]
       ]
     },
-    "🧿BB_xXx_ORDERCONTROL4": {
+    "🧿ST_xXx_ORDERCONTROL4": {
       "main": [
         [
           {
@@ -784,7 +784,7 @@
       "main": [
         [
           {
-            "node": "🧿BB_xXx_ORDERCONTROL4",
+            "node": "🧿ST_xXx_ORDERCONTROL4",
             "type": "main",
             "index": 0
           }
