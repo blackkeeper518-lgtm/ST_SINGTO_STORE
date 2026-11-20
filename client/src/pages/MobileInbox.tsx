@@ -5,7 +5,7 @@ import { getActiveCamp, getSupabase, mapChatRowsToMessages, mapChatRowsToThreads
 import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { CHAT_BROWSER_CONFIG_EVENT, readBrowserChatConfig } from "@/lib/chat-config";
 import { CYBER_FRAME_EVENT, CYBER_FRAME_OPTIONS, readCyberFrame, readCyberFrameRooms, saveCyberFrameRoom } from "@/lib/cyber-frame";
-import { CYBER_THEME_PRESETS, readCyberTheme, saveCyberTheme, type CyberTheme } from "@/lib/theme-lab";
+import { CYBER_THEME_KEY, CYBER_THEME_PRESETS, readCyberTheme, saveCyberTheme, type CyberTheme } from "@/lib/theme-lab";
 import { CHAT_NOTIFICATION_EVENT, countUnreadChatMessages, playChatNotificationSound, readChatNotificationState, reconcileChatNotificationRows, setChatNotificationSound, unlockChatNotificationAudio, writeChatNotificationState, type ChatNotification } from "@/lib/chat-notifications";
 import { trpc } from "@/lib/trpc";
 import { Bell, Check, Download, Facebook, LoaderCircle, Menu, MessageCircle, MessagesSquare, Palette, Paperclip, Search, Send, Smile, Volume2, X } from "lucide-react";
@@ -90,7 +90,7 @@ export default function MobileInbox() {
     return () => { window.removeEventListener(CHAT_NOTIFICATION_EVENT, sync); window.removeEventListener("storage", sync); };
   }, []);
   useEffect(() => {
-    const refreshTheme = (event: StorageEvent) => { if (event.key === "bb-cyber-theme-v1" || event.key === null) setCyberTheme(readCyberTheme()); };
+    const refreshTheme = (event: StorageEvent) => { if (event.key === CYBER_THEME_KEY || event.key === null) setCyberTheme(readCyberTheme()); };
     window.addEventListener("storage", refreshTheme);
     return () => window.removeEventListener("storage", refreshTheme);
   }, []);

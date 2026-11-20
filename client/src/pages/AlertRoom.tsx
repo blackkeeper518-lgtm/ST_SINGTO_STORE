@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { readBbAlertRoom } from "@/lib/canonical";
+import { readSTAlertRoom } from "@/lib/canonical";
 import { Activity, ArrowDownRight, ArrowRight, Bot, CalendarDays, ChevronRight, CircleDot, Clock3, ExternalLink, GitCompareArrows, History, MessageCircle, Radio, RefreshCw, Search, ShieldAlert, Sparkles, Waypoints, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -36,7 +36,7 @@ function shortTime(value: unknown) {
 
 export default function AlertRoom() {
   const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get("search") ?? "");
-  const query = useQuery({ queryKey: ["bb-alert-room", search], queryFn: () => readBbAlertRoom(search), refetchInterval: 30_000 });
+  const query = useQuery({ queryKey: ["bb-alert-room", search], queryFn: () => readSTAlertRoom(search), refetchInterval: 30_000 });
   const rows = query.data ?? [];
   const botCount = rows.filter((r: any) => r.is_bot_summary).length;
   const duplicateCount = rows.filter((r: any) => Number(r.duplicate_signature_count) > 1).length;

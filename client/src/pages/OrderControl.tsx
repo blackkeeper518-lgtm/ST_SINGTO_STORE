@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import OrderEditWorkbench from "@/components/OrderEditWorkbench";
-import { getActiveCamp, mapChatRowsToThreads, orderTimeSortKey, readBbAlertRoom, readBlackboxRoom, readCanonicalOrders, readParcelByTrackingNumber, readParcelMappingQueue, readTelegramDeliveryOrders } from "@/lib/canonical";
+import { getActiveCamp, mapChatRowsToThreads, orderTimeSortKey, readSTAlertRoom, readBlackboxRoom, readCanonicalOrders, readParcelByTrackingNumber, readParcelMappingQueue, readTelegramDeliveryOrders } from "@/lib/canonical";
 import { buildMetaInboxPageUrl, parseMetaChatLinkKey } from "@/lib/meta-inbox";
 import { getOrderWarnings } from "@/lib/orderWarnings";
 import { useQuery } from "@tanstack/react-query";
@@ -197,7 +197,7 @@ export default function OrderControl() {
   });
   const paradoxQuery = useQuery({
     queryKey: ["order-control-paradox-trace", getActiveCamp(), search.trim()],
-    queryFn: () => readBbAlertRoom(search),
+    queryFn: () => readSTAlertRoom(search),
     enabled: searchPanelOpen && trackingSearchReady,
     staleTime: 15_000,
   });

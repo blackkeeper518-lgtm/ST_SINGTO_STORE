@@ -17,7 +17,8 @@ export type ThemeLabSettings = { rooms: ThemeLabRoom[]; css: string };
 
 export const DEFAULT_THEME_LAB: ThemeLabSettings = { rooms: [], css: "" };
 
-export const CYBER_THEME_KEY = "bb-cyber-theme-v1";
+export const LEGACY_CYBER_THEME_KEY = "bb-cyber-theme-v1";
+export const CYBER_THEME_KEY = "st-cyber-theme-v1";
 export type CyberTheme = {
   version: 1;
   preset: number;
@@ -33,6 +34,7 @@ export type CyberTheme = {
   motion: boolean;
 };
 const CYBER_THEME_COLORS = [
+  ["Singto Ember", "#100b06", "#1e150b", "#ff8c32", "#ffd25c", "สิงโต · ส้ม–ทอง–ดำ"],
   ["Cyber Neon", "#080d1d", "#101827", "#00e5ff", "#ff00d9", "ฟ้า × ชมพู"], ["Quantum Violet", "#100c20", "#1a1530", "#b89aff", "#59edff", "ม่วง × ไซแอน"],
   ["Emerald Matrix", "#071710", "#10251b", "#75ffac", "#00e5cf", "เขียว × มิ้นต์"], ["Crimson Ops", "#170b14", "#29121e", "#ff728c", "#ffc56a", "แดง × อำพัน"],
   ["Arctic Pulse", "#091721", "#122637", "#8beeff", "#c4aeff", "น้ำแข็ง × ลาเวนเดอร์"], ["Midnight Gold", "#15130b", "#252116", "#ffd477", "#7ae9ff", "ทอง × ฟ้า"],
@@ -47,13 +49,25 @@ const CYBER_THEME_COLORS = [
 ] as const;
 export const CYBER_THEME_PRESETS: CyberTheme[] = CYBER_THEME_COLORS.map(([name, bg, surface, primary, accent], preset) => ({ version: 1, preset, name, bg, surface, primary, accent, border: "gradient", button: "solid", radius: 16, glow: 12, motion: true }));
 export const DEFAULT_CYBER_THEME = CYBER_THEME_PRESETS[0];
+export function getThemeTextColor(surface: string) {
+  const match = /^#([0-9a-f]{6})$/i.exec(surface);
+  if (!match) return "#fff7e6";
+  const channels = [0, 2, 4].map(offset => Number.parseInt(match[1].slice(offset, offset + 2), 16) / 255);
+  const linear = channels.map(channel => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  return luminance > 0.43 ? "#17120b" : "#fff7e6";
+}
 export function readCyberTheme(): CyberTheme {
   if (typeof window === "undefined") return DEFAULT_CYBER_THEME;
   try {
-    const value = JSON.parse(localStorage.getItem(CYBER_THEME_KEY) || "null") as Partial<CyberTheme> | null;
+    const current = localStorage.getItem(CYBER_THEME_KEY);
+    const legacy = localStorage.getItem(LEGACY_CYBER_THEME_KEY);
+    const value = JSON.parse(current || legacy || "null") as Partial<CyberTheme> | null;
     const validHex = (color: unknown) => typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color);
     if (!value || typeof value.name !== "string" || !validHex(value.bg) || !validHex(value.surface) || !validHex(value.primary) || !validHex(value.accent)) return DEFAULT_CYBER_THEME;
-    return { ...DEFAULT_CYBER_THEME, ...value, version: 1 } as CyberTheme;
+    const theme = { ...DEFAULT_CYBER_THEME, ...value, version: 1 } as CyberTheme;
+    if (!current && legacy) localStorage.setItem(CYBER_THEME_KEY, JSON.stringify(theme));
+    return theme;
   } catch { return DEFAULT_CYBER_THEME; }
 }
 export function saveCyberTheme(theme: CyberTheme) {

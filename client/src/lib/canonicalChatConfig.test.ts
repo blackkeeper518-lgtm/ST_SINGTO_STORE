@@ -16,6 +16,22 @@ function stubStorage(values: Record<string, string>) {
 }
 
 describe("Chat browser isolation", () => {
+  it("migrates the cloned repository's saved Supabase config from BB to ST key", () => {
+    const url = "https://st-project.example";
+    const anonKey = "st-anon-key";
+    const saved = JSON.stringify({ url, anonKey });
+    const data = new Map([["bb-supabase-config", saved]]);
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => data.set(key, value),
+      removeItem: (key: string) => data.delete(key),
+      clear: () => data.clear(),
+    });
+
+    expect(getSupabaseConfig()).toMatchObject({ url, anonKey });
+    expect(data.get("st-supabase-config")).toBe(saved);
+  });
+
   it("ignores legacy Chat anon config in the browser database helper", () => {
     stubStorage({
       "bb-chat-supabase-config": JSON.stringify({

@@ -1,24 +1,28 @@
 // ⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
-// 🎯 BB OrderControl : DATA ROUTE RULES
+// 🎯 ST OrderControl : DATA ROUTE RULES
 // ⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
-// Scope: BB only · อ่านและตรวจออเดอร์
+// Scope: ST only · อ่านและตรวจออเดอร์
 // โต๊ะหลัก: 🗝️HERMES_ARCHIVE
 // สินค้า/หัวบิล: ฟิลด์จาก FOUR_SEND_BILL_BUILDER
 // หน้าเว็บอ่าน projection ที่ตรงกับ schema ปัจจุบันและใช้ upsert_key เป็นคีย์
 // คีย์หลัก: upsert_key · เวลาหลัก: order_time_display
 // ที่อยู่สำรอง: address_display_packer
-// สถานะส่งใช้ delivery_state · ห้ามลบหลักฐาน · ห้ามเอา ST logic มาปน
+// สถานะส่งใช้ delivery_state · ห้ามลบหลักฐาน · ห้ามปะปนข้อมูลค่ายอื่น
 // ⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const CONFIG_KEY = "bb-supabase-config";
-const TRACKING_CONFIG_KEY = "bb-tracking-supabase-config";
-const PARCEL_CONFIG_KEY = "bb-parcel-supabase-config";
-const VAULT_CONFIG_KEY = "bb-vault-supabase-config";
-export type Camp = "BB";
+const CONFIG_KEY = "st-supabase-config";
+const LEGACY_CONFIG_KEY = "bb-supabase-config";
+const TRACKING_CONFIG_KEY = "st-tracking-supabase-config";
+const LEGACY_TRACKING_CONFIG_KEY = "bb-tracking-supabase-config";
+const PARCEL_CONFIG_KEY = "st-parcel-supabase-config";
+const LEGACY_PARCEL_CONFIG_KEY = "bb-parcel-supabase-config";
+const VAULT_CONFIG_KEY = "st-vault-supabase-config";
+const LEGACY_VAULT_CONFIG_KEY = "bb-vault-supabase-config";
+export type Camp = "ST";
 export type SupabaseProject = "main" | "tracking" | "parcel" | "vault";
-const DEPLOYMENT_CAMP: Camp = "BB";
+const DEPLOYMENT_CAMP: Camp = "ST";
 export type SupabaseConfig = { url: string; anonKey: string; orderTable?: string };
 // Browser client ใช้เฉพาะ Anon/Publishable key; Chat ต้องผ่าน protected server route เท่านั้น
 const DEPLOYMENT_SUPABASE_URL = String(import.meta.env.VITE_SUPABASE_URL ?? "").trim().replace(/\/$/, "");
@@ -41,8 +45,11 @@ function profileKey(_camp: Camp, project: SupabaseProject) {
 }
 export function getSupabaseConfig(camp: Camp = getActiveCamp(), project: SupabaseProject = "main"): SupabaseConfig | null {
   try {
-    const raw = localStorage.getItem(profileKey(camp, project));
+    const key = profileKey(camp, project);
+    const legacyKey = project === "tracking" ? LEGACY_TRACKING_CONFIG_KEY : project === "parcel" ? LEGACY_PARCEL_CONFIG_KEY : project === "vault" ? LEGACY_VAULT_CONFIG_KEY : LEGACY_CONFIG_KEY;
+    const raw = localStorage.getItem(key) ?? localStorage.getItem(legacyKey);
     if (raw) {
+      if (!localStorage.getItem(key)) localStorage.setItem(key, raw);
       const value = JSON.parse(raw) as Partial<SupabaseConfig>;
       if (value.url && value.anonKey) return { url: value.url.replace(/\/$/, ""), anonKey: value.anonKey, orderTable: project === "main" ? defaultOrderView(camp) : undefined };
     }
@@ -103,7 +110,7 @@ function hasChatAttachment(row: any) {
   return Boolean(row?.has_attachment || chatAttachmentPayload(row) !== "[]");
 }
 export type CanonicalOrder = Record<string, any> & { upsert_key: string; order_time_display: string };
-const ORDER_SOURCE_TABLE_BY_CAMP: Record<Camp, string> = { BB: "🗝️HERMES_ARCHIVE" };
+const ORDER_SOURCE_TABLE_BY_CAMP: Record<Camp, string> = { ST: "🗝️HERMES_ARCHIVE" };
 // Order screens load at most 1,000 rows per explicit refresh.
 const ORDER_OPERATIONAL_LIMIT = 1000;
 function defaultOrderView(camp: Camp) { return ORDER_SOURCE_TABLE_BY_CAMP[camp]; }
@@ -374,7 +381,7 @@ export async function readTelegramDeliveryOrders(search = "", room: "queue" | "t
   return { orders, sourceTable, fetchedAt: new Date().toISOString(), room };
 }
 
-export async function readBbAlertRoom(search = "") {
+export async function readSTAlertRoom(search = "") {
   const api = getSupabase();
   if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
   const { data, error } = await api.from("🔸PARADOX_xXx_EXCHANGE").select("*").order("order_time_display", { ascending: false }).limit(2000);
@@ -394,16 +401,16 @@ export async function readBlackboxRoom(search = "") {
   return (data ?? []).filter((row: any) => !query || JSON.stringify(row).toLowerCase().includes(query));
 }
 
-export async function updateBbOrder(upsertKey: string | number, patch: Record<string, unknown>) {
+export async function updateSTOrder(upsertKey: string | number, patch: Record<string, unknown>) {
   const api = getSupabase();
   if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
-  const { data, error } = await api.from(defaultOrderView("BB")).update(patch).eq("upsert_key", String(upsertKey)).select("upsert_key");
+  const { data, error } = await api.from(defaultOrderView("ST")).update(patch).eq("upsert_key", String(upsertKey)).select("upsert_key");
   if (error) fail(error);
   if (!data?.length) fail({ message: `ไม่พบออเดอร์ upsert_key=${upsertKey} หรือสิทธิ์ RLS ไม่อนุญาตให้อัปเดต` });
   if (data.length > 1) fail({ message: `พบออเดอร์ซ้ำ ${data.length} แถวด้วย upsert_key=${upsertKey}` });
   return data[0];
 }
-export async function updateBbOrderByKey(upsertKey: string, patch: Record<string, unknown>, sourceTable: "🗝️HERMES_ARCHIVE" | "🌀SINGULARITY_xXx_EXCHANGE" = "🗝️HERMES_ARCHIVE") {
+export async function updateSTOrderByKey(upsertKey: string, patch: Record<string, unknown>, sourceTable: "🗝️HERMES_ARCHIVE" | "🌀SINGULARITY_xXx_EXCHANGE" = "🗝️HERMES_ARCHIVE") {
   const api = getSupabase();
   if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
   const { data, error } = await api.from(sourceTable).update(patch).eq("upsert_key", upsertKey).select("upsert_key");
@@ -425,7 +432,7 @@ async function withSentWriteTimeout<T>(request: PromiseLike<T>, timeoutMs = 15_0
   }
 }
 
-export async function markBbOrderSentByKey(upsertKey: string, sourceTable: "🗝️HERMES_ARCHIVE" | "🌀SINGULARITY_xXx_EXCHANGE") {
+export async function markSTOrderSentByKey(upsertKey: string, sourceTable: "🗝️HERMES_ARCHIVE" | "🌀SINGULARITY_xXx_EXCHANGE") {
   const api = getSupabase();
   if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
   const patch = { delivery_status: "SENT", sent_at: new Date().toISOString() };

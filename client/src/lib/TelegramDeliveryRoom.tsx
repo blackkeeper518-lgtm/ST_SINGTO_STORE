@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getActiveCamp, markBbOrderSentByKey, readTelegramDeliveryOrders, searchThailandPostalMaster, updateBbOrderByKey, type PostalMasterMatch } from "@/lib/canonical";
+import { getActiveCamp, markSTOrderSentByKey, readTelegramDeliveryOrders, searchThailandPostalMaster, updateSTOrderByKey, type PostalMasterMatch } from "@/lib/canonical";
 import { AlertTriangle, CheckCircle2, Clipboard, Clock3, Eye, MessageSquareText, RefreshCw, Send, ShieldAlert, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -101,7 +101,7 @@ function provinceOf(row: OrderRow) {
 function telegramText(row: OrderRow, header: string) {
   const builderBill = String(row.telegram_message_for_send_final ?? row.telegram_message ?? getTelegramBody(row)?.text ?? row.telegram_main_bill ?? "").trim();
   if (builderBill) return withPreferredBillHeader(row, builderBill, header);
-  // สร้างข้อความจากออเดอร์ BB: ใช้ฟิวค่ายตัวเองและไม่พึ่ง master_* เป็นแหล่งหลัก
+  // สร้างข้อความจากออเดอร์ ST: ใช้ฟิวค่ายตัวเองและไม่พึ่ง master_* เป็นแหล่งหลัก
   const customer = row.customer_name || "";
   const phone = row.extracted_phone || row.phone || "";
   const cod = row.cod_amount;
@@ -258,7 +258,7 @@ export default function TelegramDeliveryRoom() {
 
   async function persistOrderSent(row: OrderRow) {
     if (!row.upsert_key) throw new Error("ไม่พบ upsert_key สำหรับเขียนสถานะ");
-    await markBbOrderSentByKey(String(row.upsert_key), sourceTableOf(row));
+    await markSTOrderSentByKey(String(row.upsert_key), sourceTableOf(row));
   }
 
   function clearSentAwaitingStatus(key: string) {
@@ -435,7 +435,7 @@ export default function TelegramDeliveryRoom() {
     if (!confirmed) return;
     setStatusSaving(true);
     try {
-      await updateBbOrderByKey(String(order.upsert_key), {
+      await updateSTOrderByKey(String(order.upsert_key), {
         telegram_sent: "false",
         telegram_status: "PENDING",
         delivery_status: "PENDING",
@@ -474,7 +474,7 @@ export default function TelegramDeliveryRoom() {
     try {
       // Save only the final outgoing bill text; raw chat evidence and source fields remain untouched.
       const savedText = escapeTelegramHtml(text);
-      await updateBbOrderByKey(String(order.upsert_key), { telegram_message_for_send_final: savedText }, sourceTableOf(order));
+      await updateSTOrderByKey(String(order.upsert_key), { telegram_message_for_send_final: savedText }, sourceTableOf(order));
       setManualMessageOverrides((current) => ({ ...current, [orderKey(order)]: text }));
       setEditMode(false);
       setSendMessage(`บันทึกข้อความส่งสำเร็จลง ${sourceTableOf(order)} — ปุ่มส่งจะใช้ก้อนนี้`);
