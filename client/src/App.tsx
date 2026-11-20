@@ -25,6 +25,7 @@ import OrderEditor from "./pages/OrderEditor";
 import ScriptAtelier from "./pages/ScriptAtelier";
 import MobileInbox from "./pages/MobileInbox";
 import LineChat from "./pages/LineChat";
+import { GlobalThemeRuntime } from "./contexts/GlobalThemeRuntime";
 import { useEffect } from "react";
 
 function Shell({ children }: { children: React.ReactNode }) { return <DashboardLayout>{children}</DashboardLayout>; }
@@ -68,4 +69,4 @@ function Router() {
     <Route component={NotFound} />
   </Switch>;
 }
-export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="dark"><TooltipProvider><Toaster /><Router /></TooltipProvider></ThemeProvider></ErrorBoundary>; }
+export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="dark"><GlobalThemeRuntime><TooltipProvider><Toaster /><Router /></TooltipProvider></GlobalThemeRuntime></ThemeProvider></ErrorBoundary>; }
