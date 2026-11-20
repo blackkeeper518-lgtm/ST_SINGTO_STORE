@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import OrderEditWorkbench from "@/components/OrderEditWorkbench";
 import { getActiveCamp, mapChatRowsToThreads, orderTimeSortKey, readBbAlertRoom, readBlackboxRoom, readCanonicalOrders, readParcelByTrackingNumber, readParcelMappingQueue, readTelegramDeliveryOrders } from "@/lib/canonical";
 import { buildMetaInboxPageUrl, parseMetaChatLinkKey } from "@/lib/meta-inbox";
@@ -294,16 +294,6 @@ export default function OrderControl() {
 
       {/* SEARCH / FILTERS · แผงลิ้นชักสไลด์เข้าจากด้านขวา */}
       <Sheet open={searchPanelOpen} onOpenChange={setSearchPanelOpen}>
-        <div className="flex justify-end">
-          <SheetTrigger asChild>
-            <Button type="button" variant="outline" aria-label="เปิดค้นหาและตัวกรองจากด้านขว" className="order-search-toggle flex h-10 items-center gap-2 px-4">
-              <Search className="h-4 w-4 text-cyan-200" />
-              <span>UNIVERSAL SEARCH</span>
-              {search.trim() ? <span className="max-w-[160px] truncate rounded-full border border-cyan-200/20 bg-cyan-300/[.08] px-2 py-0.5 text-[10px] normal-case tracking-normal">{search.trim()}</span> : null}
-              <span className="rounded-full border border-fuchsia-200/20 bg-fuchsia-300/[.07] px-2 py-0.5 text-[9px] text-fuchsia-100/80">เปิดจากขวา</span>
-            </Button>
-          </SheetTrigger>
-        </div>
         <SheetContent side="right" className="order-control-room flex w-[min(860px,100vw)] flex-col gap-0 overflow-hidden border-l border-cyan-300/25 bg-[#05070d] p-0 text-white shadow-[-18px_0_60px_rgba(34,211,238,.12)] sm:max-w-[860px]">
           <SheetHeader className="border-b border-cyan-300/15 bg-gradient-to-r from-violet-500/[.10] via-cyan-400/[.05] to-transparent pr-14">
             <SheetTitle className="text-left text-sm font-bold tracking-[.14em] text-cyan-100">UNIVERSAL SEARCH · ORDER CONTROL</SheetTitle>
