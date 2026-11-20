@@ -251,6 +251,11 @@ export default function OrderControl() {
   const todayCod = todayOrders.reduce((sum, row) => sum + numeric(row.cod_amount), 0);
 
   useEffect(() => {
+    const openSearch = () => setSearchPanelOpen(true);
+    window.addEventListener("universal-search-open", openSearch);
+    return () => window.removeEventListener("universal-search-open", openSearch);
+  }, []);
+  useEffect(() => {
     const timer = window.setInterval(() => setClock(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
