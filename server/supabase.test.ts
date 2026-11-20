@@ -31,7 +31,7 @@ describe("getLiveOrderStats", () => {
 });
 
 describe("recordOutgoingChatMessage", () => {
-  it("persists each outgoing image URL alongside its provider message ID", async () => {
+  it("persists each outgoing image URL alongside its own provider message ID", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       new Response("[]", { status: 201, headers: { "Content-Type": "application/json" } }),
     );
@@ -48,9 +48,7 @@ describe("recordOutgoingChatMessage", () => {
         imageUrl,
       }, { url: "https://chat-project.supabase.co", serviceRoleKey: "test-key" })));
 
-      const persisted = fetchSpy.mock.calls
-        .map(([, init]) => JSON.parse(String(init?.body)))
-        .filter(row => Object.prototype.hasOwnProperty.call(row, "attachment_url"));
+      const persisted = fetchSpy.mock.calls.map(([, init]) => JSON.parse(String(init?.body)));
       expect(persisted).toHaveLength(4);
       expect(persisted.map(row => row.attachment_url)).toEqual(imageUrls);
       expect(persisted.map(row => row.message_id)).toEqual(messageIds);

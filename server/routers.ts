@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
-import { fetchMetaProfile, sendMetaMessage } from "./meta";
-import { assertChatPageEnabled, checkChatConnection, fetchChatMessageRows, fetchChatNotificationRows, fetchChatPages, fetchChatThreadRows, fetchParcelMappingQueue, purgeOldParcels, recordOutgoingChatMessage, setChatPageWebStatus, supabaseGet, supabasePost } from "./supabase";
+import { sendMetaMessage } from "./meta";
+import { assertChatPageEnabled, checkChatConnection, deleteChatPage, fetchChatMessageRows, fetchChatNotificationRows, fetchChatPages, fetchChatThreadRows, fetchParcelMappingQueue, purgeOldParcels, recordOutgoingChatMessage, saveChatPage, setChatPageAppStatus, setChatPageWebStatus, supabaseDelete, supabaseGet, supabasePatch, supabasePost } from "./supabase";
 import { checkLineConnection, fetchLineConversations, fetchLineMessages, sendLineText } from "./line";
 import * as db from "./db";
+import { generateOrderSummary } from "./order-summary";
 
 const ownerId = (ctx: { user: { id: number } | null }) => ctx.user?.id ?? 0;
 const kind = z.enum(["code", "sql", "workflow", "document", "config", "other"]);
@@ -34,12 +35,17 @@ async function persistOutgoingChatBestEffort(
   catch (error) { console.error("[chat] outgoing write-back failed after Meta accepted message", error); }
 }
 async function persistLocalChatBestEffort(input: Parameters<typeof db.saveChatMessage>[0]) {
+  if (!process.env.DATABASE_URL?.trim()) return;
   try { await db.saveChatMessage(input); }
   catch (error) { console.error("[chat] local audit write skipped after Meta accepted message", error); }
 }
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({ ok: true, service: "drakside-system", time: new Date().toISOString() })),
+
+  orders: router({
+    generateSummary: protectedProcedure.input(z.object({ rawText: z.string().trim().min(1).max(12000), customerName: z.string().optional(), product: z.string().optional(), cod: z.string().optional() })).mutation(({ input }) => generateOrderSummary(input)),
+  }),
 
   auth: router({
     me: publicProcedure.query(({ ctx }) => ctx.user),
@@ -53,9 +59,11 @@ export const appRouter = router({
     // redirect an admin away when an auth session has expired.
     connection: publicProcedure.query(({ ctx }) => checkChatConnection(requireBrowserChatConfig(ctx))),
     pages: protectedProcedure.query(({ ctx }) => fetchChatPages(requireBrowserChatConfig(ctx))),
+    savePage: adminProcedure.input(z.object({ pageId: z.string().trim().min(1), pageName: z.string().trim().min(1), accessToken: z.string().optional(), enabledMobile: z.boolean().default(true), enabledWeb: z.boolean().default(true) })).mutation(({ input }) => saveChatPage(input, requireServerChatConfig())),
+    deletePage: adminProcedure.input(z.object({ pageId: z.string().trim().min(1) })).mutation(({ input }) => deleteChatPage(input.pageId, requireServerChatConfig())),
+    setPageAppStatus: protectedProcedure.input(z.object({ pageId: z.string().min(1), enabled: z.boolean() })).mutation(({ input, ctx }) => setChatPageAppStatus(input.pageId, input.enabled, requireBrowserChatConfig(ctx))),
     setPageWebStatus: protectedProcedure.input(z.object({ pageId: z.string().min(1), enabled: z.boolean() })).mutation(({ input, ctx }) => setChatPageWebStatus(input.pageId, input.enabled, requireBrowserChatConfig(ctx))),
     threads: protectedProcedure.input(z.object({ surface: z.enum(["web", "mobile"]).default("web") }).optional()).query(({ input, ctx }) => fetchChatThreadRows(requireBrowserChatConfig(ctx), input?.surface ?? "web")),
-    profile: protectedProcedure.input(z.object({ pageId: z.string().min(1), userId: z.string().min(1) })).query(({ input, ctx }) => fetchMetaProfile(input, requireBrowserChatConfig(ctx))),
     pollNotifications: protectedProcedure.input(z.object({ afterRowId: z.string().regex(/^\d+$/).nullable() })).mutation(({ input, ctx }) => fetchChatNotificationRows(input.afterRowId, requireBrowserChatConfig(ctx))),
     messages: protectedProcedure.input(z.object({ pageId: z.string().min(1), threadId: z.string().min(1), surface: z.enum(["web", "mobile"]).default("web") })).query(({ input, ctx }) => fetchChatMessageRows(input, requireBrowserChatConfig(ctx), input.surface)),
     sendReply: protectedProcedure.input(z.object({ pageId: z.string(), pageName: z.string().optional(), portalKey: z.string().optional(), chatLinkKey: z.string().optional(), threadId: z.string(), recipientId: z.string(), text: z.string().optional(), imageUrl: z.string().optional(), imageSendUrl: z.string().optional(), imageUrls: z.array(z.string().url()).max(4).optional(), stickerId: z.string().optional(), surface: z.enum(["web", "mobile"]).default("web") })).mutation(async ({ input, ctx }) => {
@@ -73,7 +81,7 @@ export const appRouter = router({
       let finalResult: Awaited<ReturnType<typeof sendMetaMessage>> | undefined;
       for (const item of outgoing) {
         try {
-          const result = await sendMetaMessage({ pageId: input.pageId, recipientId: input.recipientId, text: item.text, imageUrl: item.imageUrl, stickerId: item.stickerId }, credentials);
+          const result = await sendMetaMessage({ pageId: input.pageId, recipientId: input.recipientId, text: item.text, imageUrl: item.imageUrl, stickerId: item.stickerId, surface: input.surface ?? "web" }, credentials);
           item.result = result;
           finalResult = result;
         } catch (error) {
@@ -94,10 +102,27 @@ export const appRouter = router({
   }),
 
   line: router({
-    status: protectedProcedure.input(z.object({ oaId: z.string().optional() }).optional()).query(({ input, ctx }) => checkLineConnection(input?.oaId, requireBrowserChatConfig(ctx))),
-    conversations: protectedProcedure.query(({ ctx }) => fetchLineConversations(requireBrowserChatConfig(ctx))),
-    messages: protectedProcedure.input(z.object({ conversationId: z.string().min(1), lineUserId: z.string().min(1), oaId: z.string().optional() })).query(({ input, ctx }) => fetchLineMessages(input.conversationId, input.lineUserId, input.oaId ?? "", requireBrowserChatConfig(ctx))),
-    send: protectedProcedure.input(z.object({ lineUserId: z.string().min(1), oaId: z.string().optional(), text: z.string().trim().min(1).max(5000) })).mutation(({ input, ctx }) => sendLineText(input.lineUserId, input.text, input.oaId, requireBrowserChatConfig(ctx))),
+    channels: adminProcedure.query(async () => {
+      const rows = await supabaseGet<Array<Record<string, unknown>>>("line_channels?select=id,channel_id,channel_name,oa_id,is_active,status,status_web,created_at,updated_at&order=created_at.desc", "chat", requireServerChatConfig());
+      return rows.map(row => ({ ...row, hasToken: Boolean(row.channel_access_token) }));
+    }),
+    saveChannel: adminProcedure.input(z.object({ id: z.number().int().positive().optional(), channelId: z.string().trim().min(1).max(100), channelName: z.string().trim().min(1).max(160), oaId: z.string().trim().min(1).max(160), accessToken: z.string().trim().max(1000).optional(), channelSecret: z.string().trim().max(500).optional(), isActive: z.boolean().default(true), isWebActive: z.boolean().default(true) })).mutation(async ({ input }) => {
+      const body: Record<string, unknown> = { channel_id: input.channelId, channel_name: input.channelName, oa_id: input.oaId, is_active: input.isActive, status: input.isActive ? "ON" : "OFF", status_web: input.isWebActive ? "ON" : "OFF", updated_at: new Date().toISOString() };
+      if (input.accessToken) body.channel_access_token = input.accessToken;
+      if (input.channelSecret) body.channel_secret = input.channelSecret;
+      const credentials = requireServerChatConfig();
+      if (input.id) return (await supabasePatch<Array<Record<string, unknown>>>(`line_channels?id=eq.${input.id}`, body, "chat", credentials))[0] ?? null;
+      if (!input.accessToken) throw new Error("เพิ่ม LINE ใหม่ต้องใส่ Channel Access Token");
+      if (!input.channelSecret) throw new Error("เพิ่ม LINE ใหม่ต้องใส่ Channel Secret");
+      return (await supabasePost<Array<Record<string, unknown>>>("line_channels", { ...body, channel_access_token: input.accessToken, channel_secret: input.channelSecret }, "chat", "return=representation", credentials))[0] ?? null;
+    }),
+    testChannel: adminProcedure.input(z.object({ oaId: z.string().trim().min(1) })).query(({ input }) => checkLineConnection(input.oaId, requireServerChatConfig())),
+    toggleChannel: adminProcedure.input(z.object({ id: z.number().int().positive(), isActive: z.boolean(), scope: z.enum(["app", "web"]).default("app") })).mutation(({ input }) => supabasePatch(`line_channels?id=eq.${input.id}`, input.scope === "web" ? { status_web: input.isActive ? "ON" : "OFF", updated_at: new Date().toISOString() } : { is_active: input.isActive, status: input.isActive ? "ON" : "OFF", updated_at: new Date().toISOString() }, "chat", requireServerChatConfig())),
+    deleteChannel: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => supabaseDelete(`line_channels?id=eq.${input.id}`, "chat", requireServerChatConfig())),
+    status: protectedProcedure.input(z.object({ oaId: z.string().optional(), surface: z.enum(["web", "mobile"]).default("web") }).optional()).query(({ input, ctx }) => checkLineConnection(input?.oaId, requireBrowserChatConfig(ctx))),
+    conversations: protectedProcedure.input(z.object({ surface: z.enum(["web", "mobile"]).default("web") }).optional()).query(({ input, ctx }) => fetchLineConversations(requireBrowserChatConfig(ctx), input?.surface ?? "web")),
+    messages: protectedProcedure.input(z.object({ conversationId: z.string().min(1), lineUserId: z.string().min(1), oaId: z.string().optional(), surface: z.enum(["web", "mobile"]).default("web") })).query(({ input, ctx }) => fetchLineMessages(input.conversationId, input.lineUserId, input.oaId ?? "", requireBrowserChatConfig(ctx))),
+    send: protectedProcedure.input(z.object({ lineUserId: z.string().min(1), oaId: z.string().optional(), text: z.string().trim().min(1).max(5000), surface: z.enum(["web", "mobile"]).default("web") })).mutation(({ input, ctx }) => sendLineText(input.lineUserId, input.text, input.oaId, requireBrowserChatConfig(ctx))),
   }),
 
   parcels: router({

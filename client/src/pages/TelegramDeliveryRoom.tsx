@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   getActiveCamp,
-  markSTOrderSentByKey,
+  markBbOrderSentByKey,
   readTelegramDeliveryOrders,
   searchThailandPostalMaster,
-  updateSTOrderByKey,
+  updateBbOrderByKey,
   type PostalMasterMatch,
 } from "@/lib/canonical";
 import { useQuery } from "@tanstack/react-query";
@@ -81,7 +81,7 @@ export default function TelegramDeliveryRoom() {
     setStatusSaving(true);
     setStatusMessage("");
     try {
-      await markSTOrderSentByKey(selectedOrder.upsert_key, sourceTableOf(selectedOrder));
+      await markBbOrderSentByKey(selectedOrder.upsert_key, sourceTableOf(selectedOrder));
       setStatusMessage(`บันทึกสถานะ SENT สำหรับ ${selectedOrder.upsert_key} แล้ว`);
       await query.refetch();
     } catch (error) {
@@ -100,7 +100,7 @@ export default function TelegramDeliveryRoom() {
     setStatusSaving(true);
     setStatusMessage("");
     try {
-      await updateSTOrderByKey(selectedOrder.upsert_key, {
+      await updateBbOrderByKey(selectedOrder.upsert_key, {
         telegram_sent: "false",
         telegram_status: "PENDING",
         delivery_status: "PENDING",

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import OrderEditWorkbench from "@/components/OrderEditWorkbench";
-import { getActiveCamp, mapChatRowsToThreads, orderTimeSortKey, readSTAlertRoom, readBlackboxRoom, readCanonicalOrders, readParcelByTrackingNumber, readParcelMappingQueue, readTelegramDeliveryOrders } from "@/lib/canonical";
+import { getActiveCamp, mapChatRowsToThreads, orderTimeSortKey, readBbAlertRoom, readBlackboxRoom, readCanonicalOrders, readParcelByTrackingNumber, readParcelMappingQueue, readTelegramDeliveryOrders } from "@/lib/canonical";
 import { buildMetaInboxPageUrl, parseMetaChatLinkKey } from "@/lib/meta-inbox";
 import { getOrderWarnings } from "@/lib/orderWarnings";
 import { useQuery } from "@tanstack/react-query";
@@ -197,7 +197,7 @@ export default function OrderControl() {
   });
   const paradoxQuery = useQuery({
     queryKey: ["order-control-paradox-trace", getActiveCamp(), search.trim()],
-    queryFn: () => readSTAlertRoom(search),
+    queryFn: () => readBbAlertRoom(search),
     enabled: searchPanelOpen && trackingSearchReady,
     staleTime: 15_000,
   });
@@ -279,7 +279,7 @@ export default function OrderControl() {
         <div className="hero-scanline" />
         <div className="relative z-10 max-w-3xl">
           <p className="orbit-kicker flex items-center gap-2 text-cyan-200/80"><Database className="h-3.5 w-3.5 text-cyan-300" /> ศูนย์ควบคุมออเดอร์จาก n8n ·</p>
-          <h1 className="cyber-title mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">ORDER CONTROL <span className="text-cyan-300">✦</span> ST STORE</h1>
+          <h1 className="cyber-title mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">ORDER CONTROL <span className="text-cyan-300">✦</span> BB STORE</h1>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-300/75">เห็นต้นทาง สถานะ และเวลาจริงในจอเดียว</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="live-chip"><span className="live-dot" /> LIVE ORDER STREAM</span>

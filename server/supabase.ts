@@ -121,9 +121,26 @@ export async function fetchChatPages(credentials?: ChatSupabaseCredentials) {
   const rows = await supabaseGet<Array<Record<string, unknown>>>(`${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?${query.toString()}`, "chat", credentials);
   return rows.map(row => ({ pageId: String(row.page_id ?? "").trim(), pageName: String(row.page_name ?? "ไม่ระบุเพจ").trim() || "ไม่ระบุเพจ", status: row.status ?? null, statusWeb: row.status_web ?? row.status ?? null, enabledMobile: isChatStatusEnabled(row.status), enabledWeb: isChatStatusEnabled(effectiveWebStatus(row)) })).filter(row => row.pageId);
 }
+export async function saveChatPage(input: { pageId: string; pageName: string; accessToken?: string; enabledMobile: boolean; enabledWeb: boolean }, credentials?: ChatSupabaseCredentials) {
+  const pageId = input.pageId.trim();
+  const body: Record<string, unknown> = { page_id: pageId, page_name: input.pageName.trim(), status: input.enabledMobile ? "ON" : "OFF", status_web: input.enabledWeb ? "ON" : "OFF", updated_at: new Date().toISOString() };
+  if (input.accessToken?.trim()) body.access_token = input.accessToken.trim();
+  const query = `${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?page_id=eq.${encodeURIComponent(pageId)}`;
+  const existing = await supabaseGet<Array<Record<string, unknown>>>(`${query}&select=page_id`, "chat", credentials);
+  if (existing.length) return (await supabasePatch<Array<Record<string, unknown>>>(query, body, "chat", credentials))[0] ?? null;
+  if (!body.access_token) throw new Error("เพิ่มเพจใหม่ต้องใส่ Page Access Token");
+  return (await supabasePost<Array<Record<string, unknown>>>(encodeURIComponent(CHAT_PAGE_TOKEN_TABLE), body, "chat", "return=representation", credentials))[0] ?? null;
+}
+export async function deleteChatPage(pageId: string, credentials?: ChatSupabaseCredentials) {
+  return supabaseDelete<Array<Record<string, unknown>>>(`${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?page_id=eq.${encodeURIComponent(pageId)}`, "chat", credentials);
+}
 export async function setChatPageWebStatus(pageId: string, enabled: boolean, credentials?: ChatSupabaseCredentials) {
   const query = `${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?page_id=eq.${encodeURIComponent(pageId)}`;
   return supabasePatch<Array<Record<string, unknown>>>(query, { status_web: enabled ? "ON" : "OFF" }, "chat", credentials);
+}
+export async function setChatPageAppStatus(pageId: string, enabled: boolean, credentials?: ChatSupabaseCredentials) {
+  const query = `${encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)}?page_id=eq.${encodeURIComponent(pageId)}`;
+  return supabasePatch<Array<Record<string, unknown>>>(query, { status: enabled ? "ON" : "OFF" }, "chat", credentials);
 }
 export async function assertChatPageEnabled(pageId: string, credentials?: ChatSupabaseCredentials, surface: "web" | "mobile" = "web") {
   const activeIds = await getActiveChatPageIds(credentials, surface);
@@ -174,29 +191,63 @@ const CHAT_CONNECTION_CHECKS = [
   { name: CHAT_CUSTOMER_TABLE, columns: "id,page_id,thread_id,message_text,customer_message_text,phone" },
   { name: CHAT_PAGE_TABLE, columns: "id,page_id,thread_id,message_text,page_message_text" },
   { name: CHAT_PAGE_TOKEN_TABLE, columns: "page_id,access_token" },
+  { name: "delivery_pre_send_checks", columns: "*" },
+  { name: "delivery_red_zone_provinces", columns: "*" },
+  { name: "delivery_telegram_urgent_queue", columns: "*" },
+  { name: "line_channels", columns: "*" },
+  { name: "line_messages", columns: "*" },
+  { name: "🌓VAGABOND_xXx_DISMISS", columns: "*" },
+  { name: "🌠BINARY_xXx_MATRIX", columns: "*" },
+  { name: "🏴‍☠️SIRIUS_xXx_CRASH", columns: "*" },
 ] as const;
 export async function checkChatConnection(credentials?: ChatSupabaseCredentials) {
-  await Promise.all(CHAT_CONNECTION_CHECKS.map(({ name, columns }) => {
+  const results = await Promise.all(CHAT_CONNECTION_CHECKS.map(async ({ name, columns }) => {
     const query = new URLSearchParams({ select: columns, limit: "0" });
-    return supabaseGet<Array<Record<string, unknown>>>(`${encodeURIComponent(name)}?${query.toString()}`, "chat", credentials);
+    try {
+      await supabaseGet<Array<Record<string, unknown>>>(`${encodeURIComponent(name)}?${query.toString()}`, "chat", credentials);
+      return { name, status: "ready" as const };
+    } catch {
+      return { name, status: "error" as const };
+    }
   }));
-  // ส่งกลับเฉพาะชื่อ object; ห้ามส่ง page token หรือข้อมูลแชทออกจาก server
-  return { checked: CHAT_CONNECTION_CHECKS.map(({ name }) => name) };
+  // ส่งกลับเฉพาะชื่อและสถานะ object; ห้ามส่ง page token หรือข้อมูลแชทออกจาก server
+  return {
+    checked: results.filter(result => result.status === "ready").map(({ name }) => name),
+    results,
+  };
 }
 export async function supabasePost<T>(path: string, body: unknown, project: SupabaseProject = "main", prefer?: string, browserChatCredentials?: ChatSupabaseCredentials): Promise<T> { const { baseUrl, key } = config(project, browserChatCredentials); const headers: Record<string, string> = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" }; if (prefer) headers.Prefer = prefer; const response = await fetch(`${baseUrl}/rest/v1/${path}`, { method: "POST", headers, body: JSON.stringify(body) }); if (!response.ok) throw new Error(`Supabase returned HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`); return response.json() as Promise<T>; }
 export async function supabasePatch<T>(path: string, body: unknown, project: SupabaseProject = "main", browserChatCredentials?: ChatSupabaseCredentials): Promise<T> { const { baseUrl, key } = config(project, browserChatCredentials); const response = await fetch(`${baseUrl}/rest/v1/${path.replace(/^\/+/, "")}`, { method: "PATCH", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=representation" }, body: JSON.stringify(body) }); if (!response.ok) throw new Error(`Supabase returned HTTP ${response.status}: ${(await response.text()).slice(0, 500)}`); const text = await response.text(); return (text ? JSON.parse(text) : []) as T; }
+export async function supabaseDelete<T>(path: string, project: SupabaseProject = "main", browserChatCredentials?: ChatSupabaseCredentials): Promise<T> { const { baseUrl, key } = config(project, browserChatCredentials); const response = await fetch(`${baseUrl}/rest/v1/${path.replace(/^\/+/, "")}`, { method: "DELETE", headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: "return=representation" } }); if (!response.ok) throw new Error(`Supabase returned HTTP ${response.status}: ${(await response.text()).slice(0, 500)}`); const text = await response.text(); return (text ? JSON.parse(text) : []) as T; }
 export async function recordOutgoingChatMessage(input: { portalKey?: string; chatLinkKey?: string; pageId: string; pageName?: string; threadId: string; recipientId: string; messageId?: string; text?: string; imageUrl?: string; occurredAt?: Date }, credentials?: ChatSupabaseCredentials) {
   const occurredAt = input.occurredAt ?? new Date();
   const iso = occurredAt.toISOString();
   const messageId = input.messageId?.trim() || null;
   const chatLinkKey = input.chatLinkKey?.trim() || `${input.pageId}_t_${input.threadId}`;
-  const payload = { chat_link_key: chatLinkKey, page_id: input.pageId, page_name: input.pageName?.trim() || null, portal_key: input.portalKey?.trim() || null, thread_id: input.threadId, recipient_id: input.recipientId, message_id: messageId, speaker: "page", is_sent: true, time: iso, occurred_at: iso, message_time_display: iso, message_text: input.text?.trim() || null, attachment_url: input.imageUrl?.trim() || null, page_latest_message: input.text?.trim() || null, page_message_time_th: iso, sync_status: "SENT", dedupe_key: messageId ? `${chatLinkKey}:${messageId}` : `${chatLinkKey}:${iso}` };
-  const pageMessagePayload = { chat_link_key: chatLinkKey, page_id: input.pageId, page_name: input.pageName?.trim() || null, portal_key: input.portalKey?.trim() || null, thread_id: input.threadId, recipient_id: input.recipientId, sender_id: input.pageId, sender_name: input.pageName?.trim() || null, speaker_type: "page", speaker: "page", side: "right", is_sent: true, message_id: messageId, page_message_text: input.text?.trim() || null, message_text: input.text?.trim() || null, time: iso, occurred_at: iso, dedupe_key: messageId ? `${chatLinkKey}:${messageId}` : `${chatLinkKey}:${iso}` };
-  // เพิ่มแถวใหม่ต่อทุกข้อความตอบกลับ; ไม่ใช้ upsert หรือบังคับ unique key
-  try { await supabasePost<Record<string, unknown>[]>(encodeURIComponent(CHAT_PAGE_TABLE), pageMessagePayload, "chat", "return=representation", credentials); }
-  catch (error) { console.error("[chat] canonical page-message write failed", error); }
-  const relation = encodeURIComponent("🧿ST_xXx_ORDERCONTROL");
-  return supabasePost<Record<string, unknown>[]>(relation, payload, "chat", "return=representation", credentials);
+  // Pg Chat is append-only for outgoing messages. Keep this payload limited to
+  // columns that exist in Pg_Chat⭐BINARY_xXx_STAR; do not write to the order
+  // control table from the chat lane.
+  const pageMessagePayload = {
+    chat_link_key: chatLinkKey,
+    page_id: input.pageId,
+    page_name: input.pageName?.trim() || null,
+    portal_key: input.portalKey?.trim() || null,
+    thread_id: input.threadId,
+    recipient_id: input.recipientId,
+    message_id: messageId,
+    speaker: "page",
+    is_sent: true,
+    time: iso,
+    occurred_at: iso,
+    message_time_display: iso,
+    message_text: input.text?.trim() || null,
+    attachment_url: input.imageUrl?.trim() || null,
+    page_latest_message: input.text?.trim() || null,
+    page_message_time_th: iso,
+    sync_status: "SENT",
+    dedupe_key: messageId ? `${chatLinkKey}:${messageId}` : `${chatLinkKey}:${iso}`,
+  };
+  return supabasePost<Record<string, unknown>[]>(encodeURIComponent(CHAT_PAGE_TABLE), pageMessagePayload, "chat", "return=representation", credentials);
 }
 export async function fetchParcelMappingQueue(input: { status: "all" | "sent"; limit: number }) {
   // These are quoted PostgreSQL relation names; keep the space after the emoji.

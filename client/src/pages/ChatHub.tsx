@@ -7,18 +7,16 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { getSupabase, mapChatRowsToMessages, mapChatRowsToThreads, reconcileOptimisticMessages } from "@/lib/canonical";
 import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { buildMetaConversationUrl } from "@/lib/meta-inbox";
+import { metaTransientSendNotice } from "@/lib/meta-send-notice";
+import { getSelectedOrderMessageText, isSelectableCustomerMessage } from "@/lib/order-deck-context";
 import { CHAT_BROWSER_CONFIG_EVENT, readBrowserChatConfig } from "@/lib/chat-config";
 import { CYBER_FRAME_EVENT, CYBER_FRAME_OPTIONS, readCyberFrame, readCyberFrameRooms, saveCyberFrameRoom } from "@/lib/cyber-frame";
-import { CYBER_THEME_KEY, readCyberTheme, saveCyberTheme, getThemeTextColor, type CyberTheme } from "@/lib/theme-lab";
-import { getMetaTraceId, isTransientMetaInternal } from "@/lib/meta-errors";
-import { ChatHubThemeControl } from "@/components/chat/ChatHubThemeControl";
 import { trpc } from "@/lib/trpc";
 import "@/styles/cyber-frames.css";
 import { Check, CheckCircle2, ChevronDown, CircleUserRound, Clipboard, ExternalLink, LoaderCircle, Megaphone, MessageCircle, MessagesSquare, PanelLeft, Paperclip, Power, RefreshCw, Search, Send, Smile, Sparkles, UserRound, Users, Wrench, X } from "lucide-react";
 import { type ClipboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { OrderDeckFrame } from "@/components/chat/OrderDeckFrame";
-import { selectLatestCustomerMessageTexts } from "@/lib/order-deck-context";
 
 function timeLabel(value: string | null | undefined) {
   if (!value) return "—";
@@ -48,7 +46,8 @@ function imageUrls(value: string | null | undefined) {
 }
 
 function stripSpeakerPrefix(value: string) { return value.replace(/^\s*\[(?:เพจ|ลูกค้า)\]\s*/i, "").trim(); }
-function displayMessageText(message: Record<string, any>) {
+function displayMessageText(message: Record<string, any> | null | undefined) {
+  if (!message || typeof message !== "object") return "";
   const text = stripSpeakerPrefix(String(message.text ?? ""));
   if (text) return text;
   return imageUrls(message.attachmentsJson).length > 0 ? "ส่งรูปภาพ" : "";
@@ -65,6 +64,7 @@ function hasTrackingOver24Hours(thread: Record<string, any>) {
 
 const CHAT_PAGE_FILTER_KEY = "bb-orders-chat-page-filter-v1";
 const CHAT_SELECTED_ROOM_KEY = "bb-orders-chat-selected-room-v1";
+type SelectedOrderMessage = { id: string; threadKey: string; text: string };
 function CopyValueCard({ label, value, copied, onCopy }: { label: string; value: unknown; copied: boolean; onCopy: () => void }) {
   const text = String(value ?? "").trim();
   const hasValue = Boolean(text);
@@ -94,7 +94,7 @@ export default function ChatHub() {
   const [composerOpen, setComposerOpen] = useState(true);
   const [toolsOpen, setToolsOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= 1440);
   const [orderDeckOpen, setOrderDeckOpen] = useState(false);
-  const [orderDeckImportKey, setOrderDeckImportKey] = useState(0);
+  const [selectedOrderMessage, setSelectedOrderMessage] = useState<SelectedOrderMessage | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pageFilterOpen, setPageFilterOpen] = useState(false);
   const [selectedPages, setSelectedPages] = useState<string[]>(() => {
@@ -104,6 +104,9 @@ export default function ChatHub() {
   const [statusFilter, setStatusFilter] = useState<"all" | "ordered" | "tracking_over_24h">("all");
   const [replyText, setReplyText] = useState("");
   const [replyImages, setReplyImages] = useState<Array<{ url: string; sendUrl: string; name: string }>>([]);
+  const [deckImageProducts, setDeckImageProducts] = useState<Array<{ product: string; terms: string[] }>>([]);
+  const [productImagesRequest, setProductImagesRequest] = useState<{ id: number; product: string } | null>(null);
+  const productImagesRequestId = useRef(0);
   const [imageUploading, setImageUploading] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [stickerId, setStickerId] = useState("");
@@ -119,7 +122,6 @@ export default function ChatHub() {
   const [messageFilter, setMessageFilter] = useState<"all" | "customer" | "page">("all");
   const [cyberFrame, setCyberFrame] = useState(() => readCyberFrame());
   const [cyberFrameRooms, setCyberFrameRooms] = useState(() => readCyberFrameRooms());
-  const [cyberTheme, setCyberTheme] = useState<CyberTheme>(() => readCyberTheme());
   const [framePickerRoom, setFramePickerRoom] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedToolField, setCopiedToolField] = useState<string | null>(null);
@@ -149,15 +151,7 @@ export default function ChatHub() {
       window.removeEventListener(CYBER_FRAME_EVENT, refreshFrame);
     };
   }, []);
-  useEffect(() => {
-    const refreshTheme = (event: StorageEvent) => {
-      if (event.key === CYBER_THEME_KEY || event.key === null) setCyberTheme(readCyberTheme());
-    };
-    window.addEventListener("storage", refreshTheme);
-    return () => window.removeEventListener("storage", refreshTheme);
-  }, []);
   const setRoomFrame = (roomKey: string, id: string) => { saveCyberFrameRoom(roomKey, id); setCyberFrameRooms(readCyberFrameRooms()); };
-  const chooseChatTheme = (theme: CyberTheme) => { setCyberTheme(theme); saveCyberTheme(theme); };
   useEffect(() => { localStorage.setItem(CHAT_PAGE_FILTER_KEY, JSON.stringify(selectedPages)); }, [selectedPages]);
   useLayoutEffect(() => {
     const field = replyTextareaRef.current;
@@ -173,9 +167,10 @@ export default function ChatHub() {
   const threadsQuery = trpc.chat.threads.useQuery({ surface: "web" }, {
     enabled: hasBrowserChatConfig,
     staleTime: 0,
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     select: mapChatRowsToThreads,
   });
   const pageCatalogQuery = trpc.chat.pages.useQuery(undefined, { enabled: hasBrowserChatConfig, staleTime: 0, refetchInterval: false, refetchOnWindowFocus: false, retry: false });
@@ -209,18 +204,17 @@ export default function ChatHub() {
   const messagesQuery = trpc.chat.messages.useQuery({ pageId: selectedPageId, threadId: selectedThreadId, surface: "web" }, {
     enabled: hasBrowserChatConfig && Boolean(selectedPageId && selectedThreadId),
     staleTime: 0,
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     select: mapChatRowsToMessages,
   });
-  const orderDeckCustomerMessages = useMemo(
-    () => selectLatestCustomerMessageTexts(messagesQuery.data ?? []),
-    [messagesQuery.data],
-  );
+  const selectedOrderMessageText = getSelectedOrderMessageText(selectedOrderMessage, selected?.key);
   useEffect(() => {
     setOptimisticMessages([]);
     optimisticMessageIdRef.current = null;
+    setSelectedOrderMessage(null);
   }, [selectedPageId, selectedThreadId]);
   useEffect(() => {
     setOptimisticMessages(current => reconcileOptimisticMessages(current, messagesQuery.data ?? []));
@@ -305,7 +299,8 @@ export default function ChatHub() {
     },
     onError: error => {
       setDeliveryStatus("failed");
-      setReplyNotice(error.message || "ส่งข้อความไม่สำเร็จ");
+      const message = error.message || "ส่งข้อความไม่สำเร็จ";
+      setReplyNotice(metaTransientSendNotice(message) ?? message);
       const failedId = optimisticMessageIdRef.current;
       if (failedId) setOptimisticMessages(current => current.filter(message => message.id !== failedId));
       optimisticMessageIdRef.current = null;
@@ -322,8 +317,20 @@ export default function ChatHub() {
     if (!selected) return;
     setSummary(null);
     setOrderDeckOpen(true);
-    setOrderDeckImportKey(key => key + 1);
     setSummaryOpen(false);
+  };
+  const toggleOrderMessageSelection = (message: unknown) => {
+    if (!isSelectableCustomerMessage(message) || !selected) return;
+    const text = message.customer_message_text.trim();
+    const id = String(message.id ?? message.messageId ?? `${message.occurredAt ?? ""}:${text}`);
+    const isAlreadySelected = selectedOrderMessage?.id === id && selectedOrderMessage.threadKey === selected.key;
+    if (isAlreadySelected) {
+      setSelectedOrderMessage(null);
+      setReplyNotice("ยกเลิกการเลือกข้อความสำหรับสรุปออเดอร์แล้ว");
+      return;
+    }
+    setSelectedOrderMessage({ id, threadKey: selected.key, text });
+    setReplyNotice("เลือกข้อความนี้ไว้แล้ว · เปิดสรุปออเดอร์แล้วกด “ดึงข้อมูลลูกค้า” เมื่อต้องการนำเข้า");
   };
   const selectedConfirmed = Boolean(selected && confirmedKeys.has(`${selectedPageId}:${selectedThreadId}`));
   const confirmSelectedOrder = () => { if (!selectedPageId || !selectedThreadId || selectedConfirmed) return; confirmOrder.mutate({ pageId: selectedPageId, threadId: selectedThreadId, customerName: selected?.customerName ?? undefined, customerId: selectedCustomerId || undefined, evidenceText: selected?.preview ?? undefined }); };
@@ -437,6 +444,66 @@ export default function ChatHub() {
       setImageUploading(false);
     }
   };
+  const handleDeckProductImagesSelected = async (imageUrls: string[], productName?: string) => {
+    if (sendReply.isPending || imageUploading) {
+      setReplyNotice("รอให้การส่งหรืออัปโหลดภาพปัจจุบันเสร็จก่อน");
+      return;
+    }
+    const remaining = Math.max(0, 4 - replyImages.length);
+    if (!remaining) { setReplyNotice("แนบภาพได้สูงสุด 4 ภาพต่อข้อความ · เอาภาพเดิมออกก่อนเพิ่มสินค้า"); return; }
+    const existing = new Set(replyImages.map(image => image.sendUrl || image.url));
+    const productLabel = productName?.trim() || "สินค้า";
+    if (replyImages.some(image => image.name.startsWith(`${productLabel}-`))) { setReplyNotice(`ภาพ ${productLabel} อยู่ในช่องรอส่งแล้ว`); return; }
+    const unique = imageUrls.filter((url, index) => typeof url === "string" && !existing.has(url) && imageUrls.indexOf(url) === index);
+    const chosen = unique.slice(0, remaining);
+    if (!chosen.length) { setReplyNotice("ภาพสินค้านี้อยู่ในช่องรอส่งแล้ว"); return; }
+
+    const pending: Array<{ url: string; sendUrl: string; name: string }> = [];
+    const files: File[] = [];
+    const invalidCount = chosen.filter(url => !/^https?:\/\//i.test(url) && !/^data:image\/(?:png|jpeg|gif|webp);base64,/i.test(url)).length;
+    chosen.forEach((url, index) => {
+      if (/^https?:\/\//i.test(url)) {
+        pending.push({ url, sendUrl: url, name: `${productLabel}-${index + 1}` });
+        return;
+      }
+      const match = url.match(/^data:(image\/(?:png|jpeg|gif|webp));base64,([\s\S]+)$/i);
+      if (!match) return;
+      try {
+        const binary = window.atob(match[2]);
+        const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+        const mime = match[1].toLowerCase();
+        const extension = mime === "image/jpeg" ? "jpg" : mime.slice("image/".length);
+        files.push(new File([bytes], `${productLabel}-${index + 1}.${extension}`, { type: mime }));
+      } catch { /* Ignore malformed data URLs and report them below. */ }
+    });
+
+    const failures: string[] = [];
+    if (files.length) {
+      const vaultClient = getSupabase("vault");
+      if (!vaultClient) failures.push("ไม่พบ ROOM 04 · PRIVATE VAULT สำหรับเตรียมภาพจาก Deck");
+      else {
+        setImageUploading(true);
+        setReplyNotice(`กำลังเตรียมภาพ ${productLabel}…`);
+        for (const file of files) {
+          if (file.size > 6_000_000) { failures.push(`${file.name} เกิน 6 MB`); continue; }
+          try {
+            const uploaded = await uploadChatImageToVault(vaultClient, file);
+            pending.push({ url: uploaded.url, sendUrl: uploaded.url, name: file.name });
+          } catch (error) {
+            failures.push(error instanceof Error ? error.message : "อัปโหลดภาพไม่สำเร็จ");
+          }
+        }
+        setImageUploading(false);
+      }
+    }
+
+    if (pending.length) setReplyImages(current => [...current, ...pending].slice(0, 4));
+    const limitNote = unique.length > remaining ? " · เพิ่มได้เท่าที่เหลือให้ครบ 4 ภาพ" : "";
+    const failureNote = failures.length || invalidCount ? ` · บางภาพเพิ่มไม่ได้${failures.length ? `: ${failures[0]}` : ""}` : "";
+    setReplyNotice(pending.length
+      ? `เพิ่มภาพ ${productLabel} ${pending.length} ภาพลงช่องรอส่งแล้ว · ตรวจสอบก่อนกดส่ง${limitNote}${failureNote}`
+      : `ยังเพิ่มภาพ ${productLabel} ไม่สำเร็จ${failureNote}`);
+  };
   const handleComposerPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     const files = Array.from(event.clipboardData.items)
       .filter(item => item.kind === "file" && item.type.startsWith("image/"))
@@ -447,18 +514,41 @@ export default function ChatHub() {
     void handleImageUpload(files);
   };
   const addEmoji = (emoji: string) => setReplyText(current => `${current}${current ? " " : ""}${emoji}`);
+  const productSuggestions = useMemo(() => {
+    const normalize = (value: string) => value.normalize("NFC").toLocaleLowerCase("th-TH").replace(/[\u200B-\u200F\uFEFF]/g, "").replace(/[^\p{L}\p{N}]/gu, "");
+    const whole = normalize(replyText);
+    const lastToken = normalize(replyText.trim().split(/\s+/).at(-1) || "");
+    if (!whole || (!lastToken && !whole)) return [];
+    return deckImageProducts.map(entry => {
+      const terms = [...new Set([entry.product, ...entry.terms].map(normalize).filter(term => term.length >= 2))];
+      const score = terms.reduce((best, term) => Math.max(best, whole.includes(term) ? 100 + Math.min(term.length, 30) : lastToken.length >= 2 && term.includes(lastToken) ? 50 + Math.min(lastToken.length, 30) : 0), 0);
+      return { ...entry, score };
+    }).filter(entry => entry.score > 0).sort((a, b) => b.score - a.score || a.product.localeCompare(b.product, "th")).slice(0, 4);
+  }, [deckImageProducts, replyText]);
+  const requestDeckProductImages = (product: string) => {
+    productImagesRequestId.current += 1;
+    setProductImagesRequest({ id: productImagesRequestId.current, product });
+    setOrderDeckOpen(true);
+    setReplyNotice(`กำลังเพิ่มภาพ ${product} ลงช่องรอส่ง…`);
+  };
   const copySummary = async () => {
     if (!replyText.trim()) return;
     await navigator.clipboard.writeText(replyText);
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
-  };
+  window.setTimeout(() => setCopied(false), 1600);
+};
   const visibleTimeline = (selected?.chatTimeline ?? []).filter((line: string) => stripSpeakerPrefix(line).trim() && (messageFilter === "all" || (messageFilter === "page" ? isPageTimelineLine(line) : isCustomerTimelineLine(line))));
-  const visibleStoredMessages = [...(messagesQuery.data ?? []), ...optimisticMessages].filter(message => { const hasContent = String(message.text ?? "").trim().length > 0 || imageUrls(message.attachmentsJson).length > 0; const matchesFilter = messageFilter === "all" || (messageFilter === "page" ? message.direction === "outbound" : message.direction === "inbound"); return hasContent && matchesFilter; });
+  const visibleStoredMessages = [...(messagesQuery.data ?? []), ...optimisticMessages].filter(message => {
+    if (!message || typeof message !== "object") return false;
+    const hasContent = String(message.text ?? "").trim().length > 0 || imageUrls(message.attachmentsJson).length > 0;
+    const matchesFilter = messageFilter === "all" || (messageFilter === "page" ? message.direction === "outbound" : message.direction === "inbound");
+    return hasContent && matchesFilter;
+  });
 
   const composer = <div className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden border-t border-cyan-300/20 pt-2">
     <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={event => { handleImageUpload(Array.from(event.target.files ?? [])); event.currentTarget.value = ""; }} />
     {emojiPickerOpen ? <div role="group" aria-label="เลือกอีโมจิ" className="mb-2 flex flex-wrap gap-1 rounded-xl border border-cyan-300/15 bg-[#0a111b] p-2">{["😊", "😂", "😍", "🥰", "👍", "🙏", "❤️", "🎉", "📦", "✨"].map(emoji => <button key={emoji} type="button" onClick={() => { addEmoji(emoji); setEmojiPickerOpen(false); }} className="flex h-9 w-9 items-center justify-center rounded-lg text-xl hover:bg-cyan-300/10" aria-label={`เพิ่มอีโมจิ ${emoji}`}>{emoji}</button>)}</div> : null}
+    {productSuggestions.length ? <div role="list" aria-label="สินค้าจาก Order Deck ที่ตรงกับข้อความ" className="mb-1 flex max-w-full flex-wrap justify-start gap-1.5">{productSuggestions.map(item => <button key={item.product} type="button" role="listitem" onClick={() => requestDeckProductImages(item.product)} disabled={imageUploading || sendReply.isPending || replyImages.length >= 4} className="flex max-w-[220px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-[#0b1924]/95 px-2.5 py-1.5 text-left shadow-[0_0_16px_rgba(34,211,238,.12)] transition hover:border-cyan-200/60 hover:bg-cyan-300/10 disabled:opacity-40" title={`เพิ่มภาพ ${item.product} ลงช่องรอส่ง`}><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-emerald-300/20 bg-emerald-300/[0.07] text-[10px] text-emerald-200">IMG</span><span className="min-w-0"><span className="block truncate text-[11px] font-semibold text-cyan-50">{item.product}</span><span className="block text-[9px] text-cyan-100/55">แตะเพื่อเตรียมภาพ · ยังไม่ส่ง</span></span></button>)}</div> : null}
     <div className="flex min-w-0 items-end gap-1.5 rounded-xl border border-cyan-300/20 bg-[#0a111b] p-1.5 sm:gap-2 sm:p-2">
       <Button type="button" aria-label="แนบรูปภาพ" title={imageUploading ? "กำลังอัปโหลด…" : "แนบรูปภาพ"} variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={imageUploading || sendReply.isPending || replyImages.length >= 4} className="h-10 w-10 shrink-0 rounded-lg p-0 text-cyan-100/75 hover:bg-cyan-300/10 hover:text-cyan-100"><Paperclip className="h-5 w-5" /></Button>
       <Textarea ref={replyTextareaRef} value={replyText} onChange={event => setReplyText(event.target.value)} placeholder={selectedCustomerId ? "พิมพ์ข้อความ…" : "ไม่พบ Customer PSID ของห้องนี้"} disabled={!selectedCustomerId} className="field-sizing-fixed h-20 max-h-[136px] min-h-20 min-w-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-2 py-2 text-sm leading-6 text-white placeholder:text-cyan-100/35 focus-visible:ring-0 focus-visible:ring-offset-0" onPaste={handleComposerPaste} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); sendCurrentReply(); } }} />
@@ -468,14 +558,40 @@ export default function ChatHub() {
   </div>;
 
   const conversation = selected ? <div className="chat-cosmos-conversation flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 bg-gradient-to-r from-cyan-400/[0.035] via-transparent to-fuchsia-500/[0.06] px-4 py-3 sm:px-5"><div className="flex min-w-0 items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 via-violet-500/20 to-fuchsia-500/25 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,.12)]"><CircleUserRound className="h-5 w-5" /></div><div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-1.5"><span className={`chat-room-code-label ${isOrderRoom(selected) ? "cod-room-header" : ""} ${hasTimeSlotLabel(selected) ? "time-slot-room-sign" : ""} rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold`} title={selected.timeSlotLabel || undefined}>ROOM · {selected.pageId ? selected.pageId.slice(-4) : "ST"}{isOrderRoom(selected) ? " ⚡" : ""}{hasTimeSlotLabel(selected) ? " 🔥" : ""}</span></div><h2 className="chat-customer-name-label truncate text-sm font-semibold">{selected.customerName || ""}</h2><div className="mt-1 flex items-center gap-2 text-xs text-cyan-100/55"><span className="truncate">{selected.pageName}</span><span>·</span><span>{timeLabel(selected.latestAt)}</span></div></div></div><div className="flex max-w-full flex-wrap items-center justify-end gap-2"><ChatHubThemeControl theme={cyberTheme} onSelect={chooseChatTheme} /><Badge className="hidden border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 sm:inline-flex">● ONLINE</Badge><div className="chat-conversation-actions"><Button size="sm" variant="outline" onClick={confirmSelectedOrder} disabled={selectedConfirmed || confirmOrder.isPending} className="chat-tool-action h-8 px-3">{selectedConfirmed ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" />ยืนยันแล้ว</> : confirmOrder.isPending ? "กำลังบันทึก…" : "ยืนยันเป็นออเดอร์"}</Button><Button size="sm" variant="outline" onClick={() => setOrderDetailOpen(true)} className="chat-tool-action h-8 px-3" title="ดูออเดอร์ที่เชื่อมกับห้องนี้">ออเดอร์ ({selected.orderCount ?? linkedOrders.length ?? 0})</Button><Button size="sm" onClick={openOrderSummary} className="chat-tool-action h-8 px-3">สรุปออเดอร์</Button></div>{isMobile ? <button onClick={() => setMobileOpen(false)} className="rounded-xl p-2 text-fuchsia-100/55 hover:bg-fuchsia-500/10 hover:text-white" aria-label="ปิดห้องแชท"><X className="h-5 w-5" /></button> : null}</div></div>
+    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 bg-gradient-to-r from-cyan-400/[0.035] via-transparent to-fuchsia-500/[0.06] px-4 py-3 sm:px-5"><div className="flex min-w-0 items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 via-violet-500/20 to-fuchsia-500/25 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,.12)]"><CircleUserRound className="h-5 w-5" /></div><div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-1.5"><span className={`chat-room-code-label ${isOrderRoom(selected) ? "cod-room-header" : ""} ${hasTimeSlotLabel(selected) ? "time-slot-room-sign" : ""} rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold`} title={selected.timeSlotLabel || undefined}>ROOM · {selected.pageId ? selected.pageId.slice(-4) : "BB"}{isOrderRoom(selected) ? " ⚡" : ""}{hasTimeSlotLabel(selected) ? " 🔥" : ""}</span></div><h2 className="chat-customer-name-label truncate text-sm font-semibold">{selected.customerName || ""}</h2><div className="mt-1 flex items-center gap-2 text-xs text-cyan-100/55"><span className="truncate">{selected.pageName}</span><span>·</span><span>{timeLabel(selected.latestAt)}</span></div></div></div><div className="flex max-w-full flex-wrap items-center justify-end gap-2"><Badge className="hidden border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 sm:inline-flex">● ONLINE</Badge><div className="chat-conversation-actions"><Button size="sm" variant="outline" onClick={confirmSelectedOrder} disabled={selectedConfirmed || confirmOrder.isPending} className="chat-tool-action h-8 px-3">{selectedConfirmed ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" />ยืนยันแล้ว</> : confirmOrder.isPending ? "กำลังบันทึก…" : "ยืนยันเป็นออเดอร์"}</Button><Button size="sm" variant="outline" onClick={() => setOrderDetailOpen(true)} className="chat-tool-action h-8 px-3" title="ดูออเดอร์ที่เชื่อมกับห้องนี้">ออเดอร์ ({selected.orderCount ?? linkedOrders.length ?? 0})</Button><Button size="sm" onClick={openOrderSummary} className="chat-tool-action h-8 px-3">สรุปออเดอร์</Button></div>{isMobile ? <button onClick={() => setMobileOpen(false)} className="rounded-xl p-2 text-fuchsia-100/55 hover:bg-fuchsia-500/10 hover:text-white" aria-label="ปิดห้องแชท"><X className="h-5 w-5" /></button> : null}</div></div>
     <div ref={chatTimelineRef} onScroll={handleTimelineScroll} className="chat-cosmos-timeline relative min-h-0 flex-1 flex flex-col justify-start gap-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_82%_8%,rgba(16,185,129,0.12),transparent_28%),radial-gradient(circle_at_12%_74%,rgba(168,85,247,0.11),transparent_30%),linear-gradient(135deg,#080c15,#0d0914_56%,#090b12)] p-4 sm:p-5 [-webkit-overflow-scrolling:touch]">
       {showNewMessages ? <button type="button" onClick={jumpToLatest} className="sticky bottom-3 left-1/2 z-20 mx-auto -mb-10 rounded-full border border-fuchsia-300/30 bg-gradient-to-r from-fuchsia-600 via-violet-600 to-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_24px_rgba(168,85,247,0.45)] transition hover:scale-105">ข้อความใหม่ · ลงล่างสุด</button> : null}
       {messagesQuery.isFetching ? <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-fuchsia-400/20 bg-[#15101d]/90 px-2.5 py-1 text-[10px] text-fuchsia-200"><LoaderCircle className="h-3 w-3 animate-spin" />กำลังอัปเดต</div> : null}
-      {visibleStoredMessages.length === 0 ? <>{visibleTimeline.length ? visibleTimeline.map((line: string, index: number) => <div key={`${line}-${index}`} className={`chat-message-bubble chat-message-bubble--${isPageTimelineLine(line) ? "page" : "customer"} min-w-0 shrink-0 break-words [overflow-wrap:anywhere] rounded-2xl px-4 py-3 text-sm leading-6 shadow-lg ${isPageTimelineLine(line) ? "ml-auto rounded-br-md border border-fuchsia-300/25 bg-gradient-to-br from-violet-900/80 to-fuchsia-950/65 text-fuchsia-50 shadow-[0_0_20px_rgba(217,70,239,.10)]" : "rounded-bl-md border border-emerald-300/25 bg-gradient-to-br from-emerald-950/85 to-green-950/55 text-emerald-50/95 shadow-[0_0_18px_rgba(16,185,129,.12)]"}`}><p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{stripSpeakerPrefix(line)}</p></div>) : <div className="rounded-2xl border border-fuchsia-500/10 bg-black/20 p-4 text-sm leading-6 text-fuchsia-100/60"><p>{selected.preview}</p></div>}</> : null}
-      {visibleStoredMessages.map(message => { const isRight = ("side" in message && message.side === "right") || message.direction === "outbound" || message.senderType === "page"; const senderName = isRight ? (selected.pageName || "เพจ") : (selected.customerName || ""); const text = String(message.text ?? message.message_text ?? "").trim(); const attachments = imageUrls(message.attachmentsJson); const isImagePlaceholder = /^(?:📷\s*)?ส่งรูปภาพ$/u.test(text); const mediaOnly = attachments.length > 0 && isImagePlaceholder; return <div key={message.id} className={`flex w-full shrink-0 ${isRight ? "justify-end" : "justify-start"}`}><div className={`chat-message-bubble chat-bubble-frame chat-message-bubble--${isRight ? "page" : "customer"} ${cyberFrameRooms[selected.key] || cyberFrame ? `cyber-frame-card cyber-frame-${cyberFrameRooms[selected.key] || cyberFrame}` : ""} min-w-0 shrink-0 break-words rounded-2xl ${mediaOnly ? "p-1.5" : "px-4 py-3"} text-sm leading-6 shadow-lg ${isRight ? "rounded-br-md border border-fuchsia-300/25 bg-gradient-to-br from-violet-900/80 to-fuchsia-950/65 text-fuchsia-50 shadow-[0_0_20px_rgba(217,70,239,.10)]" : "rounded-bl-md border border-emerald-300/25 bg-gradient-to-br from-emerald-950/85 to-green-950/55 text-emerald-50/95 shadow-[0_0_18px_rgba(16,185,129,.12)]"}`}><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-60">{senderName}</p>{(!attachments.length || !isImagePlaceholder) ? <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{displayMessageText(message)}</p> : null}{attachments.map(url => <button key={url} type="button" onClick={() => setLightboxUrl(url)} className="mt-1 block cursor-zoom-in text-left"><img src={url} alt="ไฟล์แนบจากแชท คลิกเพื่อขยาย" className="block max-h-[min(52vh,420px)] max-w-[min(72vw,360px)] rounded-lg object-contain transition hover:brightness-110" /></button>)}<p className="mt-1 text-[10px] opacity-50">{senderName} · {messageTimeLabel(message)}</p></div></div>; })}
+      {visibleStoredMessages.length === 0 ? <>{visibleTimeline.length ? visibleTimeline.map((line: string, index: number) => {
+        const isPageMessage = isPageTimelineLine(line);
+        const text = stripSpeakerPrefix(line);
+        return <div key={`${line}-${index}`} className={`flex w-full shrink-0 flex-col ${isPageMessage ? "items-end" : "items-start"}`}>
+          <div className={`chat-message-bubble min-w-0 max-w-[86%] break-words [overflow-wrap:anywhere] rounded-2xl px-4 py-3 text-sm leading-6 shadow-lg ${isPageMessage ? "rounded-br-md border border-fuchsia-300/25 bg-gradient-to-br from-violet-900/80 to-fuchsia-950/65 text-fuchsia-50 shadow-[0_0_20px_rgba(217,70,239,.10)]" : "rounded-bl-md border border-emerald-300/25 bg-gradient-to-br from-emerald-950/85 to-green-950/55 text-emerald-50/95 shadow-[0_0_18px_rgba(16,185,129,.12)]"}`}>
+            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{text}</p>
+          </div>
+        </div>;
+      }) : <div className="rounded-2xl border border-fuchsia-500/10 bg-black/20 p-4 text-sm leading-6 text-fuchsia-100/60"><p>{selected.preview}</p></div>}</> : null}
+      {visibleStoredMessages.map(message => {
+        const isRight = ("side" in message && message.side === "right") || message.direction === "outbound" || message.senderType === "page";
+        const isCustomerMessage = isSelectableCustomerMessage(message);
+        const senderName = isRight ? (selected.pageName || "เพจ") : (selected.customerName || "");
+        const text = stripSpeakerPrefix(String(message.text ?? message.message_text ?? "")).trim();
+        const attachments = imageUrls(message.attachmentsJson);
+        const isImagePlaceholder = /^(?:📷\s*)?ส่งรูปภาพ$/u.test(text);
+        const mediaOnly = attachments.length > 0 && isImagePlaceholder;
+        const messageId = String(message.id ?? message.messageId ?? `${message.occurredAt ?? ""}:${text}`);
+        const isSelected = isCustomerMessage && !isRight && selectedOrderMessage?.threadKey === selected.key && selectedOrderMessage.id === messageId;
+        return <div key={message.id} className={`flex w-full shrink-0 flex-col ${isRight ? "items-end" : "items-start"}`}>
+          <div className={`chat-message-bubble chat-bubble-frame ${cyberFrameRooms[selected.key] || cyberFrame ? `cyber-frame-card cyber-frame-${cyberFrameRooms[selected.key] || cyberFrame}` : ""} min-w-0 max-w-[86%] shrink-0 break-words rounded-2xl ${mediaOnly ? "p-1.5" : "px-4 py-3"} text-sm leading-6 shadow-lg ${isRight ? "rounded-br-md border border-fuchsia-300/25 bg-gradient-to-br from-violet-900/80 to-fuchsia-950/65 text-fuchsia-50 shadow-[0_0_20px_rgba(217,70,239,.10)]" : "rounded-bl-md border border-emerald-300/25 bg-gradient-to-br from-emerald-950/85 to-green-950/55 text-emerald-50/95 shadow-[0_0_18px_rgba(16,185,129,.12)]"}`}>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-60">{senderName}</p>
+            {(!attachments.length || !isImagePlaceholder) ? <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{displayMessageText(message)}</p> : null}
+            {attachments.map(url => <button key={url} type="button" onClick={() => setLightboxUrl(url)} className="mt-1 block cursor-zoom-in text-left"><img src={url} alt="ไฟล์แนบจากแชท คลิกเพื่อขยาย" className="block max-h-[min(52vh,420px)] max-w-[min(72vw,360px)] rounded-lg object-contain transition hover:brightness-110" /></button>)}
+            <p className="mt-1 text-[10px] opacity-50">{senderName} · {messageTimeLabel(message)}</p>
+          </div>
+          {isCustomerMessage && !isRight && text ? <button type="button" className={`mobile-inbox-message-select ${isSelected ? "is-selected" : ""}`} aria-pressed={isSelected} aria-label={isSelected ? "ยกเลิกเลือกข้อความนี้" : "เลือกข้อความนี้สำหรับสรุปออเดอร์"} title="เลือกได้ครั้งละหนึ่งข้อความ · การเลือกยังไม่ดึงข้อมูลเข้า Order Deck" onClick={() => toggleOrderMessageSelection(message)}>{isSelected ? <><Check className="h-3 w-3" /> เลือกแล้ว</> : <><Clipboard className="h-3 w-3" /> เลือกข้อความ</>}</button> : null}
+        </div>;
+      })}
     </div>
-    {deliveryStatus === "failed" && isTransientMetaInternal(replyNotice) ? <div role="alert" className="mx-3 mb-2 rounded-xl border border-amber-300/30 bg-amber-400/[0.08] p-3 text-[11px] leading-5 text-amber-100 sm:mx-4"><p className="font-semibold">Meta ยังยืนยันผลการส่งไม่ได้ · internal error (-1 / 2018012)</p><p className="mt-1 text-amber-100/75">ระบบไม่ส่งซ้ำอัตโนมัติเพื่อกันข้อความซ้ำ กรุณาตรวจใน Meta Business Suite ก่อนกดส่งใหม่ หากเกิดเฉพาะบางคน ให้ตรวจสิทธิ์ pages_messaging / App Review แล้วแจ้ง Meta พร้อม fbtrace_id</p>{getMetaTraceId(replyNotice) ? <code className="mt-1 block break-all text-[10px] text-amber-200">fbtrace_id: {getMetaTraceId(replyNotice)}</code> : <code className="mt-1 block break-all text-[10px] text-amber-200">{replyNotice}</code>}</div> : null}
     <div className={`chat-cosmos-composer mt-auto flex shrink-0 flex-col overflow-hidden border-t border-cyan-300/20 bg-gradient-to-b from-[#111326] to-[#090c14] p-3 shadow-[0_-8px_28px_rgba(34,211,238,.05)] sm:p-4 transition-[height] duration-300 ${composerOpen ? "chat-cosmos-composer--open" : "h-12 min-h-12"}`}><div className="mb-2 flex shrink-0 items-center justify-between gap-2 border-b border-fuchsia-500/10 pb-2">
       <div className="flex min-w-0 flex-1 items-center gap-1.5" aria-live="polite">
         {imageUploading ? <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[10px] text-cyan-200"><LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin" />กำลังอัปโหลดภาพ…</span> : replyImages.length ? <div className="flex min-w-0 max-w-[48vw] items-center gap-1.5 overflow-x-auto sm:max-w-[360px]">{replyImages.map((image, index) => <div key={image.url} className="relative shrink-0"><img src={image.url} alt={`ภาพแนบ ${index + 1}`} className="h-9 w-9 rounded-md border border-cyan-300/25 object-cover" /><button type="button" aria-label={`เอาภาพที่ ${index + 1} ออก`} onClick={() => setReplyImages(current => current.filter((_, imageIndex) => imageIndex !== index))} className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1 text-[9px] leading-4 text-white">×</button></div>)}<span className="text-[9px] text-emerald-300">{replyImages.length}/4</span></div> : <span className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-100/45">กล่องตอบแชท</span>}
@@ -489,16 +605,14 @@ export default function ChatHub() {
     </div><div className={`min-h-0 flex flex-1 flex-col overflow-y-auto overscroll-contain ${composerOpen ? "" : "pointer-events-none opacity-0"}`}>{summary ? <div className="mb-3 hidden shrink-0 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.06] p-3"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-fuchsia-200">พรีวิวใบสรุป · {summary.orderNumber}</p><button onClick={() => setSummary(null)} className="text-[10px] text-fuchsia-100/40 hover:text-white">ล้าง</button></div><p className="mt-1 text-[11px] text-fuchsia-100/45">ตรวจข้อความด้านล่างให้ถูกต้องก่อนกดส่งให้ลูกค้า</p><Button variant="outline" size="sm" onClick={copySummary} className="mt-2 h-7 border-fuchsia-400/20 bg-transparent text-[10px] text-fuchsia-200">{copied ? <Check className="mr-1 h-3 w-3" /> : <Clipboard className="mr-1 h-3 w-3" />}{copied ? "คัดลอกแล้ว" : "คัดลอกข้อความสรุป"}</Button></div> : null}{composer}</div></div>
   </div> : <div className="flex min-h-[560px] items-center justify-center text-sm text-fuchsia-100/35">เลือกห้องแชทเพื่อเริ่มดูข้อความ</div>;
 
-  const chatHubThemeStyle = { "--chat-room-bg": cyberTheme.bg, "--chat-room-surface": cyberTheme.surface, "--chat-room-primary": cyberTheme.primary, "--chat-room-accent": cyberTheme.accent, "--chat-room-text": getThemeTextColor(cyberTheme.surface) } as React.CSSProperties;
-
-  return <div style={chatHubThemeStyle} className={`chat-cosmos-shell chat-hub-themed cosmic-stage h-full min-h-0 overflow-hidden bg-[radial-gradient(ellipse_at_top_left,rgba(34,211,238,0.11),transparent_38%),radial-gradient(ellipse_at_bottom_right,rgba(168,85,247,0.10),transparent_40%),#070912] text-white ${isMobile ? "chat-hub-mobile" : ""}`}><div className={`chat-hub-content mx-auto flex h-full min-h-0 max-w-[1600px] flex-col gap-3 overflow-hidden p-2 sm:p-4 lg:p-6 ${orderDeckOpen ? "chat-hub-content--deck-open" : ""}`}>
+  return <div className={`chat-cosmos-shell cosmic-stage h-full min-h-0 overflow-hidden bg-[radial-gradient(ellipse_at_top_left,rgba(34,211,238,0.11),transparent_38%),radial-gradient(ellipse_at_bottom_right,rgba(168,85,247,0.10),transparent_40%),#070912] text-white ${isMobile ? "chat-hub-mobile" : ""}`}><div className={`chat-hub-content mx-auto flex h-full min-h-0 max-w-[1600px] flex-col gap-3 overflow-hidden p-2 sm:p-4 lg:p-6 ${orderDeckOpen ? "chat-hub-content--deck-open" : ""}`}>
     <div className="chat-live-strip flex shrink-0 items-center gap-2 rounded-xl border border-cyan-300/15 bg-[#0c1320]/80 px-3 py-2 text-xs text-cyan-100/70 shadow-[inset_0_0_16px_rgba(34,211,238,.04)] backdrop-blur-lg"><span className="inline-flex items-center gap-1.5 text-emerald-300"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />SIGNAL LIVE</span><span className="text-fuchsia-100/20">·</span><span>รอบล่าสุด: {threadsQuery.dataUpdatedAt ? new Date(threadsQuery.dataUpdatedAt).toLocaleString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "กำลังโหลด"}</span></div>
     {!hasBrowserChatConfig ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-100"><span>ยังไม่ได้ตั้งค่า Chat ใน browser นี้ · ระบบจะยังไม่เรียกฐานข้อมูลแชท</span><Button size="sm" variant="outline" onClick={() => setLocation("/secret-gallery")} className="border-amber-200/25 bg-transparent text-amber-100">ตั้งค่า ROOM 02</Button></div> : null}
     {threadsQuery.isError ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3 text-xs text-red-200"><span>โหลดห้องแชทไม่สำเร็จ: {threadsQuery.error.message}</span><Button size="sm" variant="outline" onClick={() => threadsQuery.refetch()} className="border-red-300/20 bg-transparent text-red-100">ลองใหม่</Button></div> : null}
     {threads.find(thread => thread.orderCountError)?.orderCountError ? <div role="alert" className="rounded-2xl border border-cyan-400/25 bg-cyan-400/[0.06] px-4 py-3 text-xs leading-5 text-cyan-200">โหลดแชทได้ แต่การเชื่อมแถวออเดอร์มีปัญหา: {String(threads.find(thread => thread.orderCountError)?.orderCountError)}</div> : null}
     <header className="neon-sign relative shrink-0 overflow-hidden rounded-2xl border border-cyan-300/35 bg-gradient-to-r from-[#0c1421] via-[#151020] to-[#170d1d] px-4 py-3 shadow-[0_0_14px_rgba(34,211,238,.24),0_0_32px_rgba(168,85,247,.20),inset_0_0_20px_rgba(217,70,239,.10)] backdrop-blur-xl"><div className="hero-orbit pointer-events-none opacity-60" aria-hidden="true" /><div className="relative z-10 flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fuchsia-300">COSMIC · CHAT CONTROL</p><button type="button" onClick={() => { void Promise.all([threadsQuery.refetch(), pageCatalogQuery.refetch(), messagesQuery.refetch()]); }} className="mt-1 text-left text-xl font-semibold tracking-tight text-white drop-shadow-[0_0_8px_rgba(244,114,182,.95)] hover:text-cyan-200">กล่องข้อความ{threadsQuery.isFetching ? <RefreshCw className="ml-2 inline h-4 w-4 animate-spin" /> : null}</button></div><span className="hidden text-[10px] text-fuchsia-100/35 sm:inline">กดชื่อเพื่อรีเฟรชข้อมูล</span></div></header>
     <div className="relative flex min-h-0 flex-1 flex-nowrap gap-3 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] xl:gap-4 xl:overflow-hidden"><Card className="flex w-[min(290px,84vw)] min-h-0 shrink-0 flex-col overflow-hidden rounded-3xl border-cyan-300/20 bg-[#0b111c]/95 shadow-[0_8px_32px_rgba(34,211,238,.08),0_0_24px_rgba(168,85,247,.06)] backdrop-blur-xl"><CardHeader className="border-b border-fuchsia-500/10 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">ห้องแชท <span className="ml-1 text-xs font-normal text-fuchsia-100/35">{filteredThreads.length}</span></CardTitle><button onClick={() => setPageFilterOpen(value => !value)} className={`chat-tool-action chat-tool-action--filter ${selectedPages.length ? "chat-tool-action--active" : ""}`}><span className="h-2 w-2 rounded-sm border border-current" />เพจ{selectedPages.length ? ` · ${selectedPages.length}` : ""}<ChevronDown className="h-3 w-3" /></button></div>
-      <div className="relative mt-3"><Search className="absolute left-3 top-2.5 h-4 w-4 text-fuchsia-100/30" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="ค้นหาชื่อลูกค้าหรือข้อความ…" className="rounded-xl border-fuchsia-500/15 bg-black/20 pl-9 text-white placeholder:text-fuchsia-100/25 focus-visible:ring-fuchsia-400" />{pageFilterOpen ? <div className="absolute right-0 top-12 z-20 w-64 rounded-2xl border border-fuchsia-400/20 bg-[#181020] p-3 shadow-2xl shadow-black/50"><div className="mb-2 flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-wider text-fuchsia-300">เลือกเพจ</p><button onClick={() => setSelectedPages([])} className="text-[10px] text-fuchsia-100/40 hover:text-white">ล้าง</button></div>{availablePages.map(([pageId, pageName, codToday, enabledWeb]) => { const active = selectedPages.includes(pageId); return <div key={pageId} className="rounded-xl border border-fuchsia-300/10 bg-black/15 p-1.5"><button type="button" onClick={() => setSelectedPages(current => active ? current.filter(item => item !== pageId) : [...current, pageId])} className={`page-holo-label group flex w-full items-center gap-2 rounded-lg border px-2 py-2 text-left text-xs transition ${codToday ? "page-holo-label--live" : ""} ${active ? "border-cyan-300/55 bg-cyan-300/15 text-cyan-50 shadow-[0_0_16px_rgba(34,211,238,.20)]" : "border-transparent text-fuchsia-50/70 hover:border-fuchsia-300/35 hover:bg-fuchsia-500/10"}`}><span className={`relative flex h-2.5 w-2.5 shrink-0 rounded-full ${codToday ? "bg-fuchsia-100 shadow-[0_0_12px_rgba(255,255,255,.95)]" : active ? "bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,.9)]" : "bg-fuchsia-200/25"}`} /><span className="min-w-0 flex-1 truncate">{pageName}</span><span className="font-mono text-[9px] text-fuchsia-100/35">ST.{pageId.slice(-4)}</span>{codToday ? <span className="cod-neon-sign" aria-label="มีออเดอร์วันนี้">วันนี้</span> : null}</button><button type="button" disabled={setPageWebStatus.isPending} onClick={() => setPageWebStatus.mutate({ pageId, enabled: !enabledWeb })} className={`mt-1 flex w-full items-center justify-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold ${enabledWeb ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200" : "border-red-300/25 bg-red-400/10 text-red-200"}`}><Power className="h-3 w-3" />เว็บ {enabledWeb ? "ON" : "OFF"}</button></div>; })}{!availablePages.length ? <p className="p-2 text-xs text-fuchsia-100/35">ยังไม่มีรายชื่อเพจ</p> : null}</div> : null}</div>
+      <div className="relative mt-3"><Search className="absolute left-3 top-2.5 h-4 w-4 text-fuchsia-100/30" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="ค้นหาชื่อลูกค้าหรือข้อความ…" className="rounded-xl border-fuchsia-500/15 bg-black/20 pl-9 text-white placeholder:text-fuchsia-100/25 focus-visible:ring-fuchsia-400" />{pageFilterOpen ? <div className="absolute right-0 top-12 z-20 w-64 rounded-2xl border border-fuchsia-400/20 bg-[#181020] p-3 shadow-2xl shadow-black/50"><div className="mb-2 flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-wider text-fuchsia-300">เลือกเพจ</p><button onClick={() => setSelectedPages([])} className="text-[10px] text-fuchsia-100/40 hover:text-white">ล้าง</button></div>{availablePages.map(([pageId, pageName, codToday, enabledWeb]) => { const active = selectedPages.includes(pageId); return <div key={pageId} className="rounded-xl border border-fuchsia-300/10 bg-black/15 p-1.5"><button type="button" onClick={() => setSelectedPages(current => active ? current.filter(item => item !== pageId) : [...current, pageId])} className={`page-holo-label group flex w-full items-center gap-2 rounded-lg border px-2 py-2 text-left text-xs transition ${codToday ? "page-holo-label--live" : ""} ${active ? "border-cyan-300/55 bg-cyan-300/15 text-cyan-50 shadow-[0_0_16px_rgba(34,211,238,.20)]" : "border-transparent text-fuchsia-50/70 hover:border-fuchsia-300/35 hover:bg-fuchsia-500/10"}`}><span className={`relative flex h-2.5 w-2.5 shrink-0 rounded-full ${codToday ? "bg-fuchsia-100 shadow-[0_0_12px_rgba(255,255,255,.95)]" : active ? "bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,.9)]" : "bg-fuchsia-200/25"}`} /><span className="min-w-0 flex-1 truncate">{pageName}</span><span className="font-mono text-[9px] text-fuchsia-100/35">BB.{pageId.slice(-4)}</span>{codToday ? <span className="cod-neon-sign" aria-label="มีออเดอร์วันนี้">วันนี้</span> : null}</button><button type="button" disabled={setPageWebStatus.isPending} onClick={() => setPageWebStatus.mutate({ pageId, enabled: !enabledWeb })} className={`mt-1 flex w-full items-center justify-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold ${enabledWeb ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200" : "border-red-300/25 bg-red-400/10 text-red-200"}`}><Power className="h-3 w-3" />เว็บ {enabledWeb ? "ON" : "OFF"}</button></div>; })}{!availablePages.length ? <p className="p-2 text-xs text-fuchsia-100/35">ยังไม่มีรายชื่อเพจ</p> : null}</div> : null}</div>
       <div className="mt-3 flex flex-wrap gap-1.5">{([ ["all", "ทั้งหมด"], ["ordered", "ออเดอร์"], ["tracking_over_24h", "เลขพัสดุ"] ] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setStatusFilter(value)} className={`chat-tool-action chat-tool-action--filter ${statusFilter === value ? "chat-tool-action--active" : ""}`}>{label}</button>)}</div></CardHeader><CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 [-webkit-overflow-scrolling:touch]">{threadsQuery.isLoading ? <div className="flex items-center justify-center gap-2 p-12 text-sm text-fuchsia-100/40"><RefreshCw className="h-4 w-4 animate-spin" />กำลังโหลดห้อง…</div> : filteredThreads.length === 0 ? <div className="p-12 text-center text-sm text-fuchsia-100/40"><MessageCircle className="mx-auto mb-3 h-8 w-8 text-fuchsia-100/15" />ยังไม่มีห้องตามตัวกรอง</div> : filteredThreads.map((thread, index) => { const roomFrame = cyberFrameRooms[thread.key] || cyberFrame; const isSelectedRoom = selected?.key === thread.key; return <div key={thread.key} role="button" tabIndex={0} onClick={() => { setSelectedKey(thread.key); if (isMobile) setMobileOpen(true); }} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedKey(thread.key); if (isMobile) setMobileOpen(true); } }} className={`room-list-card ${isSelectedRoom ? "room-list-card--selected" : ""} relative mb-1 flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition ${isSelectedRoom ? "bg-gradient-to-r from-fuchsia-400/[0.13] via-violet-500/[0.08] to-pink-500/[0.10]" : "hover:bg-cyan-300/[0.06] hover:ring-1 hover:ring-cyan-300/15"}`}><span className="cyber-frame-avatar-wrap relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center"><span className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold ${index % 2 ? "bg-fuchsia-500/20 text-fuchsia-200" : "bg-fuchsia-500/20 text-fuchsia-200"}`}>{(thread.customerName || "").slice(0, 1)}</span></span><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className="chat-customer-list-label truncate text-sm font-semibold">{thread.customerName || ""}</span><span className="shrink-0 text-xs text-cyan-100/55">{timeLabel(thread.latestAt)}</span></span><span className="mt-1 flex items-center gap-1.5 truncate text-xs text-fuchsia-100/75">{framePickerRoom === thread.key ? <select autoFocus aria-label={`เลือกกรอบของ ${thread.customerName || ""}`} value={roomFrame || ""} onClick={event => event.stopPropagation()} onChange={event => { setRoomFrame(thread.key, event.target.value); setFramePickerRoom(null); }} onBlur={() => setFramePickerRoom(null)} className="cyber-frame-inline-picker" title="เลือกกรอบการ์ดลูกค้า"><option value="">ปกติ</option>{CYBER_FRAME_OPTIONS.map(option => <option key={option.id} value={option.id}>{option.id.toUpperCase()} · {option.name}</option>)}</select> : <button type="button" onClick={event => { event.stopPropagation(); setFramePickerRoom(thread.key); }} className={`chat-room-code-label cyber-frame-picker-trigger parcel-status-chip shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] ${isOrderRoom(thread) ? "parcel-status-chip--order" : ""}`}  title="กดเพื่อเลือกกรอบลูกค้า · สถานะจากฝั่งเพจ">PARCEL·{thread.parcel_status_emoji || "—"}</button>}{thread.orderCount > 0 ? <span title="แถวออเดอร์ที่ผูกกับห้องได้" className="rounded bg-cyan-400/15 px-1 text-cyan-200">ORD {thread.orderCount}</span> : null}{confirmedKeys.has(`${thread.pageId}:${thread.threadId}`) ? <span className="rounded bg-fuchsia-400/15 px-1 text-cyan-200">ยืนยันแล้ว</span> : null}<span className="truncate">{thread.pageName}</span></span><span className="mt-1 block truncate text-xs text-fuchsia-100/45">{thread.preview}</span></span></div>})}</CardContent></Card>
       <Card className="hidden h-full min-h-0 min-w-[min(560px,85vw)] flex-1 overflow-hidden rounded-3xl border-violet-300/20 bg-[#0b101b]/95 shadow-[0_8px_36px_rgba(168,85,247,.10)] backdrop-blur-xl md:block">{conversation}</Card>
       <Card className={`chat-cosmos-tools chat-tools-panel relative flex min-h-0 w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border backdrop-blur-xl transition-[width] duration-200 ${toolsOpen ? "" : "pointer-events-none"}`} style={{ width: toolsOpen ? "320px" : "0px" }}>
@@ -554,8 +668,11 @@ export default function ChatHub() {
         threadId={selectedThreadId}
         customerName={selected.customerName ?? ""}
         customerPhone={String(selected.phone ?? selected.customerPhone ?? selected.extracted_phone ?? "")}
-        customerMessages={orderDeckCustomerMessages}
-        importKey={orderDeckImportKey}
+        selectedCustomerMessage={selectedOrderMessageText}
+        onProductImagesSelected={handleDeckProductImagesSelected}
+        onProductIndexReady={setDeckImageProducts}
+        productImagesRequest={productImagesRequest}
+        onSummaryReady={summary => { setReplyText(summary); setOrderDeckOpen(false); setReplyNotice("สรุปบิลอยู่ในช่องตอบกลับแล้ว · ตรวจสอบก่อนกดส่ง"); }}
         onClose={() => setOrderDeckOpen(false)}
       /> : null}
     </aside> : null}
