@@ -12,7 +12,7 @@ ZIP นี้รวมไฟล์ที่แก้ใน repo BB_STORE_ORDERS:
 2. วางโค้ดทั้งก้อนจาก `n8n-live/PROJECT_1_ST_ORDER/👑BB_ORDER_04.js`
 3. Save แล้วทดสอบออเดอร์ตัวอย่าง
 
-ไฟล์ `👑BB_ORDER_SYSTEMS_FULL.json` เป็น source snapshot ที่ซิงก์กับ JS แล้ว ไม่ได้แนะนำให้นำ workflow ทั้งก้อนไป Import ทับ n8n ที่กำลังใช้งาน เพราะอาจกระทบ connection/credential
+ไฟล์ `ST_ORDER_SYSTEMS_FULL.json` เป็น source snapshot ที่ซิงก์กับ JS แล้ว ไม่ได้แนะนำให้นำ workflow ทั้งก้อนไป Import ทับ n8n ที่กำลังใช้งาน เพราะอาจกระทบ connection/credential
 
 สิ่งที่รวมใน V3
 - การ์ด `02 / ก้อนออเดอร์แท้` ขอบ/แสงชมพูนีออนชัดขึ้น และ badge SOURCE เปลี่ยนเป็นชมพู
