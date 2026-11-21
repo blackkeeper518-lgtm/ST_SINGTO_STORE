@@ -519,7 +519,7 @@ export default function TelegramDeliveryRoom() {
   }
 
   return (
-    <div className="bb-telegram-room min-h-full space-y-5 text-white">
+    <div className="bb-telegram-room st-runtime-room telegram-runtime-room min-h-full space-y-5 text-white">
       <header className="relative overflow-hidden rounded-3xl border border-fuchsia-400/30 bg-[#10091c] p-6 shadow-2xl shadow-fuchsia-950/30">
         <div className="bb-running-line pointer-events-none absolute inset-x-0 top-0 h-1" />
         <div className="flex flex-wrap items-start justify-between gap-4">
