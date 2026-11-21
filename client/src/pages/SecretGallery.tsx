@@ -825,7 +825,7 @@ export default function SecretGallery() {
                   </Button>
                   <span className="text-xs text-white/55">{connectionMessage}</span>
                 </div>
-                <ProjectRoomsPanel projectIndex={0} statuses={projectRoomStatuses} configured={Boolean(supabaseUrl.trim() && supabaseKey.trim())} busy={connectionBusy || projectRoomBusy === 0} onCheck={() => void checkProjectRooms(0)} />
+                <ProjectRoomsPanel projectIndex={0} />
               </CardContent>
             </Card>
             <Card className="project-room-card relative h-full min-w-0 overflow-hidden rounded-3xl border border-rose-300/20 bg-[#100a12] shadow-[0_18px_55px_rgba(0,0,0,.35)] transition duration-300 hover:-translate-y-0.5 hover:border-rose-300/45">
@@ -845,7 +845,7 @@ export default function SecretGallery() {
                   <span className="min-h-5 text-xs text-cyan-100/70" aria-live="polite">{chatMessage}</span>
                 </div>
                 <p className="text-[10px] leading-4 text-cyan-100/45">เก็บเฉพาะ browser นี้ · ถ้าไม่กรอก ระบบจะไม่เรียกฐานข้อมูลแชท · ไม่ fallback ไป Main/Tracking หรือ table/token column อื่น</p>
-                <ProjectRoomsPanel projectIndex={1} statuses={projectRoomStatuses} configured={Boolean(chatUrl.trim() && chatServiceRoleKey.trim())} busy={chatBusy} onCheck={() => void saveAndCheckChatConnection()} />
+                <ProjectRoomsPanel projectIndex={1} />
               </CardContent>
             </Card>
             <Card className="project-room-card relative h-full min-w-0 overflow-hidden rounded-3xl border border-rose-300/20 bg-[#100a12] shadow-[0_18px_55px_rgba(0,0,0,.35)] transition duration-300 hover:-translate-y-0.5 hover:border-rose-300/45">
@@ -862,7 +862,7 @@ export default function SecretGallery() {
                   <span className="text-xs text-fuchsia-100/70">{parcelMessage}</span>
                 </div>
                 <p className="text-[10px] leading-4 text-fuchsia-100/45 md:col-span-2">ใส่เฉพาะ Anon/Publishable Key · ห้ามใส่ service-role หรือ secret key · ถ้าไม่กรอกจะใช้ Tracking เดิม</p>
-              <div className="md:col-span-2"><ProjectRoomsPanel projectIndex={2} statuses={projectRoomStatuses} configured={Boolean(parcelUrl.trim() && parcelKey.trim())} busy={parcelBusy || projectRoomBusy === 2} onCheck={() => void checkProjectRooms(2)} /></div>
+              <div className="md:col-span-2"><ProjectRoomsPanel projectIndex={2} /></div>
             </CardContent>
             </Card>
             <Card className="project-room-card relative h-full min-w-0 overflow-hidden rounded-3xl border border-rose-300/20 bg-[#100a12] shadow-[0_18px_55px_rgba(0,0,0,.35)] transition duration-300 hover:-translate-y-0.5 hover:border-rose-300/45">
@@ -879,7 +879,7 @@ export default function SecretGallery() {
                   <span className="text-xs text-white/55">{vaultMessage}</span>
                 </div>
                 <p className="text-[10px] leading-4 text-white/45 md:col-span-2">ใส่เฉพาะ Anon/Publishable Key · ห้ามใส่ service-role · ตารางของภาพ สคริปต์ และบทความจะกำหนดแยกในแต่ละฟีเจอร์</p>
-                <div className="md:col-span-2"><ProjectRoomsPanel projectIndex={3} statuses={projectRoomStatuses} configured={Boolean(vaultUrl.trim() && vaultKey.trim())} busy={vaultBusy || projectRoomBusy === 3} onCheck={() => void checkProjectRooms(3)} /></div>
+                <div className="md:col-span-2"><ProjectRoomsPanel projectIndex={3} /></div>
               </CardContent>
             </Card>
           </div>
