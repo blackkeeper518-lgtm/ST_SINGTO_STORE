@@ -18,7 +18,7 @@
 -- ================================================================
 -- SOURCE: SQL/🌍1.สายออเดอร์หลัก (Main Order Pipeline)/🗝️HERMES_ARCHIVE_โต๊ะหลัก.sql
 -- ================================================================
-create table public."🗝️HERMES_ARCHIVE" (
+create table if not exists public."🗝️HERMES_ARCHIVE" (
   upsert_key text not null,
   bb_express_send_route text null,
   currentthreadtotalbills text null,
@@ -405,7 +405,7 @@ create index IF not exists hermes_telegram_status_idx on public."🗝️HERMES_A
 
 -- ================================================================
 -- SOURCE: SQL/🌍1.สายออเดอร์หลัก (Main Order Pipeline)/🌀SINGULARITY_xXx_EXCHANGE.sql
-create table public."🌀SINGULARITY_xXx_EXCHANGE" (
+create table if not exists public."🌀SINGULARITY_xXx_EXCHANGE" (
   upsert_key text not null,
   bb_express_send_route text null,
   currentthreadtotalbills text null,
@@ -792,7 +792,7 @@ create index IF not exists singularity_telegram_status_idx on public."🌀SINGUL
 
 -- ================================================================
 -- SOURCE: SQL/🌍1.สายออเดอร์หลัก (Main Order Pipeline)/💀THANATOS_xXx_DEATH_NOTE.sql
-create table public."💀THANATOS_xXx_DEATH_NOTE" (
+create table if not exists public."💀THANATOS_xXx_DEATH_NOTE" (
   upsert_key text not null,
   bb_express_send_route text null,
   currentthreadtotalbills text null,
@@ -1179,8 +1179,7 @@ create index IF not exists thanatos_telegram_status_idx on public."💀THANATOS_
 
 -- ================================================================
 -- SOURCE: SQL/🌍1.สายออเดอร์หลัก (Main Order Pipeline)/🌍GALACTIC_GATEWAY_TOKEN.sql
--- ================================================================
-create table public."🌍GALACTIC_GATEWAY_TOKEN" (
+create table if not exists public."🌍GALACTIC_GATEWAY_TOKEN" (
   page_id text not null,
   page_name text null,
   access_token text null,
@@ -1191,13 +1190,86 @@ create table public."🌍GALACTIC_GATEWAY_TOKEN" (
   page_label text null,
   "assigned_Hashtag" text null,
   portal_key text null,
-  constraint page_tokens_vault_pkey primary key (page_id)
+  constraint galactic_gateway_token_pkey primary key (page_id)
 ) TABLESPACE pg_default;
 
 -- ================================================================
+-- ================================================================
+-- SOURCE: SQL/🛒product_master/FUNCTION_ลิ้งสต๊อก.sql
+-- ================================================================
+CREATE OR REPLACE FUNCTION public.fn_auto_link_product_stock()
+RETURNS TRIGGER AS $$
+DECLARE
+    final_joke TEXT;
+    clean_th_name TEXT;
+    variants_json JSONB;
+    variant_count INTEGER;
+    random_index INTEGER;
+    selected_header TEXT;
+BEGIN
+    -- สกัดชื่อภาษาไทยสแตนด์บายรอ
+    clean_th_name := COALESCE(TRIM(NEW.th_name), 'สินค้า');
+
+    -- 🟢 สเตปที่ 1: สายมีของ (stock_qty > 0) 👉 เปิดลอจิกลักไก่สุ่มข้อความ 1 จาก 5 แบบในตาราง
+    IF COALESCE(NEW.stock_qty, 0) > 0 THEN
+        NEW.stock_status := '✅ INSTOCK';
+        NEW.status := 'ACTIVE';
+
+        -- ดึงค่า JSON จากคอลัมน์ normal_header_variants ออกมาเช็ก
+        variants_json := NEW.normal_header_variants::JSONB;
+
+        -- 🎯 ตรรกะนักสุ่มขวัญใจคนวางระบบ:
+        -- เช็กก่อนว่ามีข้อมูลอาร์เรย์ฝังอยู่ไหม ถ้ามีและไม่ว่าง สั่งลุยสุ่มตัวเลขดัชนีทันที!
+        IF variants_json IS NOT NULL AND JSONB_ARRAY_LENGTH(variants_json) > 0 THEN
+            variant_count := JSONB_ARRAY_LENGTH(variants_json);
+            -- ใช้พลังสุ่มเลขคณิตศาสตร์ของเบส (0 ถึง จำนวนข้อความลบหนึ่ง)
+            random_index := FLOOR(RANDOM() * variant_count)::INTEGER;
+            -- สอยเอาเฉพาะข้อความเสียวใส้ชิ้นที่เลือกออกมาแบนๆ เพียวๆ ตัวเดียว!
+            selected_header := variants_json->>random_index;
+            NEW.stock_notice := TRIM(selected_header);
+        ELSE
+            -- 🛡️ ตัวดักระบบว่างเปล่า: ถ้าในตารางปล่อยว่างไว้ ให้ดีดกลับรางสายสินค้าหลักตามใจพี่
+            NEW.stock_notice := CASE
+                WHEN UPPER(TRIM(NEW.category)) IN ('COLD', 'COOL') THEN '🧊 สายเย็นรถแช่ · คุมอุณหภูมิระดับพรีเมียม แข็งเป๊กยันปลายทาง'
+                WHEN UPPER(TRIM(NEW.category)) = 'SWEET' THEN '🍬 [สายหวานพรีเมียม · หวานกำลังดี แพ็กให้ดีถึงมือ]'
+                WHEN UPPER(TRIM(NEW.category)) = 'FRUIT' THEN '🥭 สายผลไม้ · ส่งไวระเบิด คัดสดๆ ไม่สดคัดทิ้ง'
+                WHEN UPPER(TRIM(NEW.category)) = 'HOT' THEN '🚀 สายร้อนพร้อมบวก · เคลียร์ทางให้หน่อย รถแรงกำลังจะไป'
+                ELSE '🚀 [บิลสมบูรณ์]'
+            END;
+        END IF;
+
+        -- 🔥 [จุดเชื่อมต่อความเทพ] บังคับให้หัวบิลหลักดึงข้อความสายเพรียวลมหนาวที่สุ่มได้ไปใช้งานทันที
+        NEW.chosen_header := NEW.stock_notice;
+
+    ELSE
+        -- ❌ สเตปที่ 2: สายสินค้าหมด (stock_qty = 0) 👉 บังคับดีดป้ายแดงเตือนภัย+ดึงมุกไดนามิกชื่อไทยชนคีย์เหมือนเดิม
+        NEW.stock_qty := 0;
+        NEW.stock_status := '❌ OUT_OF_STOCK';
+        NEW.status := 'OUT_OF_STOCK';
+
+        final_joke := TRIM(NEW.out_of_stock_joke);
+
+        IF NULLIF(final_joke, '') IS NOT NULL THEN
+            NEW.stock_notice := '❌ สินค้าหมดแล้วแม่' || E'\n' || final_joke;
+        ELSE
+            NEW.stock_notice := '❌ สินค้าหมดแล้วแม่' || E'\n' || '💬 ' || clean_th_name || ' หมดเกลี้ยง! แอบหนีไปเดินสยามกับคนคุยใหม่ละ';
+        END IF;
+
+        -- 🔥 [จุดเชื่อมต่อความเทพ] บังคับให้หัวบิลหลักสลับมาใช้มุกของหมดแม่ไปแสดงผลบนเว็บและส่งออก
+        NEW.chosen_header := NEW.stock_notice;
+    END IF;
+
+    -- อัปเดตเวลาการแก้ไขล่าสุด
+    NEW.updated_at := timezone('utc'::text, now());
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- SOURCE: SQL/🛒product_master/🛒product_master.sql.sql
 -- ================================================================
-create table public."🛒product_master" (
+create table if not exists public."🛒product_master" (
   id bigint generated by default as identity not null,
   emoji text null,
   master_sku text not null,
@@ -1250,7 +1322,7 @@ execute FUNCTION fn_auto_link_product_stock ();
 -- ================================================================
 -- SOURCE: SQL/thailand_address_master/thailand_address_master.sql
 -- ================================================================
-create table public.thailand_address_master (
+create table if not exists public.thailand_address_master (
   id bigint generated by default as identity not null,
   district text null,
   amphoe text null,
@@ -1275,7 +1347,7 @@ create index IF not exists idx_thailand_address_master_province on public.thaila
 -- ================================================================
 -- SOURCE: SQL/📦2.สายงานเลขพัสดุและการแจ้งกลับลูกค้า/parcels/parcels.sql
 -- ================================================================
-create table public.parcels (
+create table if not exists public.parcels (
    id bigserial not null,
   pickup_date text null,
   tracking_number text not null,
@@ -1343,7 +1415,7 @@ EXECUTE FUNCTION public.enforce_parcel_sent_status();
 -- ================================================================
 -- SOURCE: SQL/📦2.สายงานเลขพัสดุและการแจ้งกลับลูกค้า/page_tokens_vault.sql
 -- ================================================================
-create table public.page_tokens_vault (
+create table if not exists public.page_tokens_vault (
   page_id text not null,
   page_name text null,
   access_token text null,
@@ -1363,7 +1435,7 @@ create table public.page_tokens_vault (
 -- ================================================================
 -- SOURCE: SQL/📦2.สายงานเลขพัสดุและการแจ้งกลับลูกค้า/🧿BB_xXx_ORDERCONTROL.sql
 -- ================================================================
-create table public."🧿ST_xXx_ORDERCONTROL" (
+create table if not exists public."🧿ST_xXx_ORDERCONTROL" (
   upsert_key text not null,
   page_id text not null,
   "threadId" text null,
@@ -1527,7 +1599,7 @@ create unique INDEX IF not exists st_ordercontrol_chat_link_key_uidx on public."
 -- ================================================================
 -- SOURCE: SQL/💬3.สายแชท/Cust_Chat⭐BINARY_xXx_STAR.sql
 -- ================================================================
-create table public."Cust_Chat⭐BINARY_xXx_STAR" (
+create table if not exists public."Cust_Chat⭐BINARY_xXx_STAR" (
   id bigint generated by default as identity not null,
   chat_link_key text null,
   page_id text not null,
@@ -1598,7 +1670,7 @@ create index IF not exists ix_cust_chat_phone on public."Cust_Chat⭐BINARY_xXx_
 -- ================================================================
 -- SOURCE: SQL/💬3.สายแชท/Pg_Chat⭐BINARY_xXx_STAR.sql
 -- ================================================================
-create table public."Pg_Chat⭐BINARY_xXx_STAR" (
+create table if not exists public."Pg_Chat⭐BINARY_xXx_STAR" (
   id bigint generated by default as identity not null,
   chat_link_key text null,
   page_id text not null,
@@ -1667,8 +1739,7 @@ create index IF not exists ix_pg_chat_phone on public."Pg_Chat⭐BINARY_xXx_STAR
 
 -- ================================================================
 -- SOURCE: SQL/💬3.สายแชท/🌈MILKY_WAY_xXx_TOKEN _PAGE.sql
--- ================================================================
-create table public."🌈MILKY_WAY_xXx_TOKEN _PAGE" (
+create table if not exists public."🌈MILKY_WAY_xXx_TOKEN _PAGE" (
   page_id text not null,
   page_name text null,
   access_token text null,
@@ -1683,7 +1754,7 @@ create table public."🌈MILKY_WAY_xXx_TOKEN _PAGE" (
   page_label text null,
   "assigned_Hashtag" text null,
   portal_key text null,
-  constraint page_tokens_vault_pkey primary key (page_id)
+  constraint milky_way_token_page_pkey primary key (page_id)
 ) TABLESPACE pg_default;
 
 -- ================================================================
@@ -1926,7 +1997,7 @@ where
 -- ================================================================
 -- SOURCE: SQL/💬3.สายแชท/🏴_☠️SIRIUS_xXx_CRASH.sql
 -- ================================================================
-create table public."🏴‍☠️SIRIUS_xXx_CRASH" (
+create table if not exists public."🏴‍☠️SIRIUS_xXx_CRASH" (
   case_id text not null,
   branch text not null default ''::text,
   carrier_employee text not null default ''::text,
@@ -2632,79 +2703,6 @@ ON public."Cust_Chat⭐BINARY_xXx_STAR" (chat_link_key);
 
 CREATE INDEX IF NOT EXISTS ix_chat_page_chat_link_key
 ON public."Pg_Chat⭐BINARY_xXx_STAR" (chat_link_key);
-
--- ================================================================
--- SOURCE: SQL/🛒product_master/FUNCTION_ลิ้งสต๊อก.sql
--- ================================================================
-CREATE OR REPLACE FUNCTION public.fn_auto_link_product_stock()
-RETURNS TRIGGER AS $$
-DECLARE
-    final_joke TEXT;
-    clean_th_name TEXT;
-    variants_json JSONB;
-    variant_count INTEGER;
-    random_index INTEGER;
-    selected_header TEXT;
-BEGIN
-    -- สกัดชื่อภาษาไทยสแตนด์บายรอ
-    clean_th_name := COALESCE(TRIM(NEW.th_name), 'สินค้า');
-
-    -- 🟢 สเตปที่ 1: สายมีของ (stock_qty > 0) 👉 เปิดลอจิกลักไก่สุ่มข้อความ 1 จาก 5 แบบในตาราง
-    IF COALESCE(NEW.stock_qty, 0) > 0 THEN
-        NEW.stock_status := '✅ INSTOCK';
-        NEW.status := 'ACTIVE';
-
-        -- ดึงค่า JSON จากคอลัมน์ normal_header_variants ออกมาเช็ก
-        variants_json := NEW.normal_header_variants::JSONB;
-
-        -- 🎯 ตรรกะนักสุ่มขวัญใจคนวางระบบ:
-        -- เช็กก่อนว่ามีข้อมูลอาร์เรย์ฝังอยู่ไหม ถ้ามีและไม่ว่าง สั่งลุยสุ่มตัวเลขดัชนีทันที!
-        IF variants_json IS NOT NULL AND JSONB_ARRAY_LENGTH(variants_json) > 0 THEN
-            variant_count := JSONB_ARRAY_LENGTH(variants_json);
-            -- ใช้พลังสุ่มเลขคณิตศาสตร์ของเบส (0 ถึง จำนวนข้อความลบหนึ่ง)
-            random_index := FLOOR(RANDOM() * variant_count)::INTEGER;
-            -- สอยเอาเฉพาะข้อความเสียวใส้ชิ้นที่เลือกออกมาแบนๆ เพียวๆ ตัวเดียว!
-            selected_header := variants_json->>random_index;
-            NEW.stock_notice := TRIM(selected_header);
-        ELSE
-            -- 🛡️ ตัวดักระบบว่างเปล่า: ถ้าในตารางปล่อยว่างไว้ ให้ดีดกลับรางสายสินค้าหลักตามใจพี่
-            NEW.stock_notice := CASE
-                WHEN UPPER(TRIM(NEW.category)) IN ('COLD', 'COOL') THEN '🧊 สายเย็นรถแช่ · คุมอุณหภูมิระดับพรีเมียม แข็งเป๊กยันปลายทาง'
-                WHEN UPPER(TRIM(NEW.category)) = 'SWEET' THEN '🍬 [สายหวานพรีเมียม · หวานกำลังดี แพ็กให้ดีถึงมือ]'
-                WHEN UPPER(TRIM(NEW.category)) = 'FRUIT' THEN '🥭 สายผลไม้ · ส่งไวระเบิด คัดสดๆ ไม่สดคัดทิ้ง'
-                WHEN UPPER(TRIM(NEW.category)) = 'HOT' THEN '🚀 สายร้อนพร้อมบวก · เคลียร์ทางให้หน่อย รถแรงกำลังจะไป'
-                ELSE '🚀 [บิลสมบูรณ์]'
-            END;
-        END IF;
-
-        -- 🔥 [จุดเชื่อมต่อความเทพ] บังคับให้หัวบิลหลักดึงข้อความสายเพรียวลมหนาวที่สุ่มได้ไปใช้งานทันที
-        NEW.chosen_header := NEW.stock_notice;
-
-    ELSE
-        -- ❌ สเตปที่ 2: สายสินค้าหมด (stock_qty = 0) 👉 บังคับดีดป้ายแดงเตือนภัย+ดึงมุกไดนามิกชื่อไทยชนคีย์เหมือนเดิม
-        NEW.stock_qty := 0;
-        NEW.stock_status := '❌ OUT_OF_STOCK';
-        NEW.status := 'OUT_OF_STOCK';
-
-        final_joke := TRIM(NEW.out_of_stock_joke);
-
-        IF NULLIF(final_joke, '') IS NOT NULL THEN
-            NEW.stock_notice := '❌ สินค้าหมดแล้วแม่' || E'\n' || final_joke;
-        ELSE
-            NEW.stock_notice := '❌ สินค้าหมดแล้วแม่' || E'\n' || '💬 ' || clean_th_name || ' หมดเกลี้ยง! แอบหนีไปเดินสยามกับคนคุยใหม่ละ';
-        END IF;
-
-        -- 🔥 [จุดเชื่อมต่อความเทพ] บังคับให้หัวบิลหลักสลับมาใช้มุกของหมดแม่ไปแสดงผลบนเว็บและส่งออก
-        NEW.chosen_header := NEW.stock_notice;
-    END IF;
-
-    -- อัปเดตเวลาการแก้ไขล่าสุด
-    NEW.updated_at := timezone('utc'::text, now());
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
 
 -- ================================================================
 -- SOURCE: SQL/🛒product_master/add_admin_availability.sql

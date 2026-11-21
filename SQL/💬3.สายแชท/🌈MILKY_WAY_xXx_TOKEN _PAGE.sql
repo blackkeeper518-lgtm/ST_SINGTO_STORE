@@ -13,5 +13,5 @@ create table public."🌈MILKY_WAY_xXx_TOKEN _PAGE" (
   page_label text null,
   "assigned_Hashtag" text null,
   portal_key text null,
-  constraint page_tokens_vault_pkey primary key (page_id)
+  constraint milky_way_token_page_pkey primary key (page_id)
 ) TABLESPACE pg_default;
