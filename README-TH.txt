@@ -9,7 +9,7 @@ ZIP นี้รวมไฟล์ที่แก้ใน repo BB_STORE_ORDERS:
 
 อัปเดต n8n
 1. เปิด Code node `👑MASTER ADDRESS CASCADE 3 SYSTEMS`
-2. วางโค้ดทั้งก้อนจาก `n8n-live/👑BB_ORDER_SYSTEMS/👑BB_ORDER_04.js`
+2. วางโค้ดทั้งก้อนจาก `n8n-live/PROJECT_1_ST_ORDER/👑BB_ORDER_04.js`
 3. Save แล้วทดสอบออเดอร์ตัวอย่าง
 
 ไฟล์ `👑BB_ORDER_SYSTEMS_FULL.json` เป็น source snapshot ที่ซิงก์กับ JS แล้ว ไม่ได้แนะนำให้นำ workflow ทั้งก้อนไป Import ทับ n8n ที่กำลังใช้งาน เพราะอาจกระทบ connection/credential
