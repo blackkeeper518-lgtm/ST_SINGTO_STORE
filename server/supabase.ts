@@ -190,6 +190,8 @@ export async function fetchChatMessageRows(input: { pageId: string; threadId: st
 const CHAT_CONNECTION_CHECKS = [
   { name: CHAT_CUSTOMER_TABLE, columns: "id,page_id,thread_id,message_text,customer_message_text,phone" },
   { name: CHAT_PAGE_TABLE, columns: "id,page_id,thread_id,message_text,page_message_text" },
+  // Internal dependency for page status filtering; it is not exposed as a project room.
+  { name: CHAT_PAGE_TOKEN_TABLE, columns: "page_id,status,status_web" },
 ] as const;
 export async function checkChatConnection(credentials?: ChatSupabaseCredentials) {
   const results = await Promise.all(CHAT_CONNECTION_CHECKS.map(async ({ name, columns }) => {
