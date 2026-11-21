@@ -192,6 +192,11 @@ const CHAT_CONNECTION_CHECKS = [
   { name: CHAT_PAGE_TABLE, columns: "id,page_id,thread_id,message_text,page_message_text" },
   // Internal dependency for page status filtering; it is not exposed as a project room.
   { name: CHAT_PAGE_TOKEN_TABLE, columns: "page_id,status,status_web" },
+  { name: "line_channels", columns: "*" },
+  { name: "line_messages", columns: "*" },
+  { name: "🌓VAGABOND_xXx_DISMISS", columns: "*" },
+  { name: "🌠BINARY_xXx_MATRIX", columns: "*" },
+  { name: "🏴‍☠️SIRIUS_xXx_CRASH", columns: "*" },
 ] as const;
 export async function checkChatConnection(credentials?: ChatSupabaseCredentials) {
   const results = await Promise.all(CHAT_CONNECTION_CHECKS.map(async ({ name, columns }) => {
