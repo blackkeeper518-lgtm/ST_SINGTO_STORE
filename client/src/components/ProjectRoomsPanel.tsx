@@ -29,9 +29,6 @@ export const PROJECT_ROOM_GROUPS: { title: string; rooms: ProjectRoom[] }[] = [
     rooms: [
       { table: "Cust_Chat⭐BINARY_xXx_STAR", label: "Customer Chat" },
       { table: "Pg_Chat⭐BINARY_xXx_STAR", label: "Page Chat" },
-      { table: "delivery_pre_send_checks", label: "ตรวจสอบก่อนส่ง" },
-      { table: "delivery_red_zone_provinces", label: "จังหวัดพื้นที่เสี่ยง" },
-      { table: "delivery_telegram_urgent_queue", label: "คิว Telegram ด่วน" },
       { table: "line_channels", label: "LINE Channels" },
       { table: "line_messages", label: "LINE Messages" },
       { table: "🌈MILKY_WAY_xXx_TOKEN _PAGE", label: "Milky Way Token Page", serverOnly: true },
