@@ -50,7 +50,6 @@ queryClient.getMutationCache().subscribe(event => {
 });
 
 const chatProcedures = new Set([
-  "chat.connection",
   "chat.threads",
   "chat.pollNotifications",
   "chat.messages",

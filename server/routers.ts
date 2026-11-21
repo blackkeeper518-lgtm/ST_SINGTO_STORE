@@ -2,7 +2,7 @@ import { z } from "zod";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
 import { sendMetaMessage } from "./meta";
-import { assertChatPageEnabled, checkChatConnection, deleteChatPage, fetchChatMessageRows, fetchChatNotificationRows, fetchChatPages, fetchChatThreadRows, fetchParcelMappingQueue, purgeOldParcels, recordOutgoingChatMessage, saveChatPage, setChatPageAppStatus, setChatPageWebStatus, supabaseDelete, supabaseGet, supabasePatch, supabasePost } from "./supabase";
+import { assertChatPageEnabled, deleteChatPage, fetchChatMessageRows, fetchChatNotificationRows, fetchChatPages, fetchChatThreadRows, fetchParcelMappingQueue, purgeOldParcels, recordOutgoingChatMessage, saveChatPage, setChatPageAppStatus, setChatPageWebStatus, supabaseDelete, supabaseGet, supabasePatch, supabasePost } from "./supabase";
 import { checkLineConnection, fetchLineConversations, fetchLineMessages, sendLineText } from "./line";
 import * as db from "./db";
 import { generateOrderSummary } from "./order-summary";
@@ -54,10 +54,6 @@ export const appRouter = router({
 
   chat: router({
     configured: publicProcedure.query(({ ctx }) => ({ configured: Boolean(ctx.chatSupabaseCredentials?.url && ctx.chatSupabaseCredentials.serviceRoleKey) })),
-    // Connection test only verifies the configured Supabase objects. Reading rooms
-    // and sending replies remain protected below, but saving/testing config must not
-    // redirect an admin away when an auth session has expired.
-    connection: publicProcedure.query(({ ctx }) => checkChatConnection(requireBrowserChatConfig(ctx))),
     pages: protectedProcedure.query(({ ctx }) => fetchChatPages(requireBrowserChatConfig(ctx))),
     savePage: adminProcedure.input(z.object({ pageId: z.string().trim().min(1), pageName: z.string().trim().min(1), accessToken: z.string().optional(), enabledMobile: z.boolean().default(true), enabledWeb: z.boolean().default(true) })).mutation(({ input }) => saveChatPage(input, requireServerChatConfig())),
     deletePage: adminProcedure.input(z.object({ pageId: z.string().trim().min(1) })).mutation(({ input }) => deleteChatPage(input.pageId, requireServerChatConfig())),

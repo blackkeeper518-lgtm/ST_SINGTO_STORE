@@ -111,7 +111,6 @@ export default function SecretGallery() {
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionBusy, setConnectionBusy] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
-  const [chatBusy, setChatBusy] = useState(false);
   const savedBrowserChatConfig = readBrowserChatConfig();
   const [chatUrl, setChatUrl] = useState(savedBrowserChatConfig?.url || "");
   const [chatServiceRoleKey, setChatServiceRoleKey] = useState(savedBrowserChatConfig?.serviceRoleKey || "");
@@ -132,7 +131,6 @@ export default function SecretGallery() {
       window.removeEventListener(CHAT_NOTIFICATION_SETTINGS_EVENT, refreshNotificationPageSettings);
     };
   }, []);
-  const chatConnectionQuery = trpc.chat.connection.useQuery(undefined, { enabled: false, retry: false });
   const parcelConnection = getSupabaseConfig(camp, "parcel");
   const [parcelUrl, setParcelUrl] = useState(parcelConnection?.url || "");
   const [parcelKey, setParcelKey] = useState(parcelConnection?.anonKey || "");
@@ -308,23 +306,6 @@ export default function SecretGallery() {
     audio.volume = Math.max(0, Math.min(1, Number(selected.volume ?? soundSettings.volume)));
     await audio.play();
   };
-  const applyChatRoomResults = (results: Array<{ name: string; status: "ready" | "error" }>) => {
-    const resultsByName = new Map(results.map(result => [result.name, result]));
-    const next: ProjectRoomStates = {};
-    for (const room of PROJECT_ROOM_GROUPS[1].rooms) {
-      const result = resultsByName.get(room.table);
-      if (!result) {
-        next[projectRoomStatusKey(1, room.table)] = { kind: "error", detail: "ไม่พบผลตรวจจาก Server" };
-      } else if (result.status === "ready") {
-        next[projectRoomStatusKey(1, room.table)] = room.serverOnly
-          ? { kind: "server", detail: "ตรวจจาก Server แล้ว" }
-          : { kind: "ready", detail: "อ่านได้ · ตรวจจาก Server" };
-      } else {
-        next[projectRoomStatusKey(1, room.table)] = { kind: "error", detail: "Server ตรวจไม่ผ่าน" };
-      }
-    }
-    setProjectRoomStatuses(current => ({ ...current, ...next }));
-  };
   const setProjectRoomsUnverified = (projectIndex: number, kind: "missing" | "unsafe", detail?: string) => {
     const next: ProjectRoomStates = {};
     for (const room of PROJECT_ROOM_GROUPS[projectIndex].rooms) {
@@ -436,26 +417,9 @@ export default function SecretGallery() {
       setBusy(false);
     }
   };
-  const saveAndCheckChatConnection = async () => {
-    setChatBusy(true);
-    setChatMessage("");
-    const pending: ProjectRoomStates = {};
-    for (const room of PROJECT_ROOM_GROUPS[1].rooms) {
-      pending[projectRoomStatusKey(1, room.table)] = room.serverOnly ? { kind: "server" } : { kind: "loading" };
-    }
-    setProjectRoomStatuses(current => ({ ...current, ...pending }));
-    try {
-      saveBrowserChatConfig({ url: chatUrl, serviceRoleKey: chatServiceRoleKey });
-      const result = await chatConnectionQuery.refetch();
-      if (result.error) throw result.error;
-      applyChatRoomResults(result.data?.results ?? []);
-      setChatMessage(`ผลตรวจจาก Server · อ่านได้ ${result.data?.checked.length ?? 0}/${PROJECT_ROOM_GROUPS[1].rooms.length} ตาราง`);
-    } catch (e) {
-      applyChatRoomResults(PROJECT_ROOM_GROUPS[1].rooms.map(room => ({ name: room.table, status: "error" as const })));
-      setChatMessage(e instanceof Error ? e.message : String(e));
-    } finally {
-      setChatBusy(false);
-    }
+  const saveChatBrowserConnection = () => {
+    saveBrowserChatConfig({ url: chatUrl, serviceRoleKey: chatServiceRoleKey });
+    setChatMessage("บันทึก Chat config แล้ว · เว็บจะอ่านข้อมูลและส่งข้อความตามการใช้งาน");
   };
   const clearChatBrowserConnection = () => {
     clearBrowserChatConfig();
@@ -840,7 +804,7 @@ export default function SecretGallery() {
                   <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/55">CHAT SERVICE-ROLE KEY<Input type="password" autoComplete="new-password" value={chatServiceRoleKey} onChange={event => setChatServiceRoleKey(event.target.value)} placeholder="วาง service-role key ของโปรเจกต์ Chat" className="border-white/10 bg-black/35 font-mono text-white placeholder:text-white/30 focus-visible:ring-rose-300/40" /></label>
                 </div>
                 <div className="flex min-h-10 flex-wrap items-center gap-2">
-                  <Button type="button" onClick={() => void saveAndCheckChatConnection()} disabled={chatBusy} className="min-w-[180px] justify-center bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 text-white shadow-[0_0_22px_rgba(255,49,87,.2)] hover:brightness-110">{chatBusy ? "กำลังตรวจ…" : "บันทึกและตรวจ Chat"}</Button>
+                  <Button type="button" onClick={saveChatBrowserConnection} className="min-w-[180px] justify-center bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 text-white shadow-[0_0_22px_rgba(255,49,87,.2)] hover:brightness-110">บันทึก Chat</Button>
                   <Button type="button" variant="outline" onClick={clearChatBrowserConnection} className="border-white/10 bg-white/[0.035] text-white/65 hover:bg-white/[0.08]">ล้างค่า</Button>
                   <span className="min-h-5 text-xs text-cyan-100/70" aria-live="polite">{chatMessage}</span>
                 </div>
