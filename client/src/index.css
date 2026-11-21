@@ -2105,3 +2105,19 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
   background: linear-gradient(140deg, color-mix(in srgb, var(--global-surface) 96%, var(--global-primary)), color-mix(in srgb, var(--global-bg) 96%, var(--global-accent))) !important;
   box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent), 0 7px 20px rgba(0,0,0,.3), 0 0 12px color-mix(in srgb, var(--global-primary) 10%, transparent) !important;
 }
+
+/* SELECTED ORDER DEPTH · a restrained cyan wash that fades into the surface */
+.global-theme-runtime .order-control-room .order-list-card-selected {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 16% 0%, color-mix(in srgb, var(--global-accent) 16%, transparent), transparent 42%), linear-gradient(145deg, color-mix(in srgb, var(--global-surface) 94%, var(--global-primary)), color-mix(in srgb, var(--global-bg) 96%, var(--global-accent))) !important;
+}
+.global-theme-runtime .order-control-room .order-list-card-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 28%;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--global-accent) 10%, transparent), transparent);
+  opacity: .8;
+}
