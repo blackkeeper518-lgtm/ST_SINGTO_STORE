@@ -2174,7 +2174,7 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .global-theme-runtime .chat-cosmos-shell .neon-sign {
   background: linear-gradient(115deg, color-mix(in srgb, var(--global-surface) 94%, var(--global-primary)), color-mix(in srgb, var(--global-bg) 88%, var(--global-accent))) !important;
   border-color: color-mix(in srgb, var(--global-primary) 62%, transparent) !important;
-  box-shadow: 0 0 18px color-mix(in srgb, var(--global-primary) 12%, transparent), 0 0 28px color-mix(in srgb, var(--global-accent) 7%, transparent) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 14%, transparent), 0 0 24px color-mix(in srgb, var(--global-primary) 17%, transparent), 0 0 38px color-mix(in srgb, var(--global-accent) 10%, transparent) !important;
 }
 .global-theme-runtime .chat-cosmos-shell .neon-sign p,
 .global-theme-runtime .chat-cosmos-shell .neon-sign h1,
@@ -2182,12 +2182,10 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .global-theme-runtime .chat-cosmos-shell .neon-sign p { color: color-mix(in srgb, var(--global-accent) 72%, var(--global-text)) !important; }
 .global-theme-runtime .chat-cosmos-shell [data-slot="card"],
 .global-theme-runtime .chat-cosmos-shell .chat-tools-panel {
-  overflow: hidden;
-  border-radius: 1rem;
   background: linear-gradient(145deg, color-mix(in srgb, var(--global-surface) 96%, var(--global-primary)), color-mix(in srgb, var(--global-bg) 95%, var(--global-accent))) !important;
-  border-color: color-mix(in srgb, var(--global-primary) 27%, transparent) !important;
+  border-color: color-mix(in srgb, var(--global-primary) 38%, transparent) !important;
   color: var(--global-text) !important;
-  box-shadow: 0 12px 28px rgba(0,0,0,.25), 0 0 14px color-mix(in srgb, var(--global-primary) 7%, transparent) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent), 0 14px 34px rgba(0,0,0,.28), 0 0 18px color-mix(in srgb, var(--global-primary) 10%, transparent) !important;
 }
 .global-theme-runtime .chat-cosmos-shell input,
 .global-theme-runtime .chat-cosmos-shell textarea,

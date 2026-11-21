@@ -111,6 +111,7 @@ export default function SecretGallery() {
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionBusy, setConnectionBusy] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
   const savedBrowserChatConfig = readBrowserChatConfig();
   const [chatUrl, setChatUrl] = useState(savedBrowserChatConfig?.url || "");
   const [chatServiceRoleKey, setChatServiceRoleKey] = useState(savedBrowserChatConfig?.serviceRoleKey || "");
@@ -131,6 +132,7 @@ export default function SecretGallery() {
       window.removeEventListener(CHAT_NOTIFICATION_SETTINGS_EVENT, refreshNotificationPageSettings);
     };
   }, []);
+  const chatConnectionQuery = trpc.chat.connection.useQuery(undefined, { enabled: false, retry: false });
   const parcelConnection = getSupabaseConfig(camp, "parcel");
   const [parcelUrl, setParcelUrl] = useState(parcelConnection?.url || "");
   const [parcelKey, setParcelKey] = useState(parcelConnection?.anonKey || "");
@@ -306,6 +308,23 @@ export default function SecretGallery() {
     audio.volume = Math.max(0, Math.min(1, Number(selected.volume ?? soundSettings.volume)));
     await audio.play();
   };
+  const applyChatRoomResults = (results: Array<{ name: string; status: "ready" | "error" }>) => {
+    const resultsByName = new Map(results.map(result => [result.name, result]));
+    const next: ProjectRoomStates = {};
+    for (const room of PROJECT_ROOM_GROUPS[1].rooms) {
+      const result = resultsByName.get(room.table);
+      if (!result) {
+        next[projectRoomStatusKey(1, room.table)] = { kind: "error", detail: "ไม่พบผลตรวจจาก Server" };
+      } else if (result.status === "ready") {
+        next[projectRoomStatusKey(1, room.table)] = room.serverOnly
+          ? { kind: "server", detail: "ตรวจจาก Server แล้ว" }
+          : { kind: "ready", detail: "อ่านได้ · ตรวจจาก Server" };
+      } else {
+        next[projectRoomStatusKey(1, room.table)] = { kind: "error", detail: "Server ตรวจไม่ผ่าน" };
+      }
+    }
+    setProjectRoomStatuses(current => ({ ...current, ...next }));
+  };
   const setProjectRoomsUnverified = (projectIndex: number, kind: "missing" | "unsafe", detail?: string) => {
     const next: ProjectRoomStates = {};
     for (const room of PROJECT_ROOM_GROUPS[projectIndex].rooms) {
@@ -417,9 +436,26 @@ export default function SecretGallery() {
       setBusy(false);
     }
   };
-  const saveChatBrowserConnection = () => {
-    saveBrowserChatConfig({ url: chatUrl, serviceRoleKey: chatServiceRoleKey });
-    setChatMessage("บันทึก Chat config แล้ว · เว็บจะอ่านข้อมูลและส่งข้อความตามการใช้งาน");
+  const saveAndCheckChatConnection = async () => {
+    setChatBusy(true);
+    setChatMessage("");
+    const pending: ProjectRoomStates = {};
+    for (const room of PROJECT_ROOM_GROUPS[1].rooms) {
+      pending[projectRoomStatusKey(1, room.table)] = room.serverOnly ? { kind: "server" } : { kind: "loading" };
+    }
+    setProjectRoomStatuses(current => ({ ...current, ...pending }));
+    try {
+      saveBrowserChatConfig({ url: chatUrl, serviceRoleKey: chatServiceRoleKey });
+      const result = await chatConnectionQuery.refetch();
+      if (result.error) throw result.error;
+      applyChatRoomResults(result.data?.results ?? []);
+      setChatMessage(`ผลตรวจจาก Server · อ่านได้ ${result.data?.checked.length ?? 0}/${PROJECT_ROOM_GROUPS[1].rooms.length} ตาราง`);
+    } catch (e) {
+      applyChatRoomResults(PROJECT_ROOM_GROUPS[1].rooms.map(room => ({ name: room.table, status: "error" as const })));
+      setChatMessage(e instanceof Error ? e.message : String(e));
+    } finally {
+      setChatBusy(false);
+    }
   };
   const clearChatBrowserConnection = () => {
     clearBrowserChatConfig();
@@ -789,7 +825,7 @@ export default function SecretGallery() {
                   </Button>
                   <span className="text-xs text-white/55">{connectionMessage}</span>
                 </div>
-                <ProjectRoomsPanel projectIndex={0} />
+                <ProjectRoomsPanel projectIndex={0} statuses={projectRoomStatuses} configured={Boolean(supabaseUrl.trim() && supabaseKey.trim())} busy={connectionBusy || projectRoomBusy === 0} onCheck={() => void checkProjectRooms(0)} />
               </CardContent>
             </Card>
             <Card className="project-room-card relative h-full min-w-0 overflow-hidden rounded-3xl border border-rose-300/20 bg-[#100a12] shadow-[0_18px_55px_rgba(0,0,0,.35)] transition duration-300 hover:-translate-y-0.5 hover:border-rose-300/45">
@@ -804,12 +840,12 @@ export default function SecretGallery() {
                   <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/55">CHAT SERVICE-ROLE KEY<Input type="password" autoComplete="new-password" value={chatServiceRoleKey} onChange={event => setChatServiceRoleKey(event.target.value)} placeholder="วาง service-role key ของโปรเจกต์ Chat" className="border-white/10 bg-black/35 font-mono text-white placeholder:text-white/30 focus-visible:ring-rose-300/40" /></label>
                 </div>
                 <div className="flex min-h-10 flex-wrap items-center gap-2">
-                  <Button type="button" onClick={saveChatBrowserConnection} className="min-w-[180px] justify-center bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 text-white shadow-[0_0_22px_rgba(255,49,87,.2)] hover:brightness-110">บันทึก Chat</Button>
+                  <Button type="button" onClick={() => void saveAndCheckChatConnection()} disabled={chatBusy} className="min-w-[180px] justify-center bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 text-white shadow-[0_0_22px_rgba(255,49,87,.2)] hover:brightness-110">{chatBusy ? "กำลังตรวจ…" : "บันทึกและตรวจ Chat"}</Button>
                   <Button type="button" variant="outline" onClick={clearChatBrowserConnection} className="border-white/10 bg-white/[0.035] text-white/65 hover:bg-white/[0.08]">ล้างค่า</Button>
                   <span className="min-h-5 text-xs text-cyan-100/70" aria-live="polite">{chatMessage}</span>
                 </div>
                 <p className="text-[10px] leading-4 text-cyan-100/45">เก็บเฉพาะ browser นี้ · ถ้าไม่กรอก ระบบจะไม่เรียกฐานข้อมูลแชท · ไม่ fallback ไป Main/Tracking หรือ table/token column อื่น</p>
-                <ProjectRoomsPanel projectIndex={1} />
+                <ProjectRoomsPanel projectIndex={1} statuses={projectRoomStatuses} configured={Boolean(chatUrl.trim() && chatServiceRoleKey.trim())} busy={chatBusy} onCheck={() => void saveAndCheckChatConnection()} />
               </CardContent>
             </Card>
             <Card className="project-room-card relative h-full min-w-0 overflow-hidden rounded-3xl border border-rose-300/20 bg-[#100a12] shadow-[0_18px_55px_rgba(0,0,0,.35)] transition duration-300 hover:-translate-y-0.5 hover:border-rose-300/45">
@@ -826,7 +862,7 @@ export default function SecretGallery() {
                   <span className="text-xs text-fuchsia-100/70">{parcelMessage}</span>
                 </div>
                 <p className="text-[10px] leading-4 text-fuchsia-100/45 md:col-span-2">ใส่เฉพาะ Anon/Publishable Key · ห้ามใส่ service-role หรือ secret key · ถ้าไม่กรอกจะใช้ Tracking เดิม</p>
-              <div className="md:col-span-2"><ProjectRoomsPanel projectIndex={2} /></div>
+              <div className="md:col-span-2"><ProjectRoomsPanel projectIndex={2} statuses={projectRoomStatuses} configured={Boolean(parcelUrl.trim() && parcelKey.trim())} busy={parcelBusy || projectRoomBusy === 2} onCheck={() => void checkProjectRooms(2)} /></div>
             </CardContent>
             </Card>
             <Card className="project-room-card relative h-full min-w-0 overflow-hidden rounded-3xl border border-rose-300/20 bg-[#100a12] shadow-[0_18px_55px_rgba(0,0,0,.35)] transition duration-300 hover:-translate-y-0.5 hover:border-rose-300/45">
@@ -843,7 +879,7 @@ export default function SecretGallery() {
                   <span className="text-xs text-white/55">{vaultMessage}</span>
                 </div>
                 <p className="text-[10px] leading-4 text-white/45 md:col-span-2">ใส่เฉพาะ Anon/Publishable Key · ห้ามใส่ service-role · ตารางของภาพ สคริปต์ และบทความจะกำหนดแยกในแต่ละฟีเจอร์</p>
-                <div className="md:col-span-2"><ProjectRoomsPanel projectIndex={3} /></div>
+                <div className="md:col-span-2"><ProjectRoomsPanel projectIndex={3} statuses={projectRoomStatuses} configured={Boolean(vaultUrl.trim() && vaultKey.trim())} busy={vaultBusy || projectRoomBusy === 3} onCheck={() => void checkProjectRooms(3)} /></div>
               </CardContent>
             </Card>
           </div>
