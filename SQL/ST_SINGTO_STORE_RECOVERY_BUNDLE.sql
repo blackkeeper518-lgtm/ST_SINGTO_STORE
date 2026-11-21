@@ -405,7 +405,6 @@ create index IF not exists hermes_telegram_status_idx on public."🗝️HERMES_A
 
 -- ================================================================
 -- SOURCE: SQL/🌍1.สายออเดอร์หลัก (Main Order Pipeline)/🌀SINGULARITY_xXx_EXCHANGE.sql
--- ================================================================
 create table public."🌀SINGULARITY_xXx_EXCHANGE" (
   upsert_key text not null,
   bb_express_send_route text null,
@@ -780,9 +779,11 @@ create table public."🌀SINGULARITY_xXx_EXCHANGE" (
   is_backlog text null,
   telegram_message_web text null,
   telegram_change_alert_web text null,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
   chat_link_key text null,
   source_lane text null,
-  constraint "🌀SINGULARITY_xXx_EXCHANGE_NOTE_pkey" primary key (upsert_key)
+  constraint "🌀SINGULARITY_xXx_EXCHANGE_pkey" primary key (upsert_key)
 ) TABLESPACE pg_default;
 
 create index IF not exists singularity_order_time_display_idx on public."🌀SINGULARITY_xXx_EXCHANGE" using btree (order_time_display) TABLESPACE pg_default;
@@ -791,7 +792,6 @@ create index IF not exists singularity_telegram_status_idx on public."🌀SINGUL
 
 -- ================================================================
 -- SOURCE: SQL/🌍1.สายออเดอร์หลัก (Main Order Pipeline)/💀THANATOS_xXx_DEATH_NOTE.sql
--- ================================================================
 create table public."💀THANATOS_xXx_DEATH_NOTE" (
   upsert_key text not null,
   bb_express_send_route text null,
@@ -1166,11 +1166,16 @@ create table public."💀THANATOS_xXx_DEATH_NOTE" (
   is_backlog text null,
   telegram_message_web text null,
   telegram_change_alert_web text null,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
   chat_link_key text null,
-  "🗝️HERMES_ARCHIVE" text null,
   source_lane text null,
-  constraint "💀THANATOS_xXx_DEATHz_NOTE_pkey" primary key (upsert_key)
+  constraint "💀THANATOS_xXx_DEATH_NOTE_pkey" primary key (upsert_key)
 ) TABLESPACE pg_default;
+
+create index IF not exists thanatos_order_time_display_idx on public."💀THANATOS_xXx_DEATH_NOTE" using btree (order_time_display) TABLESPACE pg_default;
+
+create index IF not exists thanatos_telegram_status_idx on public."💀THANATOS_xXx_DEATH_NOTE" using btree (telegram_status, delivery_status, delivery_state) TABLESPACE pg_default;
 
 -- ================================================================
 -- SOURCE: SQL/🌍1.สายออเดอร์หลัก (Main Order Pipeline)/🌍GALACTIC_GATEWAY_TOKEN.sql
