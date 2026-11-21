@@ -436,7 +436,9 @@ export default function OrderControl() {
         <Metric icon={XCircle} label="ส่งไม่ได้ / ต้องตรวจ" value={blockedOrders.length} suffix="รายการ" tone="rose" />
       </section>
 
-      <section className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${blockedWarningCount ? "border-rose-300/35 bg-rose-950/25 shadow-[0_0_22px_rgba(251,113,133,.12)]" : warnedOrderCount ? "border-amber-300/30 bg-amber-950/20" : "border-emerald-300/25 bg-emerald-950/15"}`} aria-live="polite">
+      <section className={`order-safety-radar flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${blockedWarningCount ? "border-rose-300/35 bg-rose-950/25 shadow-[0_0_22px_rgba(251,113,133,.12)]" : warnedOrderCount ? "border-amber-300/30 bg-amber-950/20" : "border-emerald-300/25 bg-emerald-950/15"}`} aria-live="polite">
+        <div className="order-safety-radar-grid" aria-hidden="true" />
+        <div className="order-safety-radar-marquee" aria-hidden="true"><span>DΛRKSIDE SYSTEM · ORDER SIGNAL · LIVE TRACE · </span><span>DΛRKSIDE SYSTEM · ORDER SIGNAL · LIVE TRACE · </span></div>
         <div><p className={`text-[10px] font-bold uppercase tracking-[.22em] ${blockedWarningCount ? "text-rose-200" : warnedOrderCount ? "text-amber-200" : "text-emerald-200"}`}>ORDER SAFETY RADAR</p><p className="mt-1 text-sm text-slate-100">{warnedOrderCount ? `พบออเดอร์มีจุดเตือน ${warnedOrderCount} รายการ จาก ${orders.length} รายการ` : `ไม่พบจุดเตือนจากข้อมูลที่อ่านได้ · ${orders.length} รายการ`}</p></div>
         <div className="flex flex-wrap gap-2 text-[10px] font-semibold">{blockedWarningCount > 0 && <span className="rounded-full border border-rose-300/35 bg-rose-400/10 px-3 py-1 text-rose-100">งดส่ง {blockedWarningCount} จุด</span>}{reviewWarningCount > 0 && <span className="rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-amber-100">ตรวจเพิ่ม {reviewWarningCount} จุด</span>}<span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">คำนวณจากข้อมูลที่หน้าอ่านได้ · ไม่เขียนกลับฐาน</span></div>
       </section>
