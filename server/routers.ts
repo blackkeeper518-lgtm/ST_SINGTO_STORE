@@ -19,14 +19,6 @@ function requireBrowserChatConfig(ctx: { chatSupabaseCredentials?: { url: string
   }
   return credentials;
 }
-function requireServerFirstChatConfig(ctx: { chatSupabaseCredentials?: { url: string; serviceRoleKey: string } }) {
-  const serverCredentials = {
-    url: process.env.CHAT_SUPABASE_URL?.trim() ?? "",
-    serviceRoleKey: process.env.CHAT_SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "",
-  };
-  if (serverCredentials.url && serverCredentials.serviceRoleKey) return serverCredentials;
-  return requireBrowserChatConfig(ctx);
-}
 function requireServerChatConfig() {
   const credentials = {
     url: process.env.CHAT_SUPABASE_URL?.trim() ?? "",
@@ -61,22 +53,19 @@ export const appRouter = router({
   }),
 
   chat: router({
-    configured: publicProcedure.query(({ ctx }) => ({ configured: Boolean(
-      (process.env.CHAT_SUPABASE_URL?.trim() && process.env.CHAT_SUPABASE_SERVICE_ROLE_KEY?.trim())
-      || (ctx.chatSupabaseCredentials?.url && ctx.chatSupabaseCredentials.serviceRoleKey),
-    ) })),
+    configured: publicProcedure.query(({ ctx }) => ({ configured: Boolean(ctx.chatSupabaseCredentials?.url && ctx.chatSupabaseCredentials.serviceRoleKey) })),
     // Connection test only verifies the configured Supabase objects. Reading rooms
     // and sending replies remain protected below, but saving/testing config must not
     // redirect an admin away when an auth session has expired.
     connection: publicProcedure.query(({ ctx }) => checkChatConnection(requireBrowserChatConfig(ctx))),
-    pages: protectedProcedure.query(({ ctx }) => fetchChatPages(requireServerFirstChatConfig(ctx))),
+    pages: protectedProcedure.query(({ ctx }) => fetchChatPages(requireBrowserChatConfig(ctx))),
     savePage: adminProcedure.input(z.object({ pageId: z.string().trim().min(1), pageName: z.string().trim().min(1), accessToken: z.string().optional(), enabledMobile: z.boolean().default(true), enabledWeb: z.boolean().default(true) })).mutation(({ input }) => saveChatPage(input, requireServerChatConfig())),
     deletePage: adminProcedure.input(z.object({ pageId: z.string().trim().min(1) })).mutation(({ input }) => deleteChatPage(input.pageId, requireServerChatConfig())),
     setPageAppStatus: protectedProcedure.input(z.object({ pageId: z.string().min(1), enabled: z.boolean() })).mutation(({ input, ctx }) => setChatPageAppStatus(input.pageId, input.enabled, requireBrowserChatConfig(ctx))),
     setPageWebStatus: protectedProcedure.input(z.object({ pageId: z.string().min(1), enabled: z.boolean() })).mutation(({ input, ctx }) => setChatPageWebStatus(input.pageId, input.enabled, requireBrowserChatConfig(ctx))),
-    threads: protectedProcedure.input(z.object({ surface: z.enum(["web", "mobile"]).default("web") }).optional()).query(({ input, ctx }) => fetchChatThreadRows(requireServerFirstChatConfig(ctx), input?.surface ?? "web")),
-    pollNotifications: protectedProcedure.input(z.object({ afterRowId: z.string().regex(/^\d+$/).nullable() })).mutation(({ input, ctx }) => fetchChatNotificationRows(input.afterRowId, requireServerFirstChatConfig(ctx))),
-    messages: protectedProcedure.input(z.object({ pageId: z.string().min(1), threadId: z.string().min(1), surface: z.enum(["web", "mobile"]).default("web") })).query(({ input, ctx }) => fetchChatMessageRows(input, requireServerFirstChatConfig(ctx), input.surface)),
+    threads: protectedProcedure.input(z.object({ surface: z.enum(["web", "mobile"]).default("web") }).optional()).query(({ input, ctx }) => fetchChatThreadRows(requireBrowserChatConfig(ctx), input?.surface ?? "web")),
+    pollNotifications: protectedProcedure.input(z.object({ afterRowId: z.string().regex(/^\d+$/).nullable() })).mutation(({ input, ctx }) => fetchChatNotificationRows(input.afterRowId, requireBrowserChatConfig(ctx))),
+    messages: protectedProcedure.input(z.object({ pageId: z.string().min(1), threadId: z.string().min(1), surface: z.enum(["web", "mobile"]).default("web") })).query(({ input, ctx }) => fetchChatMessageRows(input, requireBrowserChatConfig(ctx), input.surface)),
     sendReply: protectedProcedure.input(z.object({ pageId: z.string(), pageName: z.string().optional(), portalKey: z.string().optional(), chatLinkKey: z.string().optional(), threadId: z.string(), recipientId: z.string(), text: z.string().optional(), imageUrl: z.string().optional(), imageSendUrl: z.string().optional(), imageUrls: z.array(z.string().url()).max(4).optional(), stickerId: z.string().optional(), surface: z.enum(["web", "mobile"]).default("web") })).mutation(async ({ input, ctx }) => {
       const credentials = requireBrowserChatConfig(ctx);
       await assertChatPageEnabled(input.pageId, credentials, input.surface ?? "web");
