@@ -566,7 +566,7 @@ export default function ChatHub() {
         const isPageMessage = isPageTimelineLine(line);
         const text = stripSpeakerPrefix(line);
         return <div key={`${line}-${index}`} className={`flex w-full shrink-0 flex-col ${isPageMessage ? "items-end" : "items-start"}`}>
-          <div className={`chat-message-bubble min-w-0 max-w-[86%] break-words [overflow-wrap:anywhere] rounded-2xl px-4 py-3 text-sm leading-6 shadow-lg ${isPageMessage ? "rounded-br-md border border-fuchsia-300/25 bg-gradient-to-br from-violet-900/80 to-fuchsia-950/65 text-fuchsia-50 shadow-[0_0_20px_rgba(217,70,239,.10)]" : "rounded-bl-md border border-emerald-300/25 bg-gradient-to-br from-emerald-950/85 to-green-950/55 text-emerald-50/95 shadow-[0_0_18px_rgba(16,185,129,.12)]"}`}>
+          <div className={`chat-message-bubble ${isPageMessage ? "chat-message-bubble--page rounded-br-md" : "chat-message-bubble--customer rounded-bl-md"} min-w-0 max-w-[86%] break-words [overflow-wrap:anywhere] rounded-2xl px-4 py-3 text-sm leading-6 shadow-lg`}>
             <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{text}</p>
           </div>
         </div>;
@@ -582,7 +582,7 @@ export default function ChatHub() {
         const messageId = String(message.id ?? message.messageId ?? `${message.occurredAt ?? ""}:${text}`);
         const isSelected = isCustomerMessage && !isRight && selectedOrderMessage?.threadKey === selected.key && selectedOrderMessage.id === messageId;
         return <div key={message.id} className={`flex w-full shrink-0 flex-col ${isRight ? "items-end" : "items-start"}`}>
-          <div className={`chat-message-bubble chat-bubble-frame ${cyberFrameRooms[selected.key] || cyberFrame ? `cyber-frame-card cyber-frame-${cyberFrameRooms[selected.key] || cyberFrame}` : ""} min-w-0 max-w-[86%] shrink-0 break-words rounded-2xl ${mediaOnly ? "p-1.5" : "px-4 py-3"} text-sm leading-6 shadow-lg ${isRight ? "rounded-br-md border border-fuchsia-300/25 bg-gradient-to-br from-violet-900/80 to-fuchsia-950/65 text-fuchsia-50 shadow-[0_0_20px_rgba(217,70,239,.10)]" : "rounded-bl-md border border-emerald-300/25 bg-gradient-to-br from-emerald-950/85 to-green-950/55 text-emerald-50/95 shadow-[0_0_18px_rgba(16,185,129,.12)]"}`}>
+          <div className={`chat-message-bubble chat-bubble-frame ${isRight ? "chat-message-bubble--page rounded-br-md" : "chat-message-bubble--customer rounded-bl-md"} ${cyberFrameRooms[selected.key] || cyberFrame ? `cyber-frame-card cyber-frame-${cyberFrameRooms[selected.key] || cyberFrame}` : ""} min-w-0 max-w-[86%] shrink-0 break-words rounded-2xl ${mediaOnly ? "p-1.5" : "px-4 py-3"} text-sm leading-6 shadow-lg`}>
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-60">{senderName}</p>
             {(!attachments.length || !isImagePlaceholder) ? <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{displayMessageText(message)}</p> : null}
             {attachments.map(url => <button key={url} type="button" onClick={() => setLightboxUrl(url)} className="mt-1 block cursor-zoom-in text-left"><img src={url} alt="ไฟล์แนบจากแชท คลิกเพื่อขยาย" className="block max-h-[min(52vh,420px)] max-w-[min(72vw,360px)] rounded-lg object-contain transition hover:brightness-110" /></button>)}
