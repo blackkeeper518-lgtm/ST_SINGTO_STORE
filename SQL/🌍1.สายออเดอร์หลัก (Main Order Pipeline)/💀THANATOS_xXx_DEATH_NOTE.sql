@@ -1,6 +1,6 @@
 create table public."💀THANATOS_xXx_DEATH_NOTE" (
   upsert_key text not null,
-  bb_express_send_route text null,
+  ST_express_send_route text null,
   currentthreadtotalbills text null,
   duplicate_count_th text null,
   balloonnotice text null,

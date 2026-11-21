@@ -32,7 +32,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "fUL1nUoNWuBjchp1",
-          "name": "🌌BB_ORDERS2"
+          "name": "🌌ST_ORDERS2"
         }
       }
     },
@@ -137,7 +137,7 @@
                 "conditions": [
                   {
                     "id": "43e7ccd4-eff3-429b-bdfb-bcdfc8fb5c8c",
-                    "leftValue": "={{ $json.bb_express_send_route }}",
+                    "leftValue": "={{ $json.ST_express_send_route }}",
                     "rightValue": "⚪",
                     "operator": {
                       "type": "string",
@@ -161,7 +161,7 @@
                 "conditions": [
                   {
                     "id": "3f45f9a3-ab1a-4291-bcca-95a9019e3d1d",
-                    "leftValue": "={{ $json.bb_express_send_route }}",
+                    "leftValue": "={{ $json.ST_express_send_route }}",
                     "rightValue": "🟦",
                     "operator": {
                       "type": "string",
@@ -185,7 +185,7 @@
                 "conditions": [
                   {
                     "id": "5ec59028-1923-4c09-8d97-123e567a9672",
-                    "leftValue": "={{ $json.bb_express_send_route }}",
+                    "leftValue": "={{ $json.ST_express_send_route }}",
                     "rightValue": "🟨",
                     "operator": {
                       "type": "string",
@@ -209,7 +209,7 @@
                 "conditions": [
                   {
                     "id": "bc264af8-5ebc-46ca-bfec-55687302d37f",
-                    "leftValue": "={{ $json.bb_express_send_route }}",
+                    "leftValue": "={{ $json.ST_express_send_route }}",
                     "rightValue": "🟠",
                     "operator": {
                       "type": "string",
@@ -495,7 +495,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "fUL1nUoNWuBjchp1",
-          "name": "🌌BB_ORDERS"
+          "name": "🌌ST_ORDERS"
         }
       }
     },
@@ -562,7 +562,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "fUL1nUoNWuBjchp1",
-          "name": "🌌BB_ORDERS"
+          "name": "🌌ST_ORDERS"
         }
       }
     },
@@ -629,7 +629,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "fUL1nUoNWuBjchp1",
-          "name": "🌌BB_ORDERS"
+          "name": "🌌ST_ORDERS"
         }
       }
     },
@@ -696,7 +696,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "fUL1nUoNWuBjchp1",
-          "name": "🌌BB_ORDERS"
+          "name": "🌌ST_ORDERS"
         }
       }
     },
@@ -763,7 +763,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "fUL1nUoNWuBjchp1",
-          "name": "🌌BB_ORDERS"
+          "name": "🌌ST_ORDERS"
         }
       }
     },
@@ -830,7 +830,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "fUL1nUoNWuBjchp1",
-          "name": "🌌BB_ORDERS"
+          "name": "🌌ST_ORDERS"
         }
       }
     },
@@ -900,7 +900,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  chat_link_key: String($json.chat_link_key ?? ''),\n  page_id: String($json.page_id ?? ''),\n\n  thread_id: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  threadId: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  page_name: $json.page_name ?? undefined,\n  portal_key: $json.portal_key ?? undefined,\n\n  customer_id: $json.customer_id ?? $json.recipient_id ?? undefined,\n  recipient_id: $json.recipient_id ?? undefined,\n\n  // ชื่อ Facebook เป็นฟิลด์หลักใหม่\n  facebook_name: $json.facebook_name ?? undefined,\n\n  message_id: $json.message_id ?? undefined,\n  speaker: 'page',\n  is_sent: true,\n\n  occurred_at: $json.occurred_at ?? $now,\n  sync_status: 'READY_TO_SAVE',\n\n  tracking_number: $json.tracking_number ?? undefined,\n  parcel_status_emoji: $json.parcel_status_emoji ?? undefined,\n  facebook_tracking_message: $json.facebook_tracking_message ?? undefined,\n  drakside_tracking_message: $json.drakside_tracking_message ?? undefined,\n\n  // ถ้ามีค่าใหม่ค่อยเขียน ถ้าไม่มีจะไม่แตะค่าฐานข้อมูลเดิม\n  facebook_tracking_status: $json.facebook_tracking_status ?? undefined,\n  facebook_tracking_sent_at: $json.facebook_tracking_sent_at ?? undefined,\n\n\n  order_number: $json.order_number ?? undefined,\n  order_number_display: $json.order_number_display ?? undefined,\n  cod_amount: $json.cod_amount ?? undefined,\n  phone: $json.phone ?? undefined,\n  shipping_carrier: $json.shipping_carrier ?? undefined,\n  address_display_packer: $json.address_display_packer ?? undefined,\n  manus_for_packer: $json.manus_for_packer ?? undefined,\n  dedupe_key:\n    String($json.message_id ?? '') +\n    ':' +\n    String($json.recipient_id ?? ''),\n\n  // ตัดช่องว่างท้ายชื่อออก\n  target_room: 'Pg_Chat⭐BINARY_xXx_STAR',\n\n  source_lane: '🌌BB_EXPRESS',\n\n  // ฟิลด์เดิมให้ไว้อันดับท้ายสุด\n  recipient_name: $json.recipient_name ?? undefined,\n  customer_name: $json.customer_name ?? undefined\n}) }}\n",
+        "jsonBody": "={{ JSON.stringify({\n  chat_link_key: String($json.chat_link_key ?? ''),\n  page_id: String($json.page_id ?? ''),\n\n  thread_id: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  threadId: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  page_name: $json.page_name ?? undefined,\n  portal_key: $json.portal_key ?? undefined,\n\n  customer_id: $json.customer_id ?? $json.recipient_id ?? undefined,\n  recipient_id: $json.recipient_id ?? undefined,\n\n  // ชื่อ Facebook เป็นฟิลด์หลักใหม่\n  facebook_name: $json.facebook_name ?? undefined,\n\n  message_id: $json.message_id ?? undefined,\n  speaker: 'page',\n  is_sent: true,\n\n  occurred_at: $json.occurred_at ?? $now,\n  sync_status: 'READY_TO_SAVE',\n\n  tracking_number: $json.tracking_number ?? undefined,\n  parcel_status_emoji: $json.parcel_status_emoji ?? undefined,\n  facebook_tracking_message: $json.facebook_tracking_message ?? undefined,\n  drakside_tracking_message: $json.drakside_tracking_message ?? undefined,\n\n  // ถ้ามีค่าใหม่ค่อยเขียน ถ้าไม่มีจะไม่แตะค่าฐานข้อมูลเดิม\n  facebook_tracking_status: $json.facebook_tracking_status ?? undefined,\n  facebook_tracking_sent_at: $json.facebook_tracking_sent_at ?? undefined,\n\n\n  order_number: $json.order_number ?? undefined,\n  order_number_display: $json.order_number_display ?? undefined,\n  cod_amount: $json.cod_amount ?? undefined,\n  phone: $json.phone ?? undefined,\n  shipping_carrier: $json.shipping_carrier ?? undefined,\n  address_display_packer: $json.address_display_packer ?? undefined,\n  manus_for_packer: $json.manus_for_packer ?? undefined,\n  dedupe_key:\n    String($json.message_id ?? '') +\n    ':' +\n    String($json.recipient_id ?? ''),\n\n  // ตัดช่องว่างท้ายชื่อออก\n  target_room: 'Pg_Chat⭐BINARY_xXx_STAR',\n\n  source_lane: '🌌ST_EXPRESS',\n\n  // ฟิลด์เดิมให้ไว้อันดับท้ายสุด\n  recipient_name: $json.recipient_name ?? undefined,\n  customer_name: $json.customer_name ?? undefined\n}) }}\n",
         "options": {
           "timeout": 30000
         }
@@ -919,7 +919,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "RFBFxvVQtqpXFuL5",
-          "name": "🌌BB_CHAT"
+          "name": "🌌ST_CHAT"
         }
       }
     },
@@ -952,7 +952,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  chat_link_key: String($json.chat_link_key ?? ''),\n  page_id: String($json.page_id ?? ''),\n\n  thread_id: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  threadId: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  page_name: $json.page_name ?? undefined,\n  portal_key: $json.portal_key ?? undefined,\n\n  customer_id: $json.customer_id ?? $json.recipient_id ?? undefined,\n  recipient_id: $json.recipient_id ?? undefined,\n\n  // ชื่อ Facebook เป็นฟิลด์หลักใหม่\n  facebook_name: $json.facebook_name ?? undefined,\n\n  message_id: $json.message_id ?? undefined,\n  speaker: 'page',\n  is_sent: true,\n\n  occurred_at: $json.occurred_at ?? $now,\n  sync_status: 'READY_TO_SAVE',\n\n  tracking_number: $json.tracking_number ?? undefined,\n  parcel_status_emoji: $json.parcel_status_emoji ?? undefined,\n  facebook_tracking_message: $json.facebook_tracking_message ?? undefined,\n  drakside_tracking_message: $json.drakside_tracking_message ?? undefined,\n\n  // ถ้ามีค่าใหม่ค่อยเขียน ถ้าไม่มีจะไม่แตะค่าฐานข้อมูลเดิม\n  facebook_tracking_status: $json.facebook_tracking_status ?? undefined,\n  facebook_tracking_sent_at: $json.facebook_tracking_sent_at ?? undefined,\n\n\n  order_number: $json.order_number ?? undefined,\n  order_number_display: $json.order_number_display ?? undefined,\n  cod_amount: $json.cod_amount ?? undefined,\n  phone: $json.phone ?? undefined,\n  shipping_carrier: $json.shipping_carrier ?? undefined,\n  address_display_packer: $json.address_display_packer ?? undefined,\n  manus_for_packer: $json.manus_for_packer ?? undefined,\n  dedupe_key:\n    String($json.message_id ?? '') +\n    ':' +\n    String($json.recipient_id ?? ''),\n\n  // ตัดช่องว่างท้ายชื่อออก\n  target_room: 'Pg_Chat⭐BINARY_xXx_STAR',\n\n  source_lane: '🌌BB_EXPRESS',\n\n  // ฟิลด์เดิมให้ไว้อันดับท้ายสุด\n  recipient_name: $json.recipient_name ?? undefined,\n  customer_name: $json.customer_name ?? undefined\n}) }}\n",
+        "jsonBody": "={{ JSON.stringify({\n  chat_link_key: String($json.chat_link_key ?? ''),\n  page_id: String($json.page_id ?? ''),\n\n  thread_id: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  threadId: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  page_name: $json.page_name ?? undefined,\n  portal_key: $json.portal_key ?? undefined,\n\n  customer_id: $json.customer_id ?? $json.recipient_id ?? undefined,\n  recipient_id: $json.recipient_id ?? undefined,\n\n  // ชื่อ Facebook เป็นฟิลด์หลักใหม่\n  facebook_name: $json.facebook_name ?? undefined,\n\n  message_id: $json.message_id ?? undefined,\n  speaker: 'page',\n  is_sent: true,\n\n  occurred_at: $json.occurred_at ?? $now,\n  sync_status: 'READY_TO_SAVE',\n\n  tracking_number: $json.tracking_number ?? undefined,\n  parcel_status_emoji: $json.parcel_status_emoji ?? undefined,\n  facebook_tracking_message: $json.facebook_tracking_message ?? undefined,\n  drakside_tracking_message: $json.drakside_tracking_message ?? undefined,\n\n  // ถ้ามีค่าใหม่ค่อยเขียน ถ้าไม่มีจะไม่แตะค่าฐานข้อมูลเดิม\n  facebook_tracking_status: $json.facebook_tracking_status ?? undefined,\n  facebook_tracking_sent_at: $json.facebook_tracking_sent_at ?? undefined,\n\n\n  order_number: $json.order_number ?? undefined,\n  order_number_display: $json.order_number_display ?? undefined,\n  cod_amount: $json.cod_amount ?? undefined,\n  phone: $json.phone ?? undefined,\n  shipping_carrier: $json.shipping_carrier ?? undefined,\n  address_display_packer: $json.address_display_packer ?? undefined,\n  manus_for_packer: $json.manus_for_packer ?? undefined,\n  dedupe_key:\n    String($json.message_id ?? '') +\n    ':' +\n    String($json.recipient_id ?? ''),\n\n  // ตัดช่องว่างท้ายชื่อออก\n  target_room: 'Pg_Chat⭐BINARY_xXx_STAR',\n\n  source_lane: '🌌ST_EXPRESS',\n\n  // ฟิลด์เดิมให้ไว้อันดับท้ายสุด\n  recipient_name: $json.recipient_name ?? undefined,\n  customer_name: $json.customer_name ?? undefined\n}) }}\n",
         "options": {
           "timeout": 30000
         }
@@ -971,7 +971,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "RFBFxvVQtqpXFuL5",
-          "name": "🌌BB_CHAT"
+          "name": "🌌ST_CHAT"
         }
       }
     },
@@ -1004,7 +1004,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  chat_link_key: String($json.chat_link_key ?? ''),\n  page_id: String($json.page_id ?? ''),\n\n  thread_id: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  threadId: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  page_name: $json.page_name ?? undefined,\n  portal_key: $json.portal_key ?? undefined,\n\n  customer_id: $json.customer_id ?? $json.recipient_id ?? undefined,\n  recipient_id: $json.recipient_id ?? undefined,\n\n  // ชื่อ Facebook เป็นฟิลด์หลักใหม่\n  facebook_name: $json.facebook_name ?? undefined,\n\n  message_id: $json.message_id ?? undefined,\n  speaker: 'page',\n  is_sent: true,\n\n  occurred_at: $json.occurred_at ?? $now,\n  sync_status: 'READY_TO_SAVE',\n\n  tracking_number: $json.tracking_number ?? undefined,\n  parcel_status_emoji: $json.parcel_status_emoji ?? undefined,\n  facebook_tracking_message: $json.facebook_tracking_message ?? undefined,\n  drakside_tracking_message: $json.drakside_tracking_message ?? undefined,\n\n  // ถ้ามีค่าใหม่ค่อยเขียน ถ้าไม่มีจะไม่แตะค่าฐานข้อมูลเดิม\n  facebook_tracking_status: $json.facebook_tracking_status ?? undefined,\n  facebook_tracking_sent_at: $json.facebook_tracking_sent_at ?? undefined,\n\n\n  order_number: $json.order_number ?? undefined,\n  order_number_display: $json.order_number_display ?? undefined,\n  cod_amount: $json.cod_amount ?? undefined,\n  phone: $json.phone ?? undefined,\n  shipping_carrier: $json.shipping_carrier ?? undefined,\n  address_display_packer: $json.address_display_packer ?? undefined,\n  manus_for_packer: $json.manus_for_packer ?? undefined,\n  dedupe_key:\n    String($json.message_id ?? '') +\n    ':' +\n    String($json.recipient_id ?? ''),\n\n  // ตัดช่องว่างท้ายชื่อออก\n  target_room: 'Pg_Chat⭐BINARY_xXx_STAR',\n\n  source_lane: '🌌BB_EXPRESS',\n\n  // ฟิลด์เดิมให้ไว้อันดับท้ายสุด\n  recipient_name: $json.recipient_name ?? undefined,\n  customer_name: $json.customer_name ?? undefined\n}) }}\n",
+        "jsonBody": "={{ JSON.stringify({\n  chat_link_key: String($json.chat_link_key ?? ''),\n  page_id: String($json.page_id ?? ''),\n\n  thread_id: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  threadId: String(\n    $json.thread_id ??\n    $json.threadId ??\n    String($json.chat_link_key ?? '').split('*t*')[1] ??\n    ''\n  ),\n\n  page_name: $json.page_name ?? undefined,\n  portal_key: $json.portal_key ?? undefined,\n\n  customer_id: $json.customer_id ?? $json.recipient_id ?? undefined,\n  recipient_id: $json.recipient_id ?? undefined,\n\n  // ชื่อ Facebook เป็นฟิลด์หลักใหม่\n  facebook_name: $json.facebook_name ?? undefined,\n\n  message_id: $json.message_id ?? undefined,\n  speaker: 'page',\n  is_sent: true,\n\n  occurred_at: $json.occurred_at ?? $now,\n  sync_status: 'READY_TO_SAVE',\n\n  tracking_number: $json.tracking_number ?? undefined,\n  parcel_status_emoji: $json.parcel_status_emoji ?? undefined,\n  facebook_tracking_message: $json.facebook_tracking_message ?? undefined,\n  drakside_tracking_message: $json.drakside_tracking_message ?? undefined,\n\n  // ถ้ามีค่าใหม่ค่อยเขียน ถ้าไม่มีจะไม่แตะค่าฐานข้อมูลเดิม\n  facebook_tracking_status: $json.facebook_tracking_status ?? undefined,\n  facebook_tracking_sent_at: $json.facebook_tracking_sent_at ?? undefined,\n\n\n  order_number: $json.order_number ?? undefined,\n  order_number_display: $json.order_number_display ?? undefined,\n  cod_amount: $json.cod_amount ?? undefined,\n  phone: $json.phone ?? undefined,\n  shipping_carrier: $json.shipping_carrier ?? undefined,\n  address_display_packer: $json.address_display_packer ?? undefined,\n  manus_for_packer: $json.manus_for_packer ?? undefined,\n  dedupe_key:\n    String($json.message_id ?? '') +\n    ':' +\n    String($json.recipient_id ?? ''),\n\n  // ตัดช่องว่างท้ายชื่อออก\n  target_room: 'Pg_Chat⭐BINARY_xXx_STAR',\n\n  source_lane: '🌌ST_EXPRESS',\n\n  // ฟิลด์เดิมให้ไว้อันดับท้ายสุด\n  recipient_name: $json.recipient_name ?? undefined,\n  customer_name: $json.customer_name ?? undefined\n}) }}\n",
         "options": {
           "timeout": 30000
         }
@@ -1023,7 +1023,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "RFBFxvVQtqpXFuL5",
-          "name": "🌌BB_CHAT"
+          "name": "🌌ST_CHAT"
         }
       }
     },

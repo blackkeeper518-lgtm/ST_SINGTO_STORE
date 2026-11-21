@@ -171,7 +171,7 @@ function isoDateKey(value: string | null): string {
 // Keep only known columns; upsert_key is the row key (the table has no id column).
 const HERMES_WEB_ORDER_COLUMNS = [
   "upsert_key",
-  "bb_express_send_route",
+  "ST_express_send_route",
   "currentThreadTotalBills",
   "duplicate_count_th",
   "balloonNotice",
@@ -657,8 +657,8 @@ export async function readCloseJobCases(limit = 10000): Promise<CloseJobCase[]> 
   const api = getSupabase("tracking");
   if (!api) fail({ message: "ยังไม่ได้เชื่อม Tracking & Messenger: ไปที่ /secret-gallery แล้วบันทึก URL กับ Anon/Publishable Key" });
   const [casesResult, notesResult] = await Promise.all([
-    api.from("vw_bb_close_job_cases").select("*").order("occurred_at", { ascending: false }).limit(Math.max(1, Math.min(limit, 10000))),
-    api.from("bb_delivery_case_notes").select("case_id,branch,carrier_employee,area"),
+    api.from("vw_ST_close_job_cases").select("*").order("occurred_at", { ascending: false }).limit(Math.max(1, Math.min(limit, 10000))),
+    api.from("ST_delivery_case_notes").select("case_id,branch,carrier_employee,area"),
   ]);
   if (casesResult.error) fail(casesResult.error);
   if (notesResult.error) fail(notesResult.error);
@@ -676,7 +676,7 @@ export async function readCloseJobCases(limit = 10000): Promise<CloseJobCase[]> 
 export async function saveCloseJobCaseFields(input: { caseId: string; branch: string; carrierEmployee: string; area: string }) {
   const api = getSupabase("tracking");
   if (!api) fail({ message: "ยังไม่ได้เชื่อม Tracking & Messenger: ไปที่ /secret-gallery แล้วบันทึก URL กับ Anon/Publishable Key" });
-  const { error } = await api.from("bb_delivery_case_notes").upsert({
+  const { error } = await api.from("ST_delivery_case_notes").upsert({
     case_id: input.caseId,
     branch: input.branch.trim(),
     carrier_employee: input.carrierEmployee.trim(),

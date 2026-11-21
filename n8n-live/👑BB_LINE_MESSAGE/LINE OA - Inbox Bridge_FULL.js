@@ -169,7 +169,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "RFBFxvVQtqpXFuL5",
-          "name": "🌌BB_CHAT"
+          "name": "🌌ST_CHAT"
         }
       }
     }

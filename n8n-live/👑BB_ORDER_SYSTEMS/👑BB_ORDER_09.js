@@ -345,7 +345,7 @@ for (const group of groups.values()) {
   for (const row of group) {
     const isNew = row.index === newRow.index;
     const isOld = hasPair && !isNew;
-    const incomingRoute = text(row.json.bb_express_send_route);
+    const incomingRoute = text(row.json.ST_express_send_route);
     const rowIncomplete = row.json.darksideBillDataComplete === false
       || row.json.bill_data_complete === false
       || row.json.source_gate_color === '⚫'
@@ -431,7 +431,7 @@ for (const group of groups.values()) {
         history_route_status: isOld ? 'ARCHIVE_ONLY' : '',
         history_route_key: isOld ? winnerKey : '',
         customer_change_route_hint: isOld ? 'HISTORY_ROUTING' : (isNew && changes.length ? 'CURRENT_BILL_SEND_CANDIDATE' : 'NO_CHANGE'),
-        bb_express_send_route: route,
+        ST_express_send_route: route,
         switch3_route: route,
         four2_route_reason: routeReason,
         four2_route_reason_label: routeReasonLabel,

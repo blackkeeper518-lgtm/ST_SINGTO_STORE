@@ -4,7 +4,7 @@ with
 select
   upsert_key,
   chat_link_key,
-  bb_express_send_route,
+  ST_express_send_route,
   "currentThreadTotalBills",
   duplicate_count_th,
   balloonnotice,
@@ -372,7 +372,7 @@ select
 from
   "🌀SINGULARITY_xXx_EXCHANGE" s
 where
-  btrim(COALESCE(bb_express_send_route, ''::text)) = '🟠'::text
+  btrim(COALESCE(ST_express_send_route, ''::text)) = '🟠'::text
   and (
     (
       lower(btrim(COALESCE(telegram_sent, ''::text))) = any (

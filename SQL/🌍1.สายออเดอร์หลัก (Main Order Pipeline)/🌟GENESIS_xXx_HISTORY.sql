@@ -4,7 +4,7 @@ with
 select
   upsert_key,
   chat_link_key,
-  bb_express_send_route,
+  ST_express_send_route,
   "currentThreadTotalBills",
   duplicate_count_th,
   "balloonNotice",
@@ -185,5 +185,5 @@ where
   )
   and not (
     btrim(COALESCE(source_table, ''::text)) = '🌀SINGULARITY_xXx_EXCHANGE'::text
-    and btrim(COALESCE(bb_express_send_route, ''::text)) = '🟠'::text
+    and btrim(COALESCE(ST_express_send_route, ''::text)) = '🟠'::text
   );

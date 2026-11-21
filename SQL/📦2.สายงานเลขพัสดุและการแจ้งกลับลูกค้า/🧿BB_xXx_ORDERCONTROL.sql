@@ -50,7 +50,7 @@ create table public."🧿ST_xXx_ORDERCONTROL" (
   latest_message text null,
   customer_time_val bigint null default 0,
   page_time_val bigint null default 0,
-  bb_express_send_route text null default '⚪'::text,
+  ST_express_send_route text null default '⚪'::text,
   is_safety_white boolean null default true,
   order_hour integer null default 0,
   send_facebook_route text null,

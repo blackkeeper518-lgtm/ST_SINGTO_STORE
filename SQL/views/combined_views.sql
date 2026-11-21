@@ -14,7 +14,7 @@ with
 select
   h.upsert_key,
   h.chat_link_key,
-  h.bb_express_send_route,
+  h.ST_express_send_route,
   h.currentthreadtotalbills as "currentThreadTotalBills",
   h.duplicate_count_th,
   h.balloonnotice as "balloonNotice",
@@ -203,7 +203,7 @@ union all
 select
   s.upsert_key,
   s.chat_link_key,
-  s.bb_express_send_route,
+  s.ST_express_send_route,
   s."currentThreadTotalBills",
   s.duplicate_count_th,
   s.balloonnotice as "balloonNotice",
@@ -395,7 +395,7 @@ with
 select
   upsert_key,
   chat_link_key,
-  bb_express_send_route,
+  ST_express_send_route,
   "currentThreadTotalBills",
   duplicate_count_th,
   "balloonNotice",
@@ -578,7 +578,7 @@ where
 select
   upsert_key,
   chat_link_key,
-  bb_express_send_route,
+  ST_express_send_route,
   "currentThreadTotalBills",
   duplicate_count_th,
   "balloonNotice",
@@ -706,7 +706,7 @@ with
 select
   upsert_key,
   chat_link_key,
-  bb_express_send_route,
+  ST_express_send_route,
   "currentThreadTotalBills",
   duplicate_count_th,
   "balloonNotice",
@@ -886,7 +886,7 @@ where
   )
   and not (
     btrim(COALESCE(source_table, ''::text)) = '🌀SINGULARITY_xXx_EXCHANGE'::text
-    and btrim(COALESCE(bb_express_send_route, ''::text)) = '🟠'::text
+    and btrim(COALESCE(ST_express_send_route, ''::text)) = '🟠'::text
   );
 
   create view public."🔸PARADOX_xXx_EXCHANGE"
@@ -895,7 +895,7 @@ with
 select
   upsert_key,
   chat_link_key,
-  bb_express_send_route,
+  ST_express_send_route,
   "currentThreadTotalBills",
   duplicate_count_th,
   balloonnotice,
@@ -1263,7 +1263,7 @@ select
 from
   "🌀SINGULARITY_xXx_EXCHANGE" s
 where
-  btrim(COALESCE(bb_express_send_route, ''::text)) = '🟠'::text
+  btrim(COALESCE(ST_express_send_route, ''::text)) = '🟠'::text
   and (
     (
       lower(btrim(COALESCE(telegram_sent, ''::text))) = any (

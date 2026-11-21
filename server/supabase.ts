@@ -261,7 +261,7 @@ export async function fetchParcelMappingQueue(input: { status: "all" | "sent"; l
   return [...active, ...sent].slice(0, input.limit);
 }
 export async function purgeOldParcels() {
-  const deleted = await supabasePost<number>("rpc/bb_purge_old_parcels_3day", {}, "parcel");
+  const deleted = await supabasePost<number>("rpc/ST_purge_old_parcels_3day", {}, "parcel");
   return { deleted: Number(deleted) || 0 };
 }
 function text(v: unknown) { return v == null ? null : String(v); }

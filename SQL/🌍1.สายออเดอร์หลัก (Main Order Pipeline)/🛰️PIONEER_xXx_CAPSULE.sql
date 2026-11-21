@@ -4,7 +4,7 @@ with
 select
   upsert_key,
   chat_link_key,
-  bb_express_send_route,
+  ST_express_send_route,
   "currentThreadTotalBills",
   duplicate_count_th,
   "balloonNotice",

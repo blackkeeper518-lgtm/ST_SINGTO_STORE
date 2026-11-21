@@ -42,7 +42,7 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
   const requestProductIndex = useCallback(() => {
     const target = frameRef.current?.contentWindow;
     if (!target || typeof window === "undefined") return;
-    target.postMessage({ type: "BB_ORDER_DECK_REQUEST_PRODUCT_INDEX" }, window.location.origin);
+    target.postMessage({ type: "ST_ORDER_DECK_REQUEST_PRODUCT_INDEX" }, window.location.origin);
   }, []);
 
   useEffect(() => {
@@ -60,13 +60,13 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
   useEffect(() => {
     const request = props.productImagesRequest;
     if (!frameReady || !request) return;
-    frameRef.current?.contentWindow?.postMessage({ type: "BB_ORDER_DECK_REQUEST_PRODUCT_IMAGES", product: request.product }, window.location.origin);
+    frameRef.current?.contentWindow?.postMessage({ type: "ST_ORDER_DECK_REQUEST_PRODUCT_IMAGES", product: request.product }, window.location.origin);
   }, [frameReady, props.productImagesRequest?.id, props.productImagesRequest?.product]);
 
   useEffect(() => {
     const receiveDeckMessage = (event: MessageEvent) => {
       if (event.source !== frameRef.current?.contentWindow || event.origin !== window.location.origin) return;
-      if (event.data?.type === "BB_ORDER_DECK_PRODUCT_INDEX") {
+      if (event.data?.type === "ST_ORDER_DECK_PRODUCT_INDEX") {
         const products = Array.isArray(event.data.products)
           ? event.data.products.filter((item: unknown): item is { product: string; terms: unknown[] } => Boolean(item && typeof item === "object" && typeof (item as { product?: unknown }).product === "string" && Array.isArray((item as { terms?: unknown }).terms)))
             .map((item: { product: string; terms: unknown[] }) => ({ product: item.product.slice(0, 120), terms: item.terms.filter((term): term is string => typeof term === "string").slice(0, 32).map(term => term.slice(0, 160)) }))
@@ -75,12 +75,12 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
         currentProps.current.onProductIndexReady?.(products);
         return;
       }
-      if (event.data?.type === "BB_ORDER_DECK_ORDER_SUMMARY") {
+      if (event.data?.type === "ST_ORDER_DECK_ORDER_SUMMARY") {
         const summary = typeof event.data.summary === "string" ? event.data.summary.trim().slice(0, 20_000) : "";
         if (summary) currentProps.current.onSummaryReady?.(summary);
         return;
       }
-      if (event.data?.type !== "BB_ORDER_DECK_PRODUCT_IMAGES") return;
+      if (event.data?.type !== "ST_ORDER_DECK_PRODUCT_IMAGES") return;
       const urls = Array.isArray(event.data.imageUrls)
         ? event.data.imageUrls.filter((url: unknown): url is string => typeof url === "string" && (/^https?:\/\//i.test(url) || (url.length <= 8_100_000 && /^data:image\/(?:png|jpeg|gif|webp);base64,/i.test(url)))).slice(0, 4)
         : [];

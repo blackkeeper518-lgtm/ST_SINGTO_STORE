@@ -15,7 +15,7 @@
                 "conditions": [
                   {
                     "id": "8b5b24f3-aebe-4090-a483-3d801431e4a9",
-                    "leftValue": "={{ $json.bb_express_send_route}}",
+                    "leftValue": "={{ $json.ST_express_send_route}}",
                     "rightValue": "🟠",
                     "operator": {
                       "type": "string",
@@ -40,7 +40,7 @@
                 "conditions": [
                   {
                     "id": "9b45fba5-fdd0-4452-956e-08ca67e6b059",
-                    "leftValue": "={{ $json.bb_express_send_route}}",
+                    "leftValue": "={{ $json.ST_express_send_route}}",
                     "rightValue": "🟨",
                     "operator": {
                       "type": "string",
@@ -65,7 +65,7 @@
                 "conditions": [
                   {
                     "id": "2fbee864-78ba-44ea-a353-0635820e2186",
-                    "leftValue": "={{ $json.bb_express_send_route}}",
+                    "leftValue": "={{ $json.ST_express_send_route}}",
                     "rightValue": "🟦",
                     "operator": {
                       "type": "string",
@@ -90,7 +90,7 @@
                 "conditions": [
                   {
                     "id": "db68cf51-c9c1-46c7-8188-76170bffde9f",
-                    "leftValue": "={{ $json.bb_express_send_route}}",
+                    "leftValue": "={{ $json.ST_express_send_route}}",
                     "rightValue": "⚪",
                     "operator": {
                       "type": "string",
@@ -114,7 +114,7 @@
                 "conditions": [
                   {
                     "id": "c9f4aab8-edca-44e9-be75-54a22c0dbae5",
-                    "leftValue": "={{ $json.bb_express_send_route}}",
+                    "leftValue": "={{ $json.ST_express_send_route}}",
                     "rightValue": "⬛",
                     "operator": {
                       "type": "string",
