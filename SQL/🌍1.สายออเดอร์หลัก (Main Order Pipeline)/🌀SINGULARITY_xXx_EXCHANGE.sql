@@ -372,9 +372,11 @@ create table public."🌀SINGULARITY_xXx_EXCHANGE" (
   is_backlog text null,
   telegram_message_web text null,
   telegram_change_alert_web text null,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
   chat_link_key text null,
   source_lane text null,
-  constraint "🌀SINGULARITY_xXx_EXCHANGE_NOTE_pkey" primary key (upsert_key)
+  constraint "🌀SINGULARITY_xXx_EXCHANGE_pkey" primary key (upsert_key)
 ) TABLESPACE pg_default;
 
 create index IF not exists singularity_order_time_display_idx on public."🌀SINGULARITY_xXx_EXCHANGE" using btree (order_time_display) TABLESPACE pg_default;

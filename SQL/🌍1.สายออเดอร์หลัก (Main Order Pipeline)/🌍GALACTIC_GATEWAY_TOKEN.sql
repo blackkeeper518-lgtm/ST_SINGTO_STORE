@@ -9,5 +9,5 @@ create table public."🌍GALACTIC_GATEWAY_TOKEN" (
   page_label text null,
   "assigned_Hashtag" text null,
   portal_key text null,
-  constraint page_tokens_vault_pkey primary key (page_id)
+  constraint galactic_gateway_token_pkey primary key (page_id)
 ) TABLESPACE pg_default;

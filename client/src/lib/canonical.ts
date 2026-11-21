@@ -678,7 +678,7 @@ function dedupeChatSourceRows(sourceRows: any[]) {
   const output: any[] = [];
   const indexByKey = new Map<string, number>();
   const score = (row: any) =>
-    ([row?.message_text, row?.customer_message_text, row?.page_message_text, row?.text].some(value => asText(value).trim()) ? 2 : 0)
+    ([row?.customer_message_text, row?.page_message_text].some(value => asText(value).trim()) ? 2 : 0)
     + (hasChatAttachment(row) ? 1 : 0)
     + (asText(row?.occurred_at ?? row?.time).trim() ? 1 : 0);
 
@@ -709,15 +709,8 @@ function normalizeChatReadRows(sourceRows: any[]) {
     if (!hasRoomKey) return false;
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
     // แถว delivery/status อย่างเดียวไม่ใช่ข้อความแชท และห้ามเปิดเป็นห้องเปล่า
-    return Boolean(
-      asText(row?.message_text).trim()
-      || asText(row?.customer_message_text).trim()
-      || asText(row?.page_message_text).trim()
-      || (isPage && asText(row?.facebook_tracking_message).trim())
-      || asText(row?.customer_latest_message).trim()
-      || asText(row?.page_latest_message).trim()
-      || hasChatAttachment(row),
-    );
+    const sourceMessageText = isPage ? row?.page_message_text : row?.customer_message_text;
+    return Boolean(asText(sourceMessageText).trim() || (isPage && asText(row?.facebook_tracking_message).trim()) || hasChatAttachment(row));
   }).flatMap(row => {
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
     // สองโต๊ะต้นทางเป็น source of truth: Cust = ลูกค้า, Pg = เพจ
@@ -728,15 +721,8 @@ function normalizeChatReadRows(sourceRows: any[]) {
     const speaker = isSystem ? "system" : isCustomer ? "customer" : isPage ? "page"
       : rawSpeaker && /^(page|เพจ|admin|แอดมิน|outbound|เจ้าหน้าที่)$/i.test(rawSpeaker) ? "page" : "customer";
     const isPageSpeaker = speaker === "page";
-    const sideMessageText = asText(isPageSpeaker ? row.page_message_text : row.customer_message_text).trim();
-    const hasPerMessageText = Boolean(sideMessageText || asText(row.message_text).trim() || asText(row.text).trim() || asText(row.message).trim());
-    // customer_latest_message คือข้อความแรก/ล่าสุดจากลูกค้าในแถวสรุปของ n8n
-    // บางแถวไม่มี message_text แต่มีฟิลด์นี้ จึงห้ามปล่อยให้กลายเป็น bubble ว่าง
-    const messageText = sideMessageText
-      || asText(row.message_text).trim()
-      || (isPageSpeaker ? asText(row.page_latest_message).trim() : asText(row.customer_latest_message).trim())
-      || asText(row.text).trim()
-      || asText(row.message).trim();
+    const messageText = asText(isPageSpeaker ? row.page_message_text : row.customer_message_text).trim()
+      || (isPageSpeaker ? asText(row.facebook_tracking_message).trim() : "");
     const threadId = String(row.thread_id ?? row.threadId ?? "").trim();
     const base = {
       ...row,
@@ -745,23 +731,13 @@ function normalizeChatReadRows(sourceRows: any[]) {
       _side: isPageSpeaker ? "right" : "left",
       // ชื่อป้ายห้องมาจาก Facebook API เท่านั้น; customer_name เป็นชื่อในบิล ห้ามนำมาแทน
       _name: isPageSpeaker ? row.page_name : row.facebook_name,
-      // message_text เป็นหลัก; ข้อความ tracking ขาออกใช้ facebook_tracking_message เมื่อ message_text ว่าง
+      // ใช้ field ข้อความตามต้นทางโดยตรง; tracking ขาออกใช้ facebook_tracking_message เมื่อ page_message_text ว่าง
       _text: messageText || (isPageSpeaker ? asText(row.facebook_tracking_message).trim() : ""),
       _thread: threadId,
       _occurred: row.occurred_at || row.time || (isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th) || row.time_th,
       time_th: row.time_th || row.message_time_display || (isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th),
       _hasAttachment: hasChatAttachment(row),
     };
-    // แถวสรุปจาก n8n อาจมี customer_latest และ page_latest อยู่พร้อมกัน
-    // เพราะ 3 Flow เขียนห่างกันเป็นรอบ ๆ จึงต้องแตกเป็น bubble แยกฝั่งเอง
-    if (!hasPerMessageText && (asText(row.customer_latest_message).trim() || asText(row.page_latest_message).trim())) {
-      const splitRows = [];
-      const customerText = asText(row.customer_latest_message).trim();
-      const pageText = asText(row.page_latest_message).trim();
-      if (customerText) splitRows.push({ ...base, _bubble_id: `${row.id ?? row.message_id ?? row.dedupe_key ?? threadId}:customer_latest`, _speaker: "customer", _side: "left", _name: row.facebook_name, _text: customerText, _occurred: row.customer_message_time_th || row.occurred_at || row.time, time_th: row.customer_message_time_th || row.time_th });
-      if (pageText) splitRows.push({ ...base, _bubble_id: `${row.id ?? row.message_id ?? row.dedupe_key ?? threadId}:page_latest`, _speaker: "page", _side: "right", _name: row.page_name, _text: pageText, _occurred: row.page_message_time_th || row.occurred_at || row.time, time_th: row.page_message_time_th || row.time_th });
-      return splitRows;
-    }
     return [base];
   }).sort((a, b) => {
     const timeDifference = (chatDateMs(a._occurred) ?? 0) - (chatDateMs(b._occurred) ?? 0);

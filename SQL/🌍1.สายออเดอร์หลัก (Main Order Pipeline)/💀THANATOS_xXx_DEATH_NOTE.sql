@@ -372,8 +372,13 @@ create table public."💀THANATOS_xXx_DEATH_NOTE" (
   is_backlog text null,
   telegram_message_web text null,
   telegram_change_alert_web text null,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
   chat_link_key text null,
-  "🗝️HERMES_ARCHIVE" text null,
   source_lane text null,
-  constraint "💀THANATOS_xXx_DEATHz_NOTE_pkey" primary key (upsert_key)
+  constraint "💀THANATOS_xXx_DEATH_NOTE_pkey" primary key (upsert_key)
 ) TABLESPACE pg_default;
+
+create index IF not exists thanatos_order_time_display_idx on public."💀THANATOS_xXx_DEATH_NOTE" using btree (order_time_display) TABLESPACE pg_default;
+
+create index IF not exists thanatos_telegram_status_idx on public."💀THANATOS_xXx_DEATH_NOTE" using btree (telegram_status, delivery_status, delivery_state) TABLESPACE pg_default;
