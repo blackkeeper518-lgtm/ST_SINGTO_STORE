@@ -2212,3 +2212,55 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .global-theme-runtime .order-history-runtime-room .text-white,.global-theme-runtime .telegram-history-runtime-room .text-white { color: var(--global-text) !important; }
 .global-theme-runtime .order-history-runtime-room .text-cyan-100,.global-theme-runtime .order-history-runtime-room .text-violet-100,.global-theme-runtime .order-history-runtime-room .text-fuchsia-100,.global-theme-runtime .telegram-history-runtime-room .text-emerald-100,.global-theme-runtime .telegram-history-runtime-room .text-cyan-100,.global-theme-runtime .telegram-history-runtime-room .text-violet-100 { color: color-mix(in srgb, var(--global-accent) 72%, var(--global-text)) !important; }
 .global-theme-runtime .order-history-runtime-room button,.global-theme-runtime .telegram-history-runtime-room button { border-color: color-mix(in srgb, var(--global-accent) 42%, transparent) !important; }
+
+
+/* ST Mapping room: dimensional theme surface with quiet, scalable borders. */
+.global-theme-runtime .parcel-mapping-runtime-room {
+  position: relative;
+  isolation: isolate;
+  background-image:
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--global-accent) 12%, transparent), transparent 28%),
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--global-primary) 14%, transparent), transparent 32%),
+    linear-gradient(135deg, color-mix(in srgb, var(--global-bg) 92%, #080b20), color-mix(in srgb, var(--global-surface) 78%, #0b1028)) !important;
+}
+.global-theme-runtime .parcel-mapping-runtime-room::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .22;
+  background-image: linear-gradient(115deg, transparent 0 38%, color-mix(in srgb, var(--global-accent) 16%, transparent) 38.2% 38.35%, transparent 38.5% 100%);
+  mask-image: linear-gradient(to bottom, #000, transparent 78%);
+}
+.global-theme-runtime .parcel-mapping-runtime-room .blackbox-hero {
+  border-color: color-mix(in srgb, var(--global-primary) 46%, transparent) !important;
+  box-shadow: 0 14px 38px color-mix(in srgb, var(--global-bg) 66%, transparent), inset 0 1px 0 color-mix(in srgb, var(--global-accent) 18%, transparent) !important;
+}
+.global-theme-runtime .parcel-mapping-runtime-room .bb-clock-panel,
+.global-theme-runtime .parcel-mapping-runtime-room .signal-ticker {
+  border-color: color-mix(in srgb, var(--global-accent) 30%, transparent) !important;
+  box-shadow: 0 5px 18px color-mix(in srgb, var(--global-bg) 50%, transparent) !important;
+}
+.global-theme-runtime .parcel-mapping-runtime-room button.rounded-2xl.border {
+  border-color: color-mix(in srgb, var(--global-primary) 30%, transparent) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent) !important;
+}
+.global-theme-runtime .parcel-mapping-runtime-room button.rounded-2xl.border:hover {
+  border-color: color-mix(in srgb, var(--global-accent) 58%, transparent) !important;
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--global-primary) 12%, transparent) !important;
+}
+.global-theme-runtime .parcel-mapping-runtime-room button.rounded-2xl.border.ring-2 {
+  border-color: color-mix(in srgb, var(--global-accent) 62%, transparent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--global-accent) 28%, transparent), 0 7px 20px color-mix(in srgb, var(--global-primary) 14%, transparent) !important;
+}
+.global-theme-runtime .parcel-mapping-runtime-room .parcel-status-chip {
+  box-shadow: none !important;
+}
+.global-theme-runtime .parcel-mapping-runtime-room .cosmic-corner {
+  opacity: .42;
+}
+@media (max-width: 640px) {
+  .global-theme-runtime .parcel-mapping-runtime-room { padding-bottom: 1.25rem; }
+  .global-theme-runtime .parcel-mapping-runtime-room .blackbox-hero { border-radius: 1.15rem; }
+}
