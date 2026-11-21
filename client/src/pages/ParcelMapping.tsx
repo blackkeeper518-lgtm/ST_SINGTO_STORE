@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getActiveCamp, readParcelMappingQueue } from "@/lib/canonical";
+import { trpc } from "@/lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import {
   Check,
@@ -171,11 +172,34 @@ export default function ParcelMapping() {
   const [copied, setCopied] = useState("");
   const [sendGateOpen, setSendGateOpen] = useState(false);
   const activeCamp = getActiveCamp();
-  const queueQuery = useQuery({
-    queryKey: ["parcel-mapping-queue", activeCamp],
+  // Server is the primary reader: it keeps the service-role key off the browser.
+  // The browser Supabase connection remains a compatibility fallback for deployments
+  // where the server secrets/auth session are not ready yet.
+  const serverQueueQuery = trpc.parcels.mappingQueue.useQuery(
+    { status: "all", limit: 300 },
+    { retry: false, staleTime: 15_000 },
+  );
+  const browserQueueQuery = useQuery({
+    queryKey: ["parcel-mapping-queue-browser-fallback", activeCamp],
     queryFn: () => readParcelMappingQueue("all", 300),
+    enabled: serverQueueQuery.isError,
+    retry: false,
     staleTime: 15_000,
   });
+  const queueData = serverQueueQuery.data ?? browserQueueQuery.data;
+  const queueQuery = {
+    data: queueData,
+    dataUpdatedAt: serverQueueQuery.dataUpdatedAt || browserQueueQuery.dataUpdatedAt,
+    error: browserQueueQuery.error ?? serverQueueQuery.error,
+    isError: !queueData && Boolean(browserQueueQuery.error ?? serverQueueQuery.error),
+    isFetching: serverQueueQuery.isFetching || browserQueueQuery.isFetching,
+    isLoading: serverQueueQuery.isLoading || (serverQueueQuery.isError && browserQueueQuery.isLoading),
+    refetch: async () => {
+      const serverResult = await serverQueueQuery.refetch();
+      if (serverResult.isError) await browserQueueQuery.refetch();
+      return serverResult;
+    },
+  };
   const rows = useMemo(
     () => (queueQuery.data ?? []) as ParcelMappingRow[],
     [queueQuery.data]
