@@ -25,7 +25,7 @@ const menuItems = [
   { icon: Send, label: "PIONEER · คิวพัก / ดักสองชั้น", path: "/telegram-delivery" },
   { icon: Bell, label: "ประวัติเปลี่ยนของ · PARADOX", path: "/alert-room" },
   { icon: Skull, label: "BLACKBOX · DEATH NOTE", path: "/blackbox" },
-  { icon: Archive, label: "ประวัติปิดงาน · ยกเลิก/ไม่รับ", path: "/close-job-history" },
+  { icon: Archive, label: "🌓 VAGABOND · ไล่เคสจากแชท", path: "/vagabond" },
   { icon: Boxes, label: "คลังสินค้าจริง / สต๊อกกลาง", path: "/stock-room" },
   { icon: WandSparkles, label: "PRIVATE VAULT · ภาพ / สคริปต์", path: "/script-atelier" },
   { icon: CalendarDays, label: "สรุปออเดอร์รายวัน · Flash", path: "/daily-chat-summary" },

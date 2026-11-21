@@ -678,7 +678,7 @@ function dedupeChatSourceRows(sourceRows: any[]) {
   const output: any[] = [];
   const indexByKey = new Map<string, number>();
   const score = (row: any) =>
-    ([row?.message_text, row?.customer_message_text, row?.page_message_text, row?.text].some(value => asText(value).trim()) ? 2 : 0)
+    ([row?.customer_message_text, row?.page_message_text].some(value => asText(value).trim()) ? 2 : 0)
     + (hasChatAttachment(row) ? 1 : 0)
     + (asText(row?.occurred_at ?? row?.time).trim() ? 1 : 0);
 
@@ -709,15 +709,8 @@ function normalizeChatReadRows(sourceRows: any[]) {
     if (!hasRoomKey) return false;
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
     // แถว delivery/status อย่างเดียวไม่ใช่ข้อความแชท และห้ามเปิดเป็นห้องเปล่า
-    return Boolean(
-      asText(row?.message_text).trim()
-      || asText(row?.customer_message_text).trim()
-      || asText(row?.page_message_text).trim()
-      || (isPage && asText(row?.facebook_tracking_message).trim())
-      || asText(row?.customer_latest_message).trim()
-      || asText(row?.page_latest_message).trim()
-      || hasChatAttachment(row),
-    );
+    const sourceMessageText = isPage ? row?.page_message_text : row?.customer_message_text;
+    return Boolean(asText(sourceMessageText).trim() || (isPage && asText(row?.facebook_tracking_message).trim()) || hasChatAttachment(row));
   }).flatMap(row => {
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
     // สองโต๊ะต้นทางเป็น source of truth: Cust = ลูกค้า, Pg = เพจ
@@ -728,15 +721,8 @@ function normalizeChatReadRows(sourceRows: any[]) {
     const speaker = isSystem ? "system" : isCustomer ? "customer" : isPage ? "page"
       : rawSpeaker && /^(page|เพจ|admin|แอดมิน|outbound|เจ้าหน้าที่)$/i.test(rawSpeaker) ? "page" : "customer";
     const isPageSpeaker = speaker === "page";
-    const sideMessageText = asText(isPageSpeaker ? row.page_message_text : row.customer_message_text).trim();
-    const hasPerMessageText = Boolean(sideMessageText || asText(row.message_text).trim() || asText(row.text).trim() || asText(row.message).trim());
-    // customer_latest_message คือข้อความแรก/ล่าสุดจากลูกค้าในแถวสรุปของ n8n
-    // บางแถวไม่มี message_text แต่มีฟิลด์นี้ จึงห้ามปล่อยให้กลายเป็น bubble ว่าง
-    const messageText = sideMessageText
-      || asText(row.message_text).trim()
-      || (isPageSpeaker ? asText(row.page_latest_message).trim() : asText(row.customer_latest_message).trim())
-      || asText(row.text).trim()
-      || asText(row.message).trim();
+    const messageText = asText(isPageSpeaker ? row.page_message_text : row.customer_message_text).trim()
+      || (isPageSpeaker ? asText(row.facebook_tracking_message).trim() : "");
     const threadId = String(row.thread_id ?? row.threadId ?? "").trim();
     const base = {
       ...row,
@@ -745,23 +731,13 @@ function normalizeChatReadRows(sourceRows: any[]) {
       _side: isPageSpeaker ? "right" : "left",
       // ชื่อป้ายห้องมาจาก Facebook API เท่านั้น; customer_name เป็นชื่อในบิล ห้ามนำมาแทน
       _name: isPageSpeaker ? row.page_name : row.facebook_name,
-      // message_text เป็นหลัก; ข้อความ tracking ขาออกใช้ facebook_tracking_message เมื่อ message_text ว่าง
+      // ใช้ field ข้อความตามต้นทางโดยตรง; tracking ขาออกใช้ facebook_tracking_message เมื่อ page_message_text ว่าง
       _text: messageText || (isPageSpeaker ? asText(row.facebook_tracking_message).trim() : ""),
       _thread: threadId,
       _occurred: row.occurred_at || row.time || (isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th) || row.time_th,
       time_th: row.time_th || row.message_time_display || (isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th),
       _hasAttachment: hasChatAttachment(row),
     };
-    // แถวสรุปจาก n8n อาจมี customer_latest และ page_latest อยู่พร้อมกัน
-    // เพราะ 3 Flow เขียนห่างกันเป็นรอบ ๆ จึงต้องแตกเป็น bubble แยกฝั่งเอง
-    if (!hasPerMessageText && (asText(row.customer_latest_message).trim() || asText(row.page_latest_message).trim())) {
-      const splitRows = [];
-      const customerText = asText(row.customer_latest_message).trim();
-      const pageText = asText(row.page_latest_message).trim();
-      if (customerText) splitRows.push({ ...base, _bubble_id: `${row.id ?? row.message_id ?? row.dedupe_key ?? threadId}:customer_latest`, _speaker: "customer", _side: "left", _name: row.facebook_name, _text: customerText, _occurred: row.customer_message_time_th || row.occurred_at || row.time, time_th: row.customer_message_time_th || row.time_th });
-      if (pageText) splitRows.push({ ...base, _bubble_id: `${row.id ?? row.message_id ?? row.dedupe_key ?? threadId}:page_latest`, _speaker: "page", _side: "right", _name: row.page_name, _text: pageText, _occurred: row.page_message_time_th || row.occurred_at || row.time, time_th: row.page_message_time_th || row.time_th });
-      return splitRows;
-    }
     return [base];
   }).sort((a, b) => {
     const timeDifference = (chatDateMs(a._occurred) ?? 0) - (chatDateMs(b._occurred) ?? 0);
@@ -937,10 +913,11 @@ export function mapChatRowsToMessages(sourceRows: any[]) {
     id: row._bubble_id ?? row.id ?? row.message_id ?? row.dedupe_key ?? `${row._thread}:${row._occurred}:${row._speaker}:${row._text}`,
     text: row._text,
     message_text: row._text,
+    customer_message_text: row.customer_message_text,
+    page_message_text: row.page_message_text,
     direction: row._speaker === "page" ? "outbound" : "inbound",
     senderType: row._speaker,
     source_lane: row.source_lane,
-    customer_message_text: row.customer_message_text,
     senderName: row._name,
     side: row._side,
     occurredAt: row._occurred,
@@ -969,41 +946,38 @@ export function reconcileOptimisticMessages(optimistic: any[], persisted: any[])
   });
   return remaining.length === optimistic.length ? optimistic : remaining;
 }
-export type CloseJobCase = { id: string; page_id: string; page_name: string; conversation_key: string; customer_id: string; customer_name: string; speaker_type: string; occurred_at: string; message_text: string; case_type: string; area: string; branch: string; carrier_employee: string; tracking_number: string; order_number: string };
+export type CloseJobCase = { id: string; page_id: string; page_name: string; conversation_key: string; customer_id: string; customer_name: string; speaker_type: string; occurred_at: string; customer_message_text: string; page_message_text: string; message_text: string; facebook_tracking_message: string; drakside_tracking_message: string; case_type: string; area: string; branch: string; carrier_employee: string; tracking_number: string; order_number: string; order_number_display: string; upsert_key: string; chat_link_key: string };
 export async function readCloseJobCases(limit = 10000): Promise<CloseJobCase[]> {
   const api = getSupabase();
   if (!api) return [];
-  const { data, error } = await api.from("Cust_Chat⭐BINARY_xXx_STAR")
-    .select("id,page_id,page_name,conversation_id,thread_id,customer_id,customer_name,message_id,speaker,is_sent,time,created_at,occurred_at,message_text,customer_message_text,tracking_number,order_number,order_number_display,order_time_display,phone,facebook_name,shipping_carrier")
+  const { data, error } = await api.from("🌓VAGABOND_xXx_DISMISS")
+    .select("*")
     .order("occurred_at", { ascending: false })
     .limit(Math.max(1, Math.min(limit, 10000)));
   if (error) fail(error);
-  const classify = (value: unknown) => {
-    const message = String(value ?? "").replace(/\s+/gu, "");
-    if (message.includes("ปิดงาน")) return "ปิดงาน";
-    if (message.includes("ยกเลิก") || message.includes("ไม่เอาแล้ว")) return "ยกเลิก / ไม่เอาแล้ว";
-    if (/สั่ง.{0,16}แล้วไม่รับ/u.test(message)) return "สั่งแล้วไม่รับ";
-    return "";
-  };
-  return (data ?? []).filter((row: any) => {
-    const speaker = String(row.speaker ?? "").toLowerCase();
-    return speaker !== "page" && speaker !== "admin" && speaker !== "business" && classify(row.customer_message_text ?? row.message_text);
-  }).map((row: any) => ({
+  return (data ?? []).map((row: any) => ({
     id: String(row.id ?? row.message_id ?? row.order_number ?? ""),
     page_id: String(row.page_id ?? ""),
     page_name: String(row.page_name ?? ""),
-    conversation_key: String(row.conversation_id ?? row.thread_id ?? ""),
+    conversation_key: String(row.conversation_key ?? row.thread_id ?? ""),
     customer_id: String(row.customer_id ?? ""),
     customer_name: String(row.customer_name ?? row.facebook_name ?? ""),
-    speaker_type: "customer",
-    occurred_at: String(row.occurred_at ?? row.time ?? row.created_at ?? ""),
-    message_text: String(row.customer_message_text ?? row.message_text ?? ""),
-    case_type: classify(row.customer_message_text ?? row.message_text),
-    area: "",
-    branch: "",
-    carrier_employee: "",
+    speaker_type: String(row.speaker_type ?? "customer"),
+    occurred_at: String(row.occurred_at ?? row.created_at ?? ""),
+    customer_message_text: String(row.customer_message_text ?? ""),
+    page_message_text: String(row.page_message_text ?? ""),
+    message_text: String(row.message_text ?? row.customer_message_text ?? row.page_message_text ?? ""),
+    facebook_tracking_message: String(row.facebook_tracking_message ?? ""),
+    drakside_tracking_message: String(row.drakside_tracking_message ?? ""),
+    case_type: String(row.case_type ?? ""),
+    area: String(row.area ?? ""),
+    branch: String(row.branch ?? ""),
+    carrier_employee: String(row.carrier_employee ?? ""),
     tracking_number: String(row.tracking_number ?? ""),
-    order_number: String(row.order_number_display ?? row.order_number ?? ""),
+    order_number: String(row.order_number ?? ""),
+    order_number_display: String(row.order_number_display ?? ""),
+    upsert_key: String(row.upsert_key ?? ""),
+    chat_link_key: String(row.chat_link_key ?? ""),
   }));
 }
 export async function saveCloseJobCaseFields(input: { caseId: string; branch: string; carrierEmployee: string; area: string }) {
