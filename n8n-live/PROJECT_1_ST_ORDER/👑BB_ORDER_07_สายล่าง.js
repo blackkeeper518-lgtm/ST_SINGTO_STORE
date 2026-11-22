@@ -460,6 +460,8 @@ for (const [key, group] of groups.entries()) {
     const isSelected = entry.index === selected.index;
     const isPrevious = previous && entry.index === previous.index;
     const base = {
+      customer_message_text: json.customer_message_text ?? json.customer_latest_message ?? null,
+      page_message_text: json.page_message_text ?? json.page_latest_message ?? null,
       pre_save_change_status: isSelected ? 'TRUE_PAIR_SELECTED' : 'TRUE_PAIR_HISTORY',
       pre_save_change_reason: isSelected
         ? (changeCount ? `คู่จริง; winner เทียบกับใบก่อนหน้า พบเปลี่ยน: ${changeFields.join(', ')}` : 'คู่จริง; winner ถูกเลือกแล้ว ไม่พบความต่างในฟิลด์ที่เปรียบเทียบ')

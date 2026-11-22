@@ -736,6 +736,8 @@ for (const [key, group] of groups.entries()) {
     const isOld = !isSelected && group.length > 1;
     const changeFields = changes.map(x => x.field.toUpperCase());
     const base = {
+      customer_message_text: entry.json.customer_message_text ?? entry.json.customer_latest_message ?? null,
+      page_message_text: entry.json.page_message_text ?? entry.json.page_latest_message ?? null,
       customer_change_audit_version: 'CHANGE_AUDIT_FOOTER_V1',
       customer_change_audit_group_key: first(selected.json, ['pre_save_change_group_key']) || key,
       customer_change_audit_group_source: first(selected.json, ['pre_save_change_group_key']) ? 'PRE_SAVE_CHANGE_AUDIT2' : 'FOOTER_FALLBACK_GROUPING',

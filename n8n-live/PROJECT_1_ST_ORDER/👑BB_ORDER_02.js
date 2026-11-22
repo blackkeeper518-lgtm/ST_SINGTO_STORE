@@ -901,4 +901,11 @@ for (const item of result) {
   row.node2_route_signal_only_for_ghost_red = true;
 }
 
+// Keep the canonical Chat fields alive through this routing-only four.
+for (const item of result) {
+  const row = item.json || {};
+  row.customer_message_text = row.customer_message_text ?? row.customer_latest_message ?? null;
+  row.page_message_text = row.page_message_text ?? row.page_latest_message ?? null;
+}
+
 return result;

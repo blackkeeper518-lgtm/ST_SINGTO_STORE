@@ -161,5 +161,9 @@ return items.map(item => {
     row.target_room = "WHITE_ROOM";
   }
 
+  // Tracking routing must not drop the canonical customer/page message fields.
+  row.customer_message_text = row.customer_message_text ?? row.customer_latest_message ?? null;
+  row.page_message_text = row.page_message_text ?? row.page_latest_message ?? null;
+
   return item;
 });

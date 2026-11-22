@@ -89,6 +89,12 @@
               "type": "string"
             },
             {
+              "id": "signal-page-message-text",
+              "name": "page_message_text",
+              "value": "={{ $('⛓️THE DEAD INTERSECTION').item.json.facebook_tracking_message || $('⛓️THE DEAD INTERSECTION').item.json.drakside_tracking_message || null }}",
+              "type": "string"
+            },
+            {
               "id": "edf9386a-b60f-4a4e-ac3d-b1b999464f16",
               "name": "facebook_tracking_message",
               "value": "={{ $('⛓️THE DEAD INTERSECTION').item.json.facebook_tracking_message }}",

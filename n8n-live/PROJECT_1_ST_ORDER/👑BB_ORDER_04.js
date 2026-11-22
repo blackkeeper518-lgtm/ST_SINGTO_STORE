@@ -564,6 +564,10 @@ for (const item of items) {
   output.push({
     json: {
       ...row,
+      // Preserve the canonical Chat contract through the address/order lane.
+      // Do not use page/admin text as a customer trigger.
+      customer_message_text: asText(row.customer_message_text || row.customer_latest_message) || null,
+      page_message_text: asText(row.page_message_text || row.page_latest_message) || null,
 // ---------------- CASCADE RESULT ----------------
 finalAddress: removeThaiDistrictProvincePrefixes(selected.clean) || removeThaiDistrictProvincePrefixes(row.finalAddress) || '',
 address_display_packer: removeThaiDistrictProvincePrefixes(selected.clean) || removeThaiDistrictProvincePrefixes(row.address_display_packer) || '',

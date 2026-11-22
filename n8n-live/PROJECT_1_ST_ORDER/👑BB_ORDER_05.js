@@ -439,6 +439,8 @@ return [...grouped.values()].map(row => {
   return { 
     json: { 
       ...row, 
+      customer_message_text: row.customer_message_text ?? row.customer_latest_message ?? null,
+      page_message_text: row.page_message_text ?? row.page_latest_message ?? null,
       order_captured: true, 
       order_capture_status: 'CAPTURED_KEEP', 
       product_quantity_calculation_disabled: true, 

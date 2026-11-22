@@ -51,6 +51,7 @@ function Router() {
     <Route path="/parcel-mapping"><Shell><ParcelMapping /></Shell></Route>
     <Route path="/chats"><Shell><ChatHub /></Shell></Route>
     <Route path="/line-chat"><Shell><LineChat /></Shell></Route>
+    <Route path="/vagabond"><Shell><CloseJobHistory /></Shell></Route>
     <Route path="/close-job-history"><Shell><CloseJobHistory /></Shell></Route>
     <Route path="/telegram-delivery"><Shell><TelegramDeliveryRoom /></Shell></Route>
     <Route path="/andromeda"><Shell><TelegramDeliveryRoom /></Shell></Route>

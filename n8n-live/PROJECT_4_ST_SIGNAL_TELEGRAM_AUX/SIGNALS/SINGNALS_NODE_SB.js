@@ -69,12 +69,20 @@
               "fieldValue": "={{ $json.pager_message_time_th }}"
             },
             {
+              "fieldId": "page_message_text",
+              "fieldValue": "={{ $json.facebook_tracking_message || $json.drakside_tracking_message || $json.page_message_text || $json.page_latest_message }}"
+            },
+            {
               "fieldId": "page_latest_message",
               "fieldValue": "={{ $json.page_latest_message }}"
             },
             {
               "fieldId": "customer_message_time_th",
               "fieldValue": "={{ $json.customer_message_time_th }}"
+            },
+            {
+              "fieldId": "customer_message_text",
+              "fieldValue": "={{ $json.customer_message_text || $json.customer_latest_message }}"
             },
             {
               "fieldId": "customer_latest_message",

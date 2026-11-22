@@ -1469,10 +1469,15 @@ output.push({
 
     // ---------- สัญญาณ Chat แบบย่อ ----------
     customer_message_id: lastCustomerMessageId,
+    // Canonical Chat contract: inbound customer text belongs only to customer_message_text.
+    customer_message_text: lastCustomerMsg === "DATA_MISSING" ? null : lastCustomerMsg,
     customer_latest_message: lastCustomerMsg,
     customer_message_time_th: lastCustomerTime,
 
+    // Canonical Chat contract: page/admin text belongs only to page_message_text.
+    page_message_text: lastPageMsg === "DATA_MISSING" ? null : lastPageMsg,
     page_latest_message: lastPageMsg,
+    page_message_time_th: lastPageTime,
     pager_message_time_th: lastPageTime,
     sku: finalSniperText,       
     google_for_packer: finalSniperText,

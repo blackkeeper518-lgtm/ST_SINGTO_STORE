@@ -54,8 +54,8 @@ function asTimeline(row) {
 
 function latestFields(row) {
   return [
-    { side: 'customer', text: clean(row.customer_latest_message || row.latest_customer_message || row.customer_message), time: clean(row.customer_message_time_th || row.latest_customer_message_time_th || row.customer_message_time) },
-    { side: 'page', text: clean(row.page_latest_message || row.latest_page_message || row.page_message), time: clean(row.page_message_time_th || row.latest_page_message_time_th || row.page_message_time) },
+    { side: 'customer', text: clean(row.customer_message_text || row.customer_latest_message || row.latest_customer_message || row.customer_message), time: clean(row.customer_message_time_th || row.latest_customer_message_time_th || row.customer_message_time) },
+    { side: 'page', text: clean(row.page_message_text || row.page_latest_message || row.latest_page_message || row.page_message), time: clean(row.page_message_time_th || row.latest_page_message_time_th || row.page_message_time) },
   ].filter(entry => entry.text);
 }
 
@@ -112,6 +112,7 @@ function collectTrackingEvidence(row) {
     'tracking_message_text',
     'facebook_tracking_message_web',
     'drakside_tracking_message_web',
+    'page_message_text',
     'page_latest_message',
   ];
   const evidence = [];
@@ -139,8 +140,8 @@ return items.map(item => {
   const originalBackup = row.status_color_backup || row.routing_tag_backup || '⚪White';
   const request = findCustomerRequests(row);
   const evidence = collectTrackingEvidence(row);
-  const latestCustomer = firstExisting(row, ['customer_latest_message', 'latest_customer_message', 'customer_message']);
-  const latestPage = firstExisting(row, ['page_latest_message', 'latest_page_message', 'page_message']);
+  const latestCustomer = firstExisting(row, ['customer_message_text', 'customer_latest_message', 'latest_customer_message', 'customer_message']);
+  const latestPage = firstExisting(row, ['page_message_text', 'page_latest_message', 'latest_page_message', 'page_message']);
   const hasAutoTrackingSignal = evidence.some(entry => entry.marker);
   const sentNumbers = [...new Set(evidence.flatMap(entry => entry.numbers))];
   const lastAsk = request.candidates.at(-1) || null;
@@ -162,8 +163,10 @@ return items.map(item => {
     && customerAgeHours >= 0
     && customerAgeHours < 48;
 
+  row.customer_message_text = latestCustomer || null;
   row.customer_latest_message = latestCustomer || row.customer_latest_message || '';
   row.customer_message_time_th = firstExisting(row, ['customer_message_time_th', 'latest_customer_message_time_th', 'customer_message_time']);
+  row.page_message_text = latestPage || null;
   row.page_latest_message = latestPage || row.page_latest_message || '';
   row.page_message_time_th = firstExisting(row, ['page_message_time_th', 'latest_page_message_time_th', 'page_message_time']);
   row.tracking_check = {

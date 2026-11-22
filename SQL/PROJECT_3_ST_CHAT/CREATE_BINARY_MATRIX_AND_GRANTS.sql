@@ -1,15 +1,17 @@
--- รันใน SQL Editor ของ Supabase โปรเจกต์ ST_CHAT หลังมีคอลัมน์ time_slot_label ใน Pg_Chat
--- ปรับเฉพาะ Matrix view: ส่งคอลัมน์ผ่านจาก row_data โดยไม่ join หรือเปลี่ยนสิทธิ์/ตารางอื่น
+-- รันใน SQL Editor ของ Supabase โปรเจกต์ Chat
+-- สร้าง view รวมข้อความสองตารางก่อน แล้วเปิดอ่านให้ service_role ฝั่ง server เท่านั้น
+
 CREATE OR REPLACE VIEW public."🌠BINARY_xXx_MATRIX"
 WITH (security_invoker = true) AS
 WITH source_rows AS (
-  SELECT to_jsonb(m.*) AS row_data
+  SELECT 'customer'::text AS source_side, to_jsonb(m.*) AS row_data
   FROM public."Cust_Chat⭐BINARY_xXx_STAR" AS m
   UNION ALL
-  SELECT to_jsonb(m.*) AS row_data
+  SELECT 'page'::text AS source_side, to_jsonb(m.*) AS row_data
   FROM public."Pg_Chat⭐BINARY_xXx_STAR" AS m
 )
 SELECT
+  source_side,
   NULLIF(row_data ->> 'id', '')::bigint AS id,
   row_data ->> 'chat_link_key' AS chat_link_key,
   row_data ->> 'page_id' AS page_id,
@@ -24,7 +26,7 @@ SELECT
   row_data ->> 'recipient_id' AS recipient_id,
   row_data ->> 'recipient_name' AS recipient_name,
   row_data ->> 'message_id' AS message_id,
-  row_data ->> 'speaker' AS speaker,
+  COALESCE(row_data ->> 'speaker', row_data ->> 'speaker_type', source_side) AS speaker,
   NULLIF(row_data ->> 'is_sent', '')::boolean AS is_sent,
   NULLIF(row_data ->> 'time', '')::timestamptz AS time,
   row_data ->> 'time_th' AS time_th,
@@ -53,10 +55,14 @@ SELECT
     NULLIF(row_data ->> 'synced_at', '')
   )::timestamptz AS occurred_at,
   row_data ->> 'message_text' AS message_text,
+  row_data ->> 'customer_message_text' AS customer_message_text,
+  row_data ->> 'page_message_text' AS page_message_text,
   row_data ->> 'drakside_tracking_message' AS drakside_tracking_message,
+  row_data ->> 'facebook_tracking_message' AS facebook_tracking_message,
+  row_data ->> 'fb_tracking_message_for_web' AS fb_tracking_message_for_web,
+  row_data ->> 'ds_tracking_message_for_web' AS ds_tracking_message_for_web,
   row_data ->> 'tracking_number' AS tracking_number,
   row_data ->> 'parcel_status_emoji' AS parcel_status_emoji,
-  row_data ->> 'facebook_tracking_message' AS facebook_tracking_message,
   row_data ->> 'upsert_key' AS upsert_key,
   row_data ->> 'order_number' AS order_number,
   row_data ->> 'order_number_display' AS order_number_display,
@@ -71,6 +77,18 @@ SELECT
   row_data ->> 'pager_message_time_th' AS pager_message_time_th,
   row_data ->> 'manus_for_packer' AS manus_for_packer,
   row_data ->> 'facebook_name' AS facebook_name,
-  row_data ->> 'shipping_carrier' AS shipping_carrier,
-  row_data ->> 'time_slot_label' AS time_slot_label
+  row_data ->> 'shipping_carrier' AS shipping_carrier
 FROM source_rows;
+
+COMMENT ON VIEW public."🌠BINARY_xXx_MATRIX" IS
+  'จุดอ่านเดียวของ ChatHub รวมข้อความจาก Cust/Pg; message_text เป็นแหล่งเนื้อหารายข้อความ, source_side ระบุตารางต้นทาง และ speaker ระบุผู้พูด.';
+
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT SELECT ON TABLE
+  public."Cust_Chat⭐BINARY_xXx_STAR",
+  public."Pg_Chat⭐BINARY_xXx_STAR",
+  public."🌠BINARY_xXx_MATRIX"
+TO service_role;
+
+REVOKE ALL PRIVILEGES ON TABLE public."🌠BINARY_xXx_MATRIX"
+FROM PUBLIC, anon, authenticated;

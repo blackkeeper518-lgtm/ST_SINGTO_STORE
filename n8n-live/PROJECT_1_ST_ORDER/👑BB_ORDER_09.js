@@ -418,6 +418,8 @@ for (const group of groups.values()) {
     result.push({
       json: {
         ...row.json,
+        customer_message_text: row.json.customer_message_text ?? row.json.customer_latest_message ?? null,
+        page_message_text: row.json.page_message_text ?? row.json.page_latest_message ?? null,
         customer_change_audit_group_key: groupKey(row.json, row.index),
         customer_change_audit_group_size: String(Math.max(ordered.length, declaredSize)),
         customer_change_audit_is_current: isNew,

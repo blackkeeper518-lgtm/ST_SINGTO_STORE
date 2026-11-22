@@ -1443,8 +1443,12 @@ output.push({
     // 🎯 ส่งค่าตัวแปรสุดท้ายที่แท้จริงของแต่ละฝั่งเข้า JSON ขาออก
         customer_latest_message: lastCustomerMsg,
         customer_message_time_th: lastCustomerTime,
+        // Canonical Chat contract: ข้อความลูกค้าเท่านั้นสำหรับ Cust_Chat / VAGABOND
+        customer_message_text: lastCustomerMsg === "DATA_MISSING" ? null : lastCustomerMsg,
         page_latest_message: lastPageMsg,
         page_message_time_th: lastPageTime,
+        // Canonical Chat contract: ข้อความเพจ/บอทเท่านั้นสำหรับ Pg_Chat
+        page_message_text: lastPageMsg === "DATA_MISSING" ? null : lastPageMsg,
 chat_age_hours: chatStatus.hoursAgo,
           is_within_24h: chatStatus.isWithin24h,
           can_send_standard: chatStatus.canSend,
