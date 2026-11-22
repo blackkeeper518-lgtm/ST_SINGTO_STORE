@@ -138,10 +138,18 @@ function chatAttachmentPayload(row: any) {
     }
     if (typeof value === "object") values.push(value);
   };
-  add(row?.attachments_raw);
-  add(row?.attachment_urls);
-  add(row?.attachment_url);
-  add(row?.sticker_url);
+  // Chat tables have existed with several attachment column names over time.
+  // Normalize all of them here so an image row is not discarded before render.
+  for (const value of [
+    row?.attachments_raw,
+    row?.attachments_json,
+    row?.attachments,
+    row?.image_urls,
+    row?.image_url,
+    row?.attachment_urls,
+    row?.attachment_url,
+    row?.sticker_url,
+  ]) add(value);
   return JSON.stringify(values);
 }
 function hasChatAttachment(row: any) {

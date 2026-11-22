@@ -35,7 +35,8 @@ function imageUrls(value: string | null | undefined) {
     const walk = (item: unknown) => {
       if (!item || typeof item !== "object") return;
       const record = item as Record<string, unknown>;
-      for (const candidate of [record.url, record.file_url, (record.payload as Record<string, unknown> | undefined)?.url]) {
+      const payload = record.payload as Record<string, unknown> | undefined;
+      for (const candidate of [record.url, record.image_url, record.file_url, record.original_url, record.source_url, payload?.url, payload?.image_url, payload?.file_url]) {
         if (typeof candidate === "string" && /^https?:\/\//i.test(candidate) && !urls.includes(candidate)) urls.push(candidate);
       }
       Object.values(record).forEach(child => Array.isArray(child) && child.forEach(walk));
