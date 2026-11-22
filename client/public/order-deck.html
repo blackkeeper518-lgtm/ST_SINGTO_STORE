@@ -374,6 +374,20 @@ body.visual-theme .parcel-panel .postal-state.loading:before{color:var(--visual-
 
 <style>
 .product-tabs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 0 10px}.product-tab-label{width:100%;margin:2px 0 0;color:rgba(196,213,242,.58);font:700 9px/1.2 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase}.product-tab-label--group{margin-top:6px}.product-tab-label--page{width:auto;margin:0}.product-tab-bridge{align-self:flex-end;margin:0 2px 2px;color:rgba(72,240,255,.7);font:700 18px/1 JetBrains Mono,monospace;text-shadow:0 0 10px rgba(72,240,255,.55)}.product-page-tab{border-color:rgba(255,75,186,.28)!important;background:rgba(255,75,186,.07)!important;color:#ffc8ea!important}.product-page-tab.active{border-color:rgba(255,75,186,.72)!important;background:linear-gradient(100deg,rgba(255,75,186,.25),rgba(168,121,255,.18))!important;color:#fff!important;box-shadow:0 0 14px rgba(255,75,186,.2)}.product-group-tab.active{box-shadow:0 0 12px rgba(72,240,255,.18),inset 0 0 10px rgba(168,121,255,.08)}</style>
+
+<style id="order-deck-shared-theme-css">
+/* ORDER DECK · shared theme language */
+:root{--deck-bg:var(--shared-theme-bg,var(--visual-bg,#050611));--deck-surface:var(--shared-theme-surface,var(--visual-card,#101329));--deck-primary:var(--shared-theme-primary,var(--visual-neon,#48f0ff));--deck-accent:var(--shared-theme-accent,#a879ff);--deck-text:var(--shared-theme-text,#fff);--deck-muted:var(--shared-theme-muted,#c9bfd2);--deck-glow:var(--shared-theme-glow,12px)}
+.product-tabs{border:1px solid color-mix(in srgb,var(--deck-primary) 22%,transparent);border-radius:calc(var(--shared-theme-radius,16px) * .7);background:linear-gradient(110deg,color-mix(in srgb,var(--deck-surface) 88%,transparent),color-mix(in srgb,var(--deck-primary) 7%,transparent));padding:10px;box-shadow:0 0 var(--deck-glow) color-mix(in srgb,var(--deck-primary) 12%,transparent)}
+.product-tab-bridge{color:var(--deck-primary)!important;text-shadow:0 0 10px color-mix(in srgb,var(--deck-primary) 60%,transparent)!important}
+.product-page-tab{border-color:color-mix(in srgb,var(--deck-accent) 42%,transparent)!important;background:color-mix(in srgb,var(--deck-accent) 10%,transparent)!important;color:var(--deck-text)!important}
+.product-page-tab.active{border-color:var(--deck-accent)!important;background:linear-gradient(100deg,color-mix(in srgb,var(--deck-accent) 28%,transparent),color-mix(in srgb,var(--deck-primary) 18%,transparent))!important;box-shadow:0 0 14px color-mix(in srgb,var(--deck-accent) 28%,transparent)}
+.product-group-tab.active{box-shadow:0 0 12px color-mix(in srgb,var(--deck-primary) 28%,transparent),inset 0 0 10px color-mix(in srgb,var(--deck-accent) 12%,transparent)!important}
+.product-page-toggle{display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:4px 8px;border:1px solid color-mix(in srgb,var(--deck-primary) 45%,transparent);border-radius:999px;background:color-mix(in srgb,var(--deck-surface) 82%,transparent);color:var(--deck-muted);font:700 10px/1.1 inherit;cursor:pointer}
+.product-page-toggle.is-selected{background:color-mix(in srgb,var(--deck-primary) 20%,transparent);border-color:var(--deck-primary);color:var(--deck-text);box-shadow:0 0 10px color-mix(in srgb,var(--deck-primary) 22%,transparent)}
+.product-import-item{position:relative}.product-import-remove{position:absolute;top:5px;right:5px;z-index:2;width:24px;height:24px;border:1px solid color-mix(in srgb,var(--deck-accent) 55%,transparent);border-radius:50%;background:color-mix(in srgb,#050611 78%,transparent);color:var(--deck-text);font:700 16px/20px sans-serif;cursor:pointer}.product-import-remove:hover{background:var(--deck-accent);color:#08030b;transform:scale(1.08)}
+.vault-control-panel,.quick-guide-panel,.token-vault-panel,.theme-lab-panel{display:none!important}
+</style>
 </head>
 <body><div class="deep-space" aria-hidden="true"><div class="nebula one"></div><div class="nebula two"></div><div class="nebula three"></div><div class="planet"></div><i class="shooting-star a"></i><i class="shooting-star b"></i><i class="shooting-star c"></i></div><main class="wrap">
 <header class="brand">
@@ -1339,20 +1353,6 @@ document.querySelectorAll('.bottom-tab').forEach(button=>button.addEventListener
     const content = combinedContent(kind);
     if (format === 'html') {
       const doc = `<!doctype html><html lang="th"><meta charset="utf-8"><title>${escapeHtml(base)}</title><style>body{background:#07101f;color:#e6f4ff;padding:28px;font:14px/1.7 monospace}pre{white-space:pre-wrap}
-/* ORDER DECK · shared theme language */
-:root{--deck-bg:var(--shared-theme-bg,var(--visual-bg,#050611));--deck-surface:var(--shared-theme-surface,var(--visual-card,#101329));--deck-primary:var(--shared-theme-primary,var(--visual-neon,#48f0ff));--deck-accent:var(--shared-theme-accent,#a879ff);--deck-text:var(--shared-theme-text,#fff);--deck-muted:var(--shared-theme-muted,#c9bfd2);--deck-glow:var(--shared-theme-glow,12px)}
-.product-tabs{border:1px solid color-mix(in srgb,var(--deck-primary) 22%,transparent);border-radius:calc(var(--shared-theme-radius,16px) * .7);background:linear-gradient(110deg,color-mix(in srgb,var(--deck-surface) 88%,transparent),color-mix(in srgb,var(--deck-primary) 7%,transparent));padding:10px;box-shadow:0 0 var(--deck-glow) color-mix(in srgb,var(--deck-primary) 12%,transparent)}
-.product-tab-bridge{color:var(--deck-primary)!important;text-shadow:0 0 10px color-mix(in srgb,var(--deck-primary) 60%,transparent)!important}
-.product-page-tab{border-color:color-mix(in srgb,var(--deck-accent) 42%,transparent)!important;background:color-mix(in srgb,var(--deck-accent) 10%,transparent)!important;color:var(--deck-text)!important}
-.product-page-tab.active{border-color:var(--deck-accent)!important;background:linear-gradient(100deg,color-mix(in srgb,var(--deck-accent) 28%,transparent),color-mix(in srgb,var(--deck-primary) 18%,transparent))!important;box-shadow:0 0 14px color-mix(in srgb,var(--deck-accent) 28%,transparent)}
-.product-group-tab.active{box-shadow:0 0 12px color-mix(in srgb,var(--deck-primary) 28%,transparent),inset 0 0 10px color-mix(in srgb,var(--deck-accent) 12%,transparent)!important}
-.product-page-toggle{display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:4px 8px;border:1px solid color-mix(in srgb,var(--deck-primary) 45%,transparent);border-radius:999px;background:color-mix(in srgb,var(--deck-surface) 82%,transparent);color:var(--deck-muted);font:700 10px/1.1 inherit;cursor:pointer}
-.product-page-toggle.is-selected{background:color-mix(in srgb,var(--deck-primary) 20%,transparent);border-color:var(--deck-primary);color:var(--deck-text);box-shadow:0 0 10px color-mix(in srgb,var(--deck-primary) 22%,transparent)}
-.product-import-item{position:relative}.product-import-remove{position:absolute;top:5px;right:5px;z-index:2;width:24px;height:24px;border:1px solid color-mix(in srgb,var(--deck-accent) 55%,transparent);border-radius:50%;background:color-mix(in srgb,#050611 78%,transparent);color:var(--deck-text);font:700 16px/20px sans-serif;cursor:pointer}.product-import-remove:hover{background:var(--deck-accent);color:#08030b;transform:scale(1.08)}
-/* These controls remain in the DOM for compatibility/config injection, but are not part of the working UI. */
-.token-vault-panel,.theme-lab-panel{display:none!important}
-
-.vault-control-panel,.quick-guide-panel,.token-vault-panel,.theme-lab-panel{display:none!important}
 </style><h1>${escapeHtml(base)}</h1><pre>${escapeHtml(content)}</pre></html>`;
       downloadBlob(`${base}.html`, doc, 'text/html;charset=utf-8');
     } else downloadBlob(`${base}.txt`, content);
