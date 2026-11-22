@@ -4,7 +4,7 @@ with
 select
   h.upsert_key,
   h.chat_link_key,
-  h.bb_express_send_route,
+  h.ST_express_send_route,
   h.currentthreadtotalbills as "currentThreadTotalBills",
   h.duplicate_count_th,
   h.balloonnotice as "balloonNotice",
@@ -194,7 +194,7 @@ union all
 select
   s.upsert_key,
   s.chat_link_key,
-  s.bb_express_send_route,
+  s.ST_express_send_route,
   s."currentThreadTotalBills",
   s.duplicate_count_th,
   s.balloonnotice as "balloonNotice",

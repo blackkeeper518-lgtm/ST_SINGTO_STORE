@@ -111,7 +111,7 @@ function timelineMessages(row) {
 // Real-order marker + bot recap detection (diagnostic/selection evidence)
 // ------------------------------------------------------------
 const TRACKING_REQUEST_RE = /(?:ขอ\s*(?:เลข|เลขพัสดุ|เลขติดตาม|เลขแทร็ก|เลข\s*tracking|เลข\s*AWB)|ขอ\s*(?:เช็ค|เช็ก)\s*เลข|รบกวนแจ้งเลขพัสดุ|ส่งเลขพัสดุให้หน่อย|มีเลขพัสดุไหม|เลขพัสดุออกหรือยัง|เช็คพัสดุ|เช็กพัสดุ|ติดตามพัสดุ|สถานะพัสดุ|tracking|AWB)/iu;
-const FORMAL_ORDER_MARKER_RE = /(?:🚨\s*\[\s*สถานะ\s*:\s*ปิดยอดสำเร็จ\s*\]\s*🚨|#\s*BB_ORDER\s*✅)/iu;
+const FORMAL_ORDER_MARKER_RE = /(?:🚨\s*\[\s*สถานะ\s*:\s*ปิดยอดสำเร็จ\s*\]\s*🚨|#\s*ST_ORDER\s*✅)/iu;
 const POSITIVE_BILL_TYPES = new Set(['HUMAN_ADMIN_BILL', 'HUMAN_DARK_AHK', 'OFFICIAL_BOT_BILL']);
 
 function rowOrderType(row) {
@@ -782,7 +782,7 @@ for (const [key, group] of groups.entries()) {
       // - ไม่มีการเปลี่ยน: ไม่เขียนทับ route เดิมจากโหนดข้างหน้า
       // ห้ามปั้ม ⚪ จาก Footer
       ...(hasChange
-        ? { bb_express_send_route: isSelected ? '🟨' : '🟠' }
+        ? { ST_express_send_route: isSelected ? '🟨' : '🟠' }
         : {}),
 
       // ป้ายบิลใหม่/บิลเก่า สำหรับหน้าเว็บ

@@ -97,7 +97,7 @@ function bindTrackingRequestToOrder(row, { maxDays = 3 } = {}) {
 // ---------- 3. NODE2 MAIN ----------
 return items.map(item => {
   const row = item.json;
-  const originalRoute = row.bb_express_send_route;
+  const originalRoute = row.ST_express_send_route;
   const originalBackup = row.status_color_backup || row.routing_tag_backup || "⚪White";
 
   // 🔎 💥 [ดักจับสัญญาณส่งเลขพัสดุออโต้หมุดแดงสั้นเพียว]
@@ -119,7 +119,7 @@ return items.map(item => {
   // ⚡ ด่านตัดสินผลลัพธ์แยกเส้นทาง
   if (hasAutoTrackingSignal) {
     // เพิ่งรับเลขไปหรือระบบพ่นหมุดหมุดแดงออโต้ให้ล่าสุด -> ปั้มแดงกลม 🔴 ทันที
-    row.bb_express_send_route = "🔴";
+    row.ST_express_send_route = "🔴";
     row.node2_route_signal = "TRACKING_REQUEST_AUTO";
     row.node2_tracking_request_detected = true;
     row.node2_tracking_request_48h = false;
@@ -130,7 +130,7 @@ return items.map(item => {
 
     if (diffAfter < 48) {
       // ลูกค้าขอเลขภายใน 48 ชั่วโมงหลังสั่งซื้อ -> ต้องส่งเลข ปั้มแดงเหลี่ยม 🟥
-      row.bb_express_send_route = "🟥";
+      row.ST_express_send_route = "🟥";
       row.node2_route_signal = "TRACKING_REQUEST";
       row.node2_tracking_request_detected = true;
       row.node2_tracking_request_48h = true;
@@ -138,7 +138,7 @@ return items.map(item => {
       row.node2_tracking_request_route_hint = "🟥";
     } else {
       // นอกเหนือจากนั้น ดันเข้าแดงกลม 🔴
-      row.bb_express_send_route = "🔴";
+      row.ST_express_send_route = "🔴";
       row.node2_route_signal = "TRACKING_REQUEST";
       row.node2_tracking_request_detected = true;
       row.node2_tracking_request_48h = false;
@@ -146,17 +146,17 @@ return items.map(item => {
       row.node2_tracking_request_route_hint = "🔴";
     }
   } else {
-    row.bb_express_send_route = originalRoute;
+    row.ST_express_send_route = originalRoute;
     row.node2_route_signal = "PASS_THROUGH";
     row.node2_tracking_request_detected = false;
     row.node2_tracking_request_48h = false;
   }
 
   // ปลั๊กอินคัดปลายทางแยกห้องเก็บตารางหลัก
-  if (row.bb_express_send_route === "🟥" || row.bb_express_send_route === "🔴") {
+  if (row.ST_express_send_route === "🟥" || row.ST_express_send_route === "🔴") {
     row.target_room = "RED_ROOM";
-    row.routing_tag = row.bb_express_send_route === "🟥" ? "🟥 Red48" : "🔴 Red";
-    row.status_color = row.bb_express_send_route === "🟥" ? "🟥 Red" : "🔴 Red";
+    row.routing_tag = row.ST_express_send_route === "🟥" ? "🟥 Red48" : "🔴 Red";
+    row.status_color = row.ST_express_send_route === "🟥" ? "🟥 Red" : "🔴 Red";
   } else {
     row.target_room = "WHITE_ROOM";
   }

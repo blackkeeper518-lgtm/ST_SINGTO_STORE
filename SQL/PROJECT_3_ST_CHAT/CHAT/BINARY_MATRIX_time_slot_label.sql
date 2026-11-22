@@ -1,4 +1,4 @@
--- รันใน SQL Editor ของ Supabase โปรเจกต์ BB_CHAT หลังมีคอลัมน์ time_slot_label ใน Pg_Chat
+-- รันใน SQL Editor ของ Supabase โปรเจกต์ ST_CHAT หลังมีคอลัมน์ time_slot_label ใน Pg_Chat
 -- ปรับเฉพาะ Matrix view: ส่งคอลัมน์ผ่านจาก row_data โดยไม่ join หรือเปลี่ยนสิทธิ์/ตารางอื่น
 CREATE OR REPLACE VIEW public."🌠BINARY_xXx_MATRIX"
 WITH (security_invoker = true) AS

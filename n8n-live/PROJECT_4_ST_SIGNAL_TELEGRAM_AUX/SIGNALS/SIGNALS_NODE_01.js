@@ -96,13 +96,13 @@ const BUBBLE_WINDOW = 20;
 //⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
 
 const MASTERCONFIG = [
-  { "page_index": "BB_01", "page_id": "103411062505149", "page_name": "🎀BBεїзเบอร์หนึ่งสโตร์", "system_status": "ON", "assigned_agent": "#🌟ไนท์รา", "assigned_hashtag": "🔮#BB_ORDER_01" },
-  { "page_index": "BB_02", "page_id": "113923148350742", "page_name": "🎶BB ↠ STORE", "system_status": "ON", "assigned_agent": "#✨Venika", "assigned_hashtag": "🔮#BB_ORDER_02" },
-  { "page_index": "BB_03", "page_id": "111414924711459", "page_name": "🍇BBสโตร์.", "system_status": "ON", "assigned_agent": "#🌼Mali", "assigned_hashtag": "🔮#BB_ORDER_03" },
-  { "page_index": "BB_04", "page_id": "1047257891810878", "page_name": "💗Bb store๐", "system_status": "ON", "assigned_agent": "#🍉TANGMO", "assigned_hashtag": "🔮#BB_ORDER_04" },
-  { "page_index": "BB_05", "page_id": "1064404466767377", "page_name": "เจ๊บี 🅱🅱", "system_status": "ON", "assigned_agent": "#🍁เจ๊บี", "assigned_hashtag": "🔮#BB_ORDER_05" },
-  { "page_index": "BB_06", "page_id": "1235719106287717", "page_name": "🛒ร้าน:เจ๊บี", "system_status": "ON", "assigned_agent": "#🍀ใบบัว", "assigned_hashtag": "🔮#BB_ORDER_06" },
-  { "page_index": "BB_07", "page_id": "1032290633303246", "page_name": "💬ร้าน:เจ๊ B", "system_status": "ON", "assigned_agent": "#🪐วีนัส", "assigned_hashtag": "🔮#BB_ORDER_07" }
+  { "page_index": "ST_01", "page_id": "103411062505149", "page_name": "🎀BBεїзเบอร์หนึ่งสโตร์", "system_status": "ON", "assigned_agent": "#🌟ไนท์รา", "assigned_hashtag": "🔮#ST_ORDER_01" },
+  { "page_index": "ST_02", "page_id": "113923148350742", "page_name": "🎶BB ↠ STORE", "system_status": "ON", "assigned_agent": "#✨Venika", "assigned_hashtag": "🔮#ST_ORDER_02" },
+  { "page_index": "ST_03", "page_id": "111414924711459", "page_name": "🍇BBสโตร์.", "system_status": "ON", "assigned_agent": "#🌼Mali", "assigned_hashtag": "🔮#ST_ORDER_03" },
+  { "page_index": "ST_04", "page_id": "1047257891810878", "page_name": "💗Bb store๐", "system_status": "ON", "assigned_agent": "#🍉TANGMO", "assigned_hashtag": "🔮#ST_ORDER_04" },
+  { "page_index": "ST_05", "page_id": "1064404466767377", "page_name": "เจ๊บี 🅱🅱", "system_status": "ON", "assigned_agent": "#🍁เจ๊บี", "assigned_hashtag": "🔮#ST_ORDER_05" },
+  { "page_index": "ST_06", "page_id": "1235719106287717", "page_name": "🛒ร้าน:เจ๊บี", "system_status": "ON", "assigned_agent": "#🍀ใบบัว", "assigned_hashtag": "🔮#ST_ORDER_06" },
+  { "page_index": "ST_07", "page_id": "1032290633303246", "page_name": "💬ร้าน:เจ๊ B", "system_status": "ON", "assigned_agent": "#🪐วีนัส", "assigned_hashtag": "🔮#ST_ORDER_07" }
 ];
 //⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
 /* PRODUCT_MASTER_ARR: Defining Master Configuration of Pages */
@@ -497,10 +497,10 @@ function getChatStatusFromThaiDisplay(lastCustomerTime) {
       const botMatch = SNIPER_X_TEXT.match(/(🚨)/);
       const botFlag = botMatch ? botMatch[1] : "";
 
-      const BB_ORDER = SNIPER_X_TEXT.match(/(✅#BB_ORDER)/);
-      const BBFlag = BB_ORDER ? BB_ORDER[1] : "";
+      const ST_ORDER = SNIPER_X_TEXT.match(/(✅#ST_ORDER)/);
+      const BBFlag = ST_ORDER ? ST_ORDER[1] : "";
     
-      // สกัด ✅ ปกติ (ต้องไม่ไช่ ✅#BB_ORDER เพื่อป้องกันการสับสน)
+      // สกัด ✅ ปกติ (ต้องไม่ไช่ ✅#ST_ORDER เพื่อป้องกันการสับสน)
       const checkMatch = !BBFlag && SNIPER_X_TEXT.match(/(✅)/);
       const successFlag = checkMatch ? checkMatch[0] : "";
 
@@ -526,7 +526,7 @@ function getChatStatusFromThaiDisplay(lastCustomerTime) {
       // 1. สกัดเศษสัญลักษณ์ที่เจอจริง
       let extractedSignatureEmoji = "";
       if (botFlag !== "") extractedSignatureEmoji += "🚨 ";
-      if (BBFlag !== "")  extractedSignatureEmoji += "✅#BB_ORDER ";
+      if (BBFlag !== "")  extractedSignatureEmoji += "✅#ST_ORDER ";
       if (successFlag !== "") extractedSignatureEmoji += "✅ ";
       if (readyFlag !== "") extractedSignatureEmoji += "🤖 ";
       if (GuFlag !== "")    extractedSignatureEmoji += "🍁 ";
@@ -540,9 +540,9 @@ function getChatStatusFromThaiDisplay(lastCustomerTime) {
         sniperAuthorClass = "🚨OFFICIAL_BOT";
         authorNameTH = "🚨 แอดมิน BOT";
       } else if (BBFlag !== "") {
-        // ถ้าเจอ ✅#BB_ORDER เป็นบอทของระบบเจ๊ BB 
+        // ถ้าเจอ ✅#ST_ORDER เป็นบอทของระบบเจ๊ BB 
         sniperAuthorClass = "🚨OFFICIAL_BOT";
-        authorNameTH = "🚨 ✅#BB_ORDER";
+        authorNameTH = "🚨 ✅#ST_ORDER";
       } else if (GuFlag !== "") {
         // เจอใบเมเปิ้ล ชี้ชัดว่าเป็นคีย์ลัดร่างเทพของจารย์
         sniperAuthorClass = "🍁DARK_HUMAN_AHK";
@@ -560,7 +560,7 @@ function getChatStatusFromThaiDisplay(lastCustomerTime) {
         ? rawMsgs.filter(m => {
             const isTargetFacebook = String(m.facebook_name || '').trim() === String(fbCustomerName || '').trim();
             const mText = String(m.message || m.original || '').normalize('NFC');
-            const hasFlag = /(🚨|✅|🤖|🍁|#BB_ORDER)/iu.test(mText);
+            const hasFlag = /(🚨|✅|🤖|🍁|#ST_ORDER)/iu.test(mText);
             return isTargetFacebook && hasFlag;
           })
         : [];
@@ -588,7 +588,7 @@ function getChatStatusFromThaiDisplay(lastCustomerTime) {
       m.duplicate_count_th = duplicate_count_th;
       m.balloonNotice = balloonNotice;
 
-// ไม่มีการกำหนด bb_express_send_route / room routing / send decision ในชั้นนี้
+// ไม่มีการกำหนด ST_express_send_route / room routing / send decision ในชั้นนี้
       // ===========================================================
       // 🎁 [DARKSIDE OUTPUT WINNER V3] พ่นก้อนดาต้า + ตัวแปรแยกสีส่งต่อ
       // ==========================================================
@@ -1419,7 +1419,7 @@ output.push({
   json: {
     // ---------- คีย์กลางที่ทุกสายใช้ร่วมกัน ----------
     chat_link_key: chatLinkKey,
-    upsert_key: `${masterConfigNode.page_index || "BB_00"}_${dynamicOrderNumber}_${validatedPhone}_${hasshipping_zipcode}`,
+    upsert_key: `${masterConfigNode.page_index || "ST_00"}_${dynamicOrderNumber}_${validatedPhone}_${hasshipping_zipcode}`,
     page_id: normalizedPageId,
     page_name: masterConfigNode.page_name || "",
     portal_key: masterConfigNode.page_index || "",
@@ -1465,7 +1465,7 @@ output.push({
     route_reason_label: darksideBillDataComplete
       ? "⚪ [COMPLETENESS] สินค้าและที่อยู่ผ่านเกณฑ์"
       : `⚫ [COMPLETENESS] ${darksideBillDataReason}`,
-    bb_express_send_route: bbExpressSendRoute,
+    ST_express_send_route: bbExpressSendRoute,
 
     // ---------- สัญญาณ Chat แบบย่อ ----------
     customer_message_id: lastCustomerMessageId,

@@ -66,7 +66,7 @@ function displayTime(row: OrderRow | null | undefined) { return isOrderRow(row) 
 function productOf(row: OrderRow) {
   return evidenceText(row.order_fibo_product) || evidenceText(row.for_packer_st_display) ||
     evidenceText(row.manus_for_packer) || evidenceText(row.google_for_packer) ||
-    evidenceText(row.packer_tag_display) || evidenceText(row.bb_pack_center);
+    evidenceText(row.packer_tag_display) || evidenceText(row.ST_pack_center);
 }
 
 function evidenceText(value: unknown): string {

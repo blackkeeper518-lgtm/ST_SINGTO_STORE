@@ -1,7 +1,7 @@
 -- CHAT APPEND-ONLY HISTORY
 -- สาเหตุ: chat_link_key เป็น PRIMARY KEY จึงเก็บได้เพียง 1 แถวต่อห้อง
 -- chat_link_key ต้องซ้ำได้ เพราะเป็นคีย์ของห้อง ไม่ใช่คีย์ของข้อความ
--- รันใน Supabase โปรเจกต์ BB_CHAT หลังสำรองข้อมูลแล้ว
+-- รันใน Supabase โปรเจกต์ ST_CHAT หลังสำรองข้อมูลแล้ว
 
 begin;
 

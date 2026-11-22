@@ -136,7 +136,7 @@ function firstExisting(row, keys) {
 
 return items.map(item => {
   const row = item.json || {};
-  const originalRoute = row.bb_express_send_route;
+  const originalRoute = row.ST_express_send_route;
   const originalBackup = row.status_color_backup || row.routing_tag_backup || '⚪White';
   const request = findCustomerRequests(row);
   const evidence = collectTrackingEvidence(row);
@@ -197,7 +197,7 @@ return items.map(item => {
   row.is_safety_white = originalBackup === '⚪White';
 
   if (hasAutoTrackingSignal) {
-    row.bb_express_send_route = '🔴';
+    row.ST_express_send_route = '🔴';
     row.node3_route_signal = 'TRACKING_ALREADY_SENT';
     row.node3_tracking_request_detected = true;
     row.node3_tracking_request_48h = false;
@@ -205,7 +205,7 @@ return items.map(item => {
     row.node3_tracking_request_route_hint = '🔴';
     row.tracking_duplicate_blocked = true;
   } else if (lastAsk && customerWithin48h) {
-    row.bb_express_send_route = '🟥';
+    row.ST_express_send_route = '🟥';
     row.node3_route_signal = 'TRACKING_REQUEST';
     row.node3_tracking_request_detected = true;
     row.node3_tracking_request_48h = true;
@@ -214,7 +214,7 @@ return items.map(item => {
     row.tracking_duplicate_blocked = false;
   } else if (lastAsk) {
     // พบคำขอเลข แต่ customer_message_time_th ไม่มีหรือเกิน 48 ชั่วโมง
-    row.bb_express_send_route = '🔴';
+    row.ST_express_send_route = '🔴';
     row.node3_route_signal = 'TRACKING_REQUEST_OLD_OR_OVER_48H';
     row.node3_tracking_request_detected = true;
     row.node3_tracking_request_48h = false;
@@ -222,17 +222,17 @@ return items.map(item => {
     row.node3_tracking_request_route_hint = '🔴';
     row.tracking_duplicate_blocked = false;
   } else {
-    row.bb_express_send_route = originalRoute;
+    row.ST_express_send_route = originalRoute;
     row.node3_route_signal = 'PASS_THROUGH';
     row.node3_tracking_request_detected = false;
     row.node3_tracking_request_48h = false;
     row.tracking_duplicate_blocked = false;
   }
 
-  if (row.bb_express_send_route === '🟥' || row.bb_express_send_route === '🔴') {
+  if (row.ST_express_send_route === '🟥' || row.ST_express_send_route === '🔴') {
     row.target_room = 'RED_ROOM';
-    row.routing_tag = row.bb_express_send_route === '🟥' ? '🟥 Red48' : '🔴 Red';
-    row.status_color = row.bb_express_send_route === '🟥' ? '🟥 Red' : '🔴 Red';
+    row.routing_tag = row.ST_express_send_route === '🟥' ? '🟥 Red48' : '🔴 Red';
+    row.status_color = row.ST_express_send_route === '🟥' ? '🟥 Red' : '🔴 Red';
   } else {
     row.target_room = 'WHITE_ROOM';
   }

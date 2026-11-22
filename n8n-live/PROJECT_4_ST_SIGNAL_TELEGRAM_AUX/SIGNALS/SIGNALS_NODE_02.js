@@ -743,10 +743,10 @@ for (const cluster of clusters) {
     const rowTrackingRequested =
       row.tracking_request_48h === true || row.tracking_request_48h === 'true' ||
       row.tracking_request_same_thai_date === true || row.tracking_request_same_thai_date === 'true';
-    const routeBeforeTracking = String(row.bb_express_send_route || '').trim();
+    const routeBeforeTracking = String(row.ST_express_send_route || '').trim();
     const protectDownstreamColor = ['⚫', '🟨', '🟠'].includes(routeBeforeTracking);
     if (rowTrackingRequested && !isDataIncomplete && !protectDownstreamColor) {
-      row.bb_express_send_route = '🔴';
+      row.ST_express_send_route = '🔴';
       row.route_reason_emoji = '🔴';
       row.node2_route_signal = 'TRACKING_REQUEST';
     }
@@ -763,11 +763,11 @@ for (const item of result) {
   const ghostFromGatekeeper =
     row.routing_tag_backup === '👻Ghost_Black' ||
     row.status_color_backup === '👻Ghost_Black';
-  const routeBeforeGhost = String(row.bb_express_send_route || '').trim();
+  const routeBeforeGhost = String(row.ST_express_send_route || '').trim();
   const preserveExistingNonNode2Color = ['⚫', '🟨', '🟠'].includes(routeBeforeGhost);
 
   if (ghostFromGatekeeper && !isDataIncomplete && !preserveExistingNonNode2Color) {
-    row.bb_express_send_route = '👻';
+    row.ST_express_send_route = '👻';
     row.route_reason_emoji = '👻Ghost_Black';
     row.route_reason_color = 'GHOST_BLACK';
     row.route_reason_label = row.ghost_column || '👻 Ghost_Black — ออเดอร์เก่า/หลุดรอบ';

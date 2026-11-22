@@ -139,7 +139,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "nbhMJ5GaTKajhUId",
-          "name": "🧮BB_CHAT"
+          "name": "🧮ST_CHAT"
         }
       },
       "onError": "continueRegularOutput"

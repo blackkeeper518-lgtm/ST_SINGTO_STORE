@@ -293,7 +293,7 @@ describe("ChatHub read contract v5", () => {
       id: 41,
       page_id: "page-1",
       page_name: "ร้านตัวอย่าง",
-      portal_key: "BB_06",
+      portal_key: "ST_06",
       chat_link_key: "page-1_t_thread-1",
       thread_id: "thread-1",
       customer_id: "customer-1",
@@ -312,7 +312,7 @@ describe("ChatHub read contract v5", () => {
       time_th: "09/11/2569 11:50:06",
       occurred_at: "2026-11-09T04:50:06.000Z",
       time: "2026-11-09T04:50:06.000Z",
-      upsert_key: "BB_06_ORD-081126-192451_0615107528_22180",
+      upsert_key: "ST_06_ORD-081126-192451_0615107528_22180",
       order_number: "ORD-081126-192451",
       order_time_display: "09/11 11:50",
       cod_amount: 990,
@@ -333,7 +333,7 @@ describe("ChatHub read contract v5", () => {
     expect(thread.customerLatestMessage).toBe("ส่งของยังคัย");
     expect(thread.pageLatestMessage).toBeNull();
     expect(thread.customerPhone).toBe("0812345678");
-    expect(thread.upsert_key).toBe("BB_06_ORD-081126-192451_0615107528_22180");
+    expect(thread.upsert_key).toBe("ST_06_ORD-081126-192451_0615107528_22180");
     expect(thread.order_number).toBe("ORD-081126-192451");
     expect(thread.cod_amount).toBe(990);
     expect(thread.parcel_status_emoji).toBe("⚡SENT");
@@ -400,7 +400,7 @@ describe("ChatHub read contract v5", () => {
       {
         _source_table: CHAT_CUSTOMER_TABLE,
         id: 101, page_id: "page-1", thread_id: "thread-1", speaker: "customer",
-        source_lane: "🌌BB_CHAT", message_text: null,
+        source_lane: "🌌ST_CHAT", message_text: null,
         customer_message_text: "ลูกค้าทักสด", page_message_text: null,
         occurred_at: "2026-11-15T10:04:18.000Z", time_th: "15/11/2569 17:04:18", message_id: "customer-101",
       },
@@ -417,7 +417,7 @@ describe("ChatHub read contract v5", () => {
       ["page", "เพจตอบสด", "เพจตอบสด", "15/11/2569 17:06:46"],
     ]);
     expect(messages[0].customer_message_text).toBe("ลูกค้าทักสด");
-    expect(messages[0].source_lane).toBe("🌌BB_CHAT");
+    expect(messages[0].source_lane).toBe("🌌ST_CHAT");
   });
 
   it("keeps a late-arriving old-time message in history but never replaces the room's newest preview", () => {

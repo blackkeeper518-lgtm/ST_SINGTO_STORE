@@ -8,7 +8,7 @@ describe("Order Deck chat context", () => {
       selectedCustomerMessage: "อภิโชค เสระ 0655310082 ที่อยู่ลูกค้า",
     });
 
-    expect(message).toEqual({ type: "BB_ORDER_DECK_CONTEXT" });
+    expect(message).toEqual({ type: "ST_ORDER_DECK_CONTEXT" });
   });
 
   it("sends the page name and only the one customer message after explicit import", () => {
@@ -18,7 +18,7 @@ describe("Order Deck chat context", () => {
     }, true);
 
     expect(message).toEqual({
-      type: "BB_ORDER_DECK_CONTEXT",
+      type: "ST_ORDER_DECK_CONTEXT",
       importSelectedCustomerMessage: true,
       pageName: "ST Singto Store",
       selectedCustomerMessage: "อภิโชค เสระ 0655310082 ที่อยู่ลูกค้า",
@@ -30,34 +30,34 @@ describe("Order Deck chat context", () => {
 
   it("does not import the page when no message has been selected", () => {
     const message = buildOrderDeckContextMessage({ pageName: "ST Singto Store", selectedCustomerMessage: "  " }, true);
-    expect(message).toEqual({ type: "BB_ORDER_DECK_CONTEXT" });
+    expect(message).toEqual({ type: "ST_ORDER_DECK_CONTEXT" });
   });
 
   it("allows selection only for inbound customer messages", () => {
-    const validChatMessage = { direction: "inbound", senderType: "customer", source_lane: "🌌BB_CHAT", customer_message_text: "ข้อความจากคอลัมน์จริง" };
+    const validChatMessage = { direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT", customer_message_text: "ข้อความจากคอลัมน์จริง" };
     expect(isSelectableCustomerMessage(validChatMessage)).toBe(true);
     expect(isSelectableCustomerMessage({ ...validChatMessage, source_lane: "OTHER_LANE" })).toBe(false);
     expect(isSelectableCustomerMessage({ ...validChatMessage, customer_message_text: "  " })).toBe(false);
     expect(isSelectableCustomerMessage({ ...validChatMessage, senderType: "system" })).toBe(false);
     expect(isSelectableCustomerMessage({ ...validChatMessage, senderType: "page" })).toBe(false);
     expect(isSelectableCustomerMessage({ ...validChatMessage, direction: "outbound" })).toBe(false);
-    expect(isSelectableCustomerMessage({ direction: "inbound", senderType: "customer", source_lane: "🌌BB_CHAT" })).toBe(false);
+    expect(isSelectableCustomerMessage({ direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT" })).toBe(false);
     expect(isSelectableCustomerMessage(null)).toBe(false);
     expect(isSelectableCustomerMessage(undefined)).toBe(false);
     expect(isSelectableCustomerMessage("not a message")).toBe(false);
   });
 
-  it("uses only the newest BB_CHAT customer row and does not fall back when its text is missing", () => {
-    const older = { direction: "inbound", senderType: "customer", source_lane: "🌌BB_CHAT", customer_message_text: "ที่อยู่เก่ากว่า" };
-    const pageReply = { direction: "outbound", senderType: "page", source_lane: "🌌BB_CHAT", page_message_text: "ขอที่อยู่ค่ะ" };
-    const newest = { direction: "inbound", senderType: "customer", source_lane: "🌌BB_CHAT", customer_message_text: null };
+  it("uses only the newest ST_CHAT customer row and does not fall back when its text is missing", () => {
+    const older = { direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT", customer_message_text: "ที่อยู่เก่ากว่า" };
+    const pageReply = { direction: "outbound", senderType: "page", source_lane: "🌌ST_CHAT", page_message_text: "ขอที่อยู่ค่ะ" };
+    const newest = { direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT", customer_message_text: null };
 
     expect(getLatestBBChatCustomerMessage([older, pageReply, newest])).toBe(newest);
     expect(isImportableLatestCustomerMessage(getLatestBBChatCustomerMessage([older, pageReply, newest]))).toBe(false);
   });
 
   it("does not treat media placeholders or emoji-only messages as order text", () => {
-    const base = { direction: "inbound", senderType: "customer", source_lane: "🌌BB_CHAT" };
+    const base = { direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT" };
     expect(isImportableLatestCustomerMessage({ ...base, customer_message_text: "[รูปภาพ]" })).toBe(false);
     expect(isImportableLatestCustomerMessage({ ...base, customer_message_text: "🙏✨" })).toBe(false);
     expect(isImportableLatestCustomerMessage({ ...base, customer_message_text: "อภิโชค 0655310082" })).toBe(true);

@@ -8,13 +8,13 @@
 const DAYS_LOOKBACK = 1; 
 
 const MASTERCONFIG = [
-  { "page_index": "BB_01", "page_id": "103411062505149", "page_name": "🎀BBεїзเบอร์หนึ่งสโตร์", "assigned_agent": "#ไนท์รา", "assigned_hashtag": "🔮#BB_ORDER_01" },
-  { "page_index": "BB_02", "page_id": "113923148350742", "page_name": "🎶BB ↠ STORE", "assigned_agent": "#Venika", "assigned_hashtag": "🔮#BB_ORDER_02" },
-  { "page_index": "BB_03", "page_id": "111414924711459", "page_name": "🍇BBสโตร์.", "assigned_agent": "#Mali", "assigned_hashtag": "🔮#BB_ORDER_03" },
-  { "page_index": "BB_04", "page_id": "1047257891810878", "page_name": "💗Bb store๐", "assigned_agent": "#🍉TANGMO", "assigned_hashtag": "🔮#BB_ORDER_04" },
-  { "page_index": "BB_05", "page_id": "1064404466767377", "page_name": "เจ๊บี 🅱🅱", "assigned_agent": "#👑เจ๊บี", "assigned_hashtag": "🔮#BB_ORDER_05" },
-  { "page_index": "BB_06", "page_id": "1235719106287717", "page_name": "🛒ร้าน:เจ๊บี", "assigned_agent": "#🍀ใบบัว", "assigned_hashtag": "🔮#BB_ORDER_06" },
-  { "page_index": "BB_07", "page_id": "1032290633303246", "page_name": "💬ร้าน:เจ๊ B", "assigned_agent": "💬#", "assigned_hashtag": "🔮#BB_ORDER_07" }
+  { "page_index": "ST_01", "page_id": "103411062505149", "page_name": "🎀BBεїзเบอร์หนึ่งสโตร์", "assigned_agent": "#ไนท์รา", "assigned_hashtag": "🔮#ST_ORDER_01" },
+  { "page_index": "ST_02", "page_id": "113923148350742", "page_name": "🎶BB ↠ STORE", "assigned_agent": "#Venika", "assigned_hashtag": "🔮#ST_ORDER_02" },
+  { "page_index": "ST_03", "page_id": "111414924711459", "page_name": "🍇BBสโตร์.", "assigned_agent": "#Mali", "assigned_hashtag": "🔮#ST_ORDER_03" },
+  { "page_index": "ST_04", "page_id": "1047257891810878", "page_name": "💗Bb store๐", "assigned_agent": "#🍉TANGMO", "assigned_hashtag": "🔮#ST_ORDER_04" },
+  { "page_index": "ST_05", "page_id": "1064404466767377", "page_name": "เจ๊บี 🅱🅱", "assigned_agent": "#👑เจ๊บี", "assigned_hashtag": "🔮#ST_ORDER_05" },
+  { "page_index": "ST_06", "page_id": "1235719106287717", "page_name": "🛒ร้าน:เจ๊บี", "assigned_agent": "#🍀ใบบัว", "assigned_hashtag": "🔮#ST_ORDER_06" },
+  { "page_index": "ST_07", "page_id": "1032290633303246", "page_name": "💬ร้าน:เจ๊ B", "assigned_agent": "💬#", "assigned_hashtag": "🔮#ST_ORDER_07" }
 ];
 
 const PAGE_MAP = new Map(MASTERCONFIG.map(p => [String(p.page_id), p]));
@@ -342,7 +342,7 @@ for (const item of $input.all()) {
           ...(isPage
             ? { page_message_text: finalText, page_message_time_th: timeThai.full }
             : { customer_message_text: finalText, customer_message_time_th: timeThai.full }),
-           source_lane: '🌌BB_CHAT',
+           source_lane: '🌌ST_CHAT',
           sync_status: "READY_TO_SAVE"
         }
       });

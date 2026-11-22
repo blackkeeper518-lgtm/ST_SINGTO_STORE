@@ -217,7 +217,7 @@ function isoDateKey(value: string | null): string {
 // Keep only known columns; upsert_key is the row key (the table has no id column).
 const HERMES_WEB_ORDER_COLUMNS = [
   "upsert_key",
-  "bb_express_send_route",
+  "ST_express_send_route",
   "currentThreadTotalBills",
   "duplicate_count_th",
   "balloonNotice",

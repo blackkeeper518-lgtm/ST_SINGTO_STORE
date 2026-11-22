@@ -38,7 +38,7 @@ describe("sendMetaMessage", () => {
 
     const result = await sendMetaMessage({
       pageId: "page-123",
-      portalKey: "BB_05",
+      portalKey: "ST_05",
       recipientId: "customer-456",
       text: "ทดสอบเส้นทางส่ง",
     });

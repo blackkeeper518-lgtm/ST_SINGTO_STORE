@@ -126,7 +126,7 @@
         736
       ],
       "id": "2bac24b5-d1aa-4c05-812b-8d95f8ab4bc7",
-      "name": "🌌BB_TRACKING",
+      "name": "🌌ST_TRACKING",
       "alwaysOutputData": true,
       "credentials": {
         "supabaseApi": {
