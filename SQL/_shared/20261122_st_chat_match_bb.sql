@@ -129,6 +129,12 @@ create index if not exists "Cust_Chat⭐BINARY_xXx_STAR_occurred_at_row_idx"
   on public."Cust_Chat⭐BINARY_xXx_STAR"
   using btree (occurred_at, message_row_id);
 
+create index if not exists ix_cust_chat_phone
+  on public."Cust_Chat⭐BINARY_xXx_STAR" using btree (phone);
+
+create index if not exists ix_chat_customer_chat_link_key
+  on public."Cust_Chat⭐BINARY_xXx_STAR" using btree (chat_link_key);
+
 create index if not exists ix_pg_chat_phone
   on public."Pg_Chat⭐BINARY_xXx_STAR" using btree (phone);
 
