@@ -14,10 +14,9 @@
 5. `CHAT_MESSAGE_ID_DEDUPE.sql` หลังตรวจ duplicate `message_id`
 6. `INDEX.sql`
 7. `GRANT USAGE ON SCHEMA.sql`
-8. `BINARY_MATRIX_time_slot_label.sql`
-9. `🌓VAGABOND_xXx_DISMISS.sql`
-10. `🏴_☠️SIRIUS_xXx_CRASH.sql`
-11. `🌈MILKY_WAY_xXx_TOKEN _PAGE.sql`
+8. `🌓VAGABOND_xXx_DISMISS.sql`
+9. `🏴_☠️SIRIUS_xXx_CRASH.sql`
+10. `🌈MILKY_WAY_xXx_TOKEN _PAGE.sql`
 
 ## B. ย้ายเข้าฐานข้อมูลเดิมที่มีตารางอยู่แล้ว
 
@@ -25,7 +24,7 @@
 - ถ้า `chat_link_key` ยังเป็น primary key ให้รัน `CHAT APPEND-ONLY HISTORY.sql`
 - ตรวจ duplicate และสร้าง unique guard ด้วย `CHAT_MESSAGE_ID_DEDUPE.sql`
 - รัน `INDEX.sql` และ `GRANT USAGE ON SCHEMA.sql`
-- รัน `BINARY_MATRIX_time_slot_label.sql` และ `🌓VAGABOND_xXx_DISMISS.sql` เพื่อสร้าง/อัปเดต views
+- รัน `🌓VAGABOND_xXx_DISMISS.sql` เพื่อสร้าง/อัปเดต view ที่ใช้งานจริง
 
 ## Contract ปัจจุบัน
 
@@ -44,3 +43,4 @@
 - `CHAT_NOTIFICATION_POLL_INDEX.sql` ซ้ำกับ index ใน append-only migration
 - `REMOVE_PG_MESSAGE_ID_UNIQUE.sql` เป็น workaround เก่า ไม่ตรงกับ contract ปัจจุบัน
 - `FIX_BINARY_CHAT_DEDUPE_KEY.sql` เป็น contract เก่าที่ใช้ `dedupe_key`
+- `🌠BINARY_xXx_MATRIX` และ `BINARY_MATRIX_time_slot_label.sql` ไม่ใช่ object ที่ ST ใช้งานปัจจุบัน จึงไม่รวมในชุดนี้

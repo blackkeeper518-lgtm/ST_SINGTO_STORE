@@ -273,12 +273,6 @@ export default function SystemManual() {
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <StageCard
-              icon="🌠"
-              title="🌠BINARY_xXx_MATRIX"
-              detail="วิวรวม Cust/Pg chat ด้วย UNION ALL; ChatHub อ่านจากวิวนี้เพียงจุดเดียว โดย message_text เป็นเนื้อหารายข้อความและ source_side แยกผู้ส่ง"
-              type="view"
-            />
-            <StageCard
               icon="💬"
               title="Cust_Chat⭐BINARY_xXx_STAR"
               detail="ตารางต้นทางข้อความขาเข้าจากลูกค้า; message_text เป็นเนื้อหาหลัก, thread_id/chat_link_key เชื่อมห้อง และ phone ใช้ค้นหา ไม่ใช่คีย์กันซ้ำ"

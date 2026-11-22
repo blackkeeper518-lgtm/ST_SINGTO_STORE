@@ -75,7 +75,6 @@ const CHAT_READ_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 type ChatReadFilter = { pageId?: string; threadId?: string };
 export const CHAT_CUSTOMER_TABLE = "Cust_Chat⭐BINARY_xXx_STAR";
 export const CHAT_PAGE_TABLE = "Pg_Chat⭐BINARY_xXx_STAR";
-export const CHAT_MATRIX_VIEW = "🌠BINARY_xXx_MATRIX";
 export const CHAT_PAGE_TOKEN_TABLE = "🌈MILKY_WAY_xXx_TOKEN _PAGE";
 function chatReadPath(table: string, filter: ChatReadFilter = {}, history = false) {
   const query = new URLSearchParams();
@@ -197,7 +196,6 @@ const CHAT_CONNECTION_CHECKS = [
   { name: "line_channels", columns: "*" },
   { name: "line_messages", columns: "*" },
   { name: "🌓VAGABOND_xXx_DISMISS", columns: "*" },
-  { name: "🌠BINARY_xXx_MATRIX", columns: "*" },
   { name: "🏴‍☠️SIRIUS_xXx_CRASH", columns: "*" },
 ] as const;
 export async function checkChatConnection(credentials?: ChatSupabaseCredentials) {
