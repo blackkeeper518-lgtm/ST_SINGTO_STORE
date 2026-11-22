@@ -15,6 +15,7 @@ type OrderDeckFrameProps = {
   messageRequest?: { id: number } | null;
   onMessageRequestHandled?: (id: number) => void;
   onProductImagesSelected?: (imageUrls: string[], productName?: string) => void | Promise<void>;
+  onProductSelected?: (payload: { product: string; textVariants: string[]; productInfo: Record<string, unknown>; imageUrls: string[] }) => void | Promise<void>;
   onProductIndexReady?: (products: Array<{ product: string; terms: string[] }>) => void;
   productImagesRequest?: { id: number; product: string } | null;
   onSummaryReady?: (summary: string) => void;
@@ -113,6 +114,20 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
       if (event.data?.type === "ST_ORDER_DECK_ORDER_SUMMARY") {
         const summary = typeof event.data.summary === "string" ? event.data.summary.trim().slice(0, 20_000) : "";
         if (summary) currentProps.current.onSummaryReady?.(summary);
+        return;
+      }
+      if (event.data?.type === "ST_ORDER_DECK_PRODUCT_SELECTED") {
+        const product = typeof event.data.product === "string" ? event.data.product.trim().slice(0, 160) : "";
+        if (!product) return;
+        const imageUrls = Array.isArray(event.data.imageUrls)
+          ? event.data.imageUrls.filter((url: unknown): url is string => typeof url === "string" && (/^https?:\/\//i.test(url) || (url.length <= 8_100_000 && /^data:image\/(?:png|jpeg|gif|webp);base64,/i.test(url)))).slice(0, 4)
+          : [];
+        const textVariants = Array.isArray(event.data.textVariants)
+          ? event.data.textVariants.filter((text: unknown): text is string => typeof text === "string" && text.trim()).map(text => text.trim().slice(0, 8_000)).slice(0, 3)
+          : [];
+        const productInfo = event.data.productInfo && typeof event.data.productInfo === "object" ? event.data.productInfo as Record<string, unknown> : {};
+        currentProps.current.onProductSelected?.({ product, textVariants, productInfo, imageUrls });
+        if (imageUrls.length) currentProps.current.onProductImagesSelected?.(imageUrls, product);
         return;
       }
       if (event.data?.type !== "ST_ORDER_DECK_PRODUCT_IMAGES") return;

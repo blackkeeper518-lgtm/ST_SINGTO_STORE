@@ -503,6 +503,17 @@ export default function MobileInbox() {
     setOrderSummary(null);
     setOrderDeckOpen(true);
   };
+  const receiveProductSelected = ({ product, textVariants, productInfo }: { product: string; textVariants: string[]; productInfo: Record<string, unknown>; imageUrls: string[] }) => {
+    const blocks = Array.isArray(productInfo.blocks) ? productInfo.blocks.map(block => {
+      if (!block || typeof block !== "object") return "";
+      const item = block as { title?: unknown; content?: unknown };
+      return [item.title, item.content].filter(value => typeof value === "string" && value.trim()).join("\n");
+    }).filter(Boolean) : [];
+    const detail = [textVariants[0] || "", !textVariants.length ? String(productInfo.description || "").trim() : "", !textVariants.length && blocks.length ? blocks.join("\n\n") : "", !textVariants.length ? String(productInfo.price || "").trim() ? `ราคา: ${String(productInfo.price).trim()}` : "" : "", !textVariants.length && !blocks.length && !String(productInfo.description || "").trim() && !String(productInfo.price || "").trim() ? product : ""].filter(Boolean).join("\n").trim();
+    setReplyText(current => current.trim() ? `${current.trim()}\n${detail}`.trim() : detail);
+    setOrderDeckOpen(false);
+    setNotice(`เตรียมสินค้า ${product} ลงช่องรอส่งแล้ว · ${textVariants.length ? "เลือกข้อความแรกเป็นร่าง" : "ไม่มีรูปก็ใช้ได้"}`);
+  };
   const receiveProductImages = async (urls: string[], productName?: string) => {
     const isAllowedProductImage = (url: string) => /^https?:\/\//i.test(url) || (url.length <= 8_100_000 && /^data:image\/(?:png|jpeg|gif|webp);base64,/i.test(url));
     const existing = new Set(replyImages.map(image => image.sendUrl || image.url));
@@ -596,7 +607,7 @@ export default function MobileInbox() {
     {orderDeckOpen && selected && typeof document !== "undefined" ? createPortal(
       <div className="mobile-inbox-order-deck" role="presentation" onClick={() => setOrderDeckOpen(false)}>
         <div ref={orderDeckDialogRef} tabIndex={-1} className="mobile-inbox-order-deck-panel" role="dialog" aria-modal="true" aria-label={`สรุปออเดอร์ · ${selected.customerName || "ลูกค้า"}`} onClick={event => event.stopPropagation()}>
-          <OrderDeckFrame pageId={selected.pageId} pageName={selected.pageName || "ไม่ระบุเพจ"} threadId={selected.threadId} customerName={selected.customerName || "ลูกค้า"} customerPhone={String(selected.customerPhone || selected.phone || "")} selectedCustomerMessage={selectedOrderMessageText} messageMode="latest" messageRequest={orderDeckMessageRequest} onMessageRequestHandled={(id) => setOrderDeckMessageRequest(current => current?.id === id ? null : current)} roomStatus="กำลังดูห้อง" onProductImagesSelected={receiveProductImages} onSummaryReady={summary => { setReplyText(summary); setOrderDeckOpen(false); setOrderDeckMessageRequest(null); setNotice("สรุปบิลใส่ช่องตอบกลับแล้ว · ตรวจสอบก่อนกดส่ง"); }} onClose={() => { setOrderDeckOpen(false); setOrderDeckMessageRequest(null); }} />
+          <OrderDeckFrame pageId={selected.pageId} pageName={selected.pageName || "ไม่ระบุเพจ"} threadId={selected.threadId} customerName={selected.customerName || "ลูกค้า"} customerPhone={String(selected.customerPhone || selected.phone || "")} selectedCustomerMessage={selectedOrderMessageText} messageMode="latest" messageRequest={orderDeckMessageRequest} onMessageRequestHandled={(id) => setOrderDeckMessageRequest(current => current?.id === id ? null : current)} roomStatus="กำลังดูห้อง" onProductSelected={receiveProductSelected} onProductImagesSelected={receiveProductImages} onSummaryReady={summary => { setReplyText(summary); setOrderDeckOpen(false); setOrderDeckMessageRequest(null); setNotice("สรุปบิลใส่ช่องตอบกลับแล้ว · ตรวจสอบก่อนกดส่ง"); }} onClose={() => { setOrderDeckOpen(false); setOrderDeckMessageRequest(null); }} />
         </div>
       </div>,
       document.body,
