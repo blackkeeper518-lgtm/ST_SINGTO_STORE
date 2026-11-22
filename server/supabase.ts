@@ -221,7 +221,11 @@ export async function recordOutgoingChatMessage(input: { portalKey?: string; cha
   const occurredAt = input.occurredAt ?? new Date();
   const iso = occurredAt.toISOString();
   const messageId = input.messageId?.trim() || null;
-  const chatLinkKey = input.chatLinkKey?.trim() || `${input.pageId}_t_${input.threadId}`;
+  const roomChatLinkKey = input.chatLinkKey?.trim() || `${input.pageId}_t_${input.threadId}`;
+  // ST's current Pg schema uses chat_link_key as the primary key even though
+  // one room contains many messages. Keep the canonical room key as a prefix,
+  // but make each persisted outgoing row unique so polling cannot lose it.
+  const chatLinkKey = `${roomChatLinkKey}:${messageId || iso}`;
   // Pg Chat is append-only for outgoing messages. Keep this payload limited to
   // columns that exist in Pg_Chat⭐BINARY_xXx_STAR; do not write to the order
   // control table from the chat lane.
@@ -244,7 +248,7 @@ export async function recordOutgoingChatMessage(input: { portalKey?: string; cha
     page_latest_message: input.text?.trim() || (input.imageUrl ? "📷 ส่งรูปภาพ" : null),
     page_message_time_th: iso,
     sync_status: "SENT",
-    dedupe_key: messageId ? `${chatLinkKey}:${messageId}` : `${chatLinkKey}:${iso}`,
+    dedupe_key: messageId ? `${roomChatLinkKey}:${messageId}` : `${roomChatLinkKey}:${iso}`,
   };
   return supabasePost<Record<string, unknown>[]>(encodeURIComponent(CHAT_PAGE_TABLE), pageMessagePayload, "chat", "return=representation", credentials);
 }

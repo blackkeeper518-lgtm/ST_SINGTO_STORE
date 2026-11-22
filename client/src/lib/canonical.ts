@@ -777,6 +777,12 @@ function chatCustomerNameCandidate(row: any) {
   const value = String(row.facebook_name ?? "").trim();
   return value ? { value, priority: 1 } : null;
 }
+function canonicalChatLinkKey(row: any) {
+  const pageId = String(row?.page_id ?? "").trim();
+  const threadId = String(row?.thread_id ?? row?.threadId ?? "").trim();
+  const value = String(row?.chat_link_key ?? "").trim();
+  return /^\d+_t_\d+$/.test(value) ? value : (pageId && threadId ? `${pageId}_t_${threadId}` : value || null);
+}
 function chatOrderKey(row: any) {
   return String(row.upsert_key ?? row.order_number_display ?? row.order_number ?? "").trim();
 }
@@ -804,7 +810,7 @@ export function mapChatRowsToThreads(sourceRows: any[]) {
     const key = `${pageId}:${threadId}`;
     const nameCandidate = chatCustomerNameCandidate(row);
     const current = map.get(key) ?? {
-      key, pageId, threadId, portalKey: row.portal_key || null, chatLinkKey: row.chat_link_key || null,
+      key, pageId, threadId, portalKey: row.portal_key || null, chatLinkKey: canonicalChatLinkKey(row),
       timeSlotLabel: String(row.time_slot_label ?? "").trim() || null,
       customerId: row.customer_id || row.recipient_id || null, customerPhone: row.phone || null, pageName: row.page_name || "ไม่ระบุเพจ",
       customerName: nameCandidate?.value || "", profilePictureUrl: row.profile_picture_url || null, _customerNamePriority: nameCandidate?.priority ?? -1,
@@ -840,7 +846,7 @@ export function mapChatRowsToThreads(sourceRows: any[]) {
     current.profilePictureUrl ||= row.profile_picture_url || row.profile_pic || row.picture || null;
     current.customerPhone ||= row.phone || null;
     current.portalKey ||= row.portal_key || null;
-    current.chatLinkKey ||= row.chat_link_key || null;
+    current.chatLinkKey ||= canonicalChatLinkKey(row);
     if (nameCandidate && nameCandidate.priority >= current._customerNamePriority) {
       current.customerName = nameCandidate.value;
       current._customerNamePriority = nameCandidate.priority;
