@@ -62,6 +62,11 @@ create index if not exists "Pg_Chat⭐BINARY_xXx_STAR_message_idx"
   on public."Pg_Chat⭐BINARY_xXx_STAR" (message_id)
   where message_id is not null;
 
+create index if not exists "Cust_Chat⭐BINARY_xXx_STAR_occurred_at_row_idx"
+  on public."Cust_Chat⭐BINARY_xXx_STAR" (occurred_at, message_row_id);
+create index if not exists "Pg_Chat⭐BINARY_xXx_STAR_occurred_at_row_idx"
+  on public."Pg_Chat⭐BINARY_xXx_STAR" (occurred_at, message_row_id);
+
 commit;
 
 -- สำคัญใน n8n:
