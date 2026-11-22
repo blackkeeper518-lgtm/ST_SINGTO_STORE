@@ -711,55 +711,30 @@ function normalizeChatReadRows(sourceRows: any[]) {
     const hasRoomKey = String(row?.page_id ?? "").trim() && String(row?.thread_id ?? row?.threadId ?? "").trim();
     if (!hasRoomKey) return false;
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
-    // แถว delivery/status อย่างเดียวไม่ใช่ข้อความแชท และห้ามเปิดเป็นห้องเปล่า
-    const sourceMessageText = isPage
-      ? row?.page_message_text ?? row?.message_text ?? row?.page_latest_message
-      : row?.customer_message_text ?? row?.message_text ?? row?.customer_latest_message;
-    return Boolean(asText(sourceMessageText).trim() || asText(row?.customer_latest_message).trim() || asText(row?.page_latest_message).trim() || (isPage && asText(row?.facebook_tracking_message).trim()) || hasChatAttachment(row));
+    // ChatHub has exactly two message lanes. Do not promote tracking/order
+    // fields or legacy summary fields into a chat bubble.
+    const sourceMessageText = isPage ? row?.page_message_text : row?.customer_message_text;
+    return Boolean(asText(sourceMessageText).trim() || hasChatAttachment(row));
   }).flatMap(row => {
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
-    // Older workflow rows stored the latest customer and page bubbles in one
-    // summary row. Expand that legacy shape instead of rendering one bubble.
-    const hasDirectText = asText(row?.customer_message_text ?? row?.page_message_text ?? row?.message_text).trim();
-    const legacyBubbles = !hasDirectText
-      ? (row?.page_message_time_th && row?.customer_message_time_th
-        ? [
-            asText(row?.page_latest_message).trim() ? { ...row, _syntheticSpeaker: "page", _syntheticText: asText(row.page_latest_message).trim(), _syntheticOccurred: row.page_message_time_th, _syntheticTime: row.page_message_time_th } : null,
-            asText(row?.customer_latest_message).trim() ? { ...row, _syntheticSpeaker: "customer", _syntheticText: asText(row.customer_latest_message).trim(), _syntheticOccurred: row.customer_message_time_th, _syntheticTime: row.customer_message_time_th } : null,
-          ].filter(Boolean) as Record<string, unknown>[]
-        : [{ ...row, _syntheticSpeaker: isPage ? "page" : "customer", _syntheticText: asText(isPage ? row?.page_latest_message : row?.customer_latest_message).trim() }])
-      : [row];
-    return legacyBubbles.map(legacyRow => {
-    const sourceRow = legacyRow as any;
-    // สองโต๊ะต้นทางเป็น source of truth: Cust = ลูกค้า, Pg = เพจ
-    // เพราะบางรอบ n8n ใส่ speaker ผิดแถวจนข้อความลูกค้าถูกตีเป็นข้อความเพจ
-    const rawSpeaker = asText(sourceRow._syntheticSpeaker ?? sourceRow.speaker).trim().toLowerCase();
-    const isCustomer = !sourceRow._syntheticSpeaker && row._source_table === "Cust_Chat⭐BINARY_xXx_STAR";
-    const isSystem = /^(system|notification|event|bot|automation|automated)$/i.test(rawSpeaker);
-    const speaker = isSystem ? "system" : sourceRow._syntheticSpeaker ? rawSpeaker : isCustomer ? "customer" : isPage ? "page"
-      : rawSpeaker && /^(page|เพจ|admin|แอดมิน|outbound|เจ้าหน้าที่)$/i.test(rawSpeaker) ? "page" : "customer";
+    // The source table is authoritative: Cust = customer, Pg = page.
+    const speaker = isPage ? "page" : "customer";
     const isPageSpeaker = speaker === "page";
-    const messageText = asText(sourceRow._syntheticText ?? (isPageSpeaker ? sourceRow.page_message_text : sourceRow.customer_message_text)).trim()
-      || (isPageSpeaker ? asText(sourceRow.facebook_tracking_message).trim() : "")
-      || asText(sourceRow.message_text).trim();
-    const threadId = String(sourceRow.thread_id ?? sourceRow.threadId ?? "").trim();
+    const messageText = asText(isPageSpeaker ? row.page_message_text : row.customer_message_text).trim();
+    const threadId = String(row.thread_id ?? row.threadId ?? "").trim();
     const base = {
-      ...sourceRow,
-      _bubble_id: `${String(sourceRow._source_table ?? "chat")}:${String(sourceRow.id ?? sourceRow.message_row_id ?? sourceRow.message_id ?? sourceRow.dedupe_key ?? `${threadId}:${sourceRow.occurred_at ?? sourceRow.time ?? ""}`)}:${speaker}`,
-      // เชื่อค่า speaker ที่ผู้ใช้กำหนด; ใช้ต้นทางตารางสำรองเมื่อไม่มีค่าเท่านั้น
+      ...row,
+      _bubble_id: `${String(row._source_table ?? "chat")}:${String(row.id ?? row.message_row_id ?? row.message_id ?? row.dedupe_key ?? `${threadId}:${row.occurred_at ?? row.time ?? ""}`)}:${speaker}`,
       _speaker: speaker,
       _side: isPageSpeaker ? "right" : "left",
-      // ชื่อป้ายห้องมาจาก Facebook API เท่านั้น; customer_name เป็นชื่อในบิล ห้ามนำมาแทน
-      _name: isPageSpeaker ? sourceRow.page_name : sourceRow.facebook_name,
-      // ใช้ field ข้อความตามต้นทางโดยตรง; tracking ขาออกใช้ facebook_tracking_message เมื่อ page_message_text ว่าง
-      _text: messageText || (isPageSpeaker ? asText(row.facebook_tracking_message).trim() : ""),
+      _name: isPageSpeaker ? row.page_name : row.facebook_name,
+      _text: messageText,
       _thread: threadId,
-      _occurred: sourceRow._syntheticOccurred || sourceRow.occurred_at || sourceRow.time || (isPageSpeaker ? sourceRow.page_message_time_th : sourceRow.customer_message_time_th) || sourceRow.time_th,
-      time_th: sourceRow._syntheticTime || sourceRow.time_th || sourceRow.message_time_display || (isPageSpeaker ? sourceRow.page_message_time_th : sourceRow.customer_message_time_th),
-      _hasAttachment: hasChatAttachment(sourceRow),
+      _occurred: row.occurred_at || row.time || (isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th) || row.time_th,
+      time_th: isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th,
+      _hasAttachment: hasChatAttachment(row),
     };
     return base;
-    });
   }).sort((a, b) => {
     const timeDifference = (chatDateMs(a._occurred) ?? 0) - (chatDateMs(b._occurred) ?? 0);
     if (timeDifference) return timeDifference;
