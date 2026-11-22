@@ -7,16 +7,17 @@
 // ⚙️ [CONFIG] ตั้งค่าจำนวนวันย้อนหลังที่ต้องการดึง (0 = เฉพาะวันนี้เท่านั้น, 1 = ย้อนหลัง 1 วัน)
 const DAYS_LOOKBACK = 1; 
 
-const MASTERCONFIG = [
-  { "page_index": "ST_01", "page_id": "103411062505149", "page_name": "🎀BBεїзเบอร์หนึ่งสโตร์", "assigned_agent": "#ไนท์รา", "assigned_hashtag": "🔮#ST_ORDER_01" },
-  { "page_index": "ST_02", "page_id": "113923148350742", "page_name": "🎶BB ↠ STORE", "assigned_agent": "#Venika", "assigned_hashtag": "🔮#ST_ORDER_02" },
-  { "page_index": "ST_03", "page_id": "111414924711459", "page_name": "🍇BBสโตร์.", "assigned_agent": "#Mali", "assigned_hashtag": "🔮#ST_ORDER_03" },
-  { "page_index": "ST_04", "page_id": "1047257891810878", "page_name": "💗Bb store๐", "assigned_agent": "#🍉TANGMO", "assigned_hashtag": "🔮#ST_ORDER_04" },
-  { "page_index": "ST_05", "page_id": "1064404466767377", "page_name": "เจ๊บี 🅱🅱", "assigned_agent": "#👑เจ๊บี", "assigned_hashtag": "🔮#ST_ORDER_05" },
-  { "page_index": "ST_06", "page_id": "1235719106287717", "page_name": "🛒ร้าน:เจ๊บี", "assigned_agent": "#🍀ใบบัว", "assigned_hashtag": "🔮#ST_ORDER_06" },
-  { "page_index": "ST_07", "page_id": "1032290633303246", "page_name": "💬ร้าน:เจ๊ B", "assigned_agent": "💬#", "assigned_hashtag": "🔮#ST_ORDER_07" }
-];
 
+const MASTERCONFIG = [
+  { page_index: "ST_01", page_id: "148670205004124", page_name: "🔥สิงโตสโตร์ ↠", system_status: "ON", assigned_agent: "🧡#BellaAgent", assigned_hashtag: "⭐#SINGTO_ORDER_01" },
+  { page_index: "ST_02", page_id: "1021039111094473", page_name: "🧸𝓢𝓘𝓝𝓖𝓣𝓞 𝓢𝓣𝓞𝓡𝓔", system_status: "ON", assigned_agent: "🎀#GinaAgent", assigned_hashtag: "⭐#SINGTO_ORDER_02" },
+  { page_index: "ST_03", page_id: "144448588753724", page_name: "🍊สิงโตสโตร์", system_status: "ON", assigned_agent: "🍋#LemonAgent", assigned_hashtag: "⭐#SINGTO_ORDER_03" },
+  { page_index: "ST_04", page_id: "1123283834192813", page_name: "🏀สิงโต-สโตร์", system_status: "ON", assigned_agent: "👒#MilaAgent", assigned_hashtag: "⭐#SINGTO_ORDER_04" },
+  { page_index: "ST_05", page_id: "111653921912793", page_name: "🛕ST singto", system_status: "ON", assigned_agent: "🍊#SomJeedAgent", assigned_hashtag: "⭐#SINGTO_ORDER_05" },
+  { page_index: "ST_06", page_id: "1188184524374748", page_name: "🤠ร้าน:ลุงสิงโต", system_status: "ON", assigned_agent: "📈#[AVA]Agent", assigned_hashtag: "⭐#SINGTO_ORDER_06" },
+  { page_index: "ST_07", page_id: "1080716265134656", page_name: "🧮ร้าน:สิงโต", system_status: "ON", assigned_agent: "👳‍♂️ #ลุงสิงห์", assigned_hashtag: "⭐#SINGTO_ORDER_07" },
+//]
+];
 const PAGE_MAP = new Map(MASTERCONFIG.map(p => [String(p.page_id), p]));
 // ------------------------------------------------------------
 
