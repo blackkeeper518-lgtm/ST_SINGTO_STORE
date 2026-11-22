@@ -511,7 +511,6 @@ export default function MobileInbox() {
     }).filter(Boolean) : [];
     const detail = [textVariants[0] || "", !textVariants.length ? String(productInfo.description || "").trim() : "", !textVariants.length && blocks.length ? blocks.join("\n\n") : "", !textVariants.length ? String(productInfo.price || "").trim() ? `ราคา: ${String(productInfo.price).trim()}` : "" : "", !textVariants.length && !blocks.length && !String(productInfo.description || "").trim() && !String(productInfo.price || "").trim() ? product : ""].filter(Boolean).join("\n").trim();
     setReplyText(current => current.trim() ? `${current.trim()}\n${detail}`.trim() : detail);
-    setOrderDeckOpen(false);
     setNotice(`เตรียมสินค้า ${product} ลงช่องรอส่งแล้ว · ${textVariants.length ? "เลือกข้อความแรกเป็นร่าง" : "ไม่มีรูปก็ใช้ได้"}`);
   };
   const receiveProductImages = async (urls: string[], productName?: string) => {
@@ -523,7 +522,6 @@ export default function MobileInbox() {
       return;
     }
 
-    setOrderDeckOpen(false);
     setUploading(true);
     setNotice(`กำลังเตรียมภาพ${productName ? ` ${productName}` : "สินค้า"}…`);
     const additions: Array<{ url: string; sendUrl: string; name: string }> = [];

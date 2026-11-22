@@ -468,7 +468,6 @@ export default function ChatHub() {
     ].filter(Boolean).join("\n").trim();
     setReplyText(current => current.trim() ? `${current.trim()}\n${detail}`.trim() : detail);
     setComposerOpen(true);
-    setOrderDeckOpen(false);
     setProductImagesRequest(null);
     setReplyNotice(`เตรียมสินค้า ${product} ลงช่องรอส่งแล้ว · ${textVariants.length ? "เลือกข้อความแรกเป็นร่าง" : "ไม่มีรูปก็ใช้ข้อมูลสินค้าได้"}`);
   };
