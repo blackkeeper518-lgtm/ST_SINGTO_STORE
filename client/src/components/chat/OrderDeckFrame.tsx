@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { buildOrderDeckContextMessage } from "@/lib/order-deck-context";
+import { getSupabaseConfig } from "@/lib/canonical";
+import { useGlobalThemeRuntime } from "@/contexts/GlobalThemeRuntime";
 
 type OrderDeckFrameProps = {
   pageId: string;
@@ -25,7 +27,15 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
   const currentProps = useRef(props);
   const handledMessageRequestId = useRef<number | null>(null);
   const [frameReady, setFrameReady] = useState(false);
+  const { theme } = useGlobalThemeRuntime();
   currentProps.current = props;
+
+  const sharedProjects = useMemo(() => ["main", "tracking", "parcel", "vault"]
+    .map(project => {
+      const config = getSupabaseConfig("ST", project as "main" | "tracking" | "parcel" | "vault");
+      return config ? { url: config.url, anonKey: config.anonKey, label: project.toUpperCase() } : null;
+    })
+    .filter((project): project is { url: string; anonKey: string; label: string } => Boolean(project)), []);
 
   const sendContext = useCallback((importSelectedCustomerMessage = false) => {
     const target = frameRef.current?.contentWindow;
@@ -45,6 +55,30 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
     target.postMessage({ type: "ST_ORDER_DECK_REQUEST_PRODUCT_INDEX" }, window.location.origin);
   }, []);
 
+  const sendSharedRuntime = useCallback(() => {
+    const target = frameRef.current?.contentWindow;
+    if (!target || typeof window === "undefined") return;
+    target.postMessage({
+      type: "ST_SHARED_RUNTIME",
+      theme: {
+        themeKey: theme.themeKey,
+        bg: theme.bg,
+        surface: theme.surface,
+        primary: theme.primary,
+        accent: theme.accent,
+        textPrimary: theme.textPrimary,
+        textSecondary: theme.textSecondary,
+        fontBody: theme.fontBody,
+        fontHeading: theme.fontHeading,
+        graphicUrl: theme.graphicUrl,
+        radius: theme.radius,
+        glow: theme.glow,
+        motion: theme.motion,
+      },
+      projects: sharedProjects,
+    }, window.location.origin);
+  }, [sharedProjects, theme]);
+
   useEffect(() => {
     const request = props.messageRequest;
     if (!frameReady || !request || handledMessageRequestId.current === request.id) return;
@@ -55,7 +89,8 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
 
   useEffect(() => {
     sendContext(false);
-  }, [props.pageId, props.pageName, props.threadId, sendContext]);
+    sendSharedRuntime();
+  }, [props.pageId, props.pageName, props.threadId, sendContext, sendSharedRuntime]);
 
   useEffect(() => {
     const request = props.productImagesRequest;
@@ -109,7 +144,7 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
       ref={frameRef}
       src="/order-deck.html?embedded=1"
       title="DRΛKSIDE Order Deck — เครื่องมือสรุปบิล"
-      onLoad={() => { setFrameReady(true); sendContext(false); requestProductIndex(); }}
+      onLoad={() => { setFrameReady(true); sendContext(false); sendSharedRuntime(); requestProductIndex(); }}
       className="min-h-0 w-full flex-1 rounded-lg border border-violet-300/15 bg-[#0b0b15]"
     />
     <p className="shrink-0 text-[9px] leading-4 text-cyan-100/40">{props.messageMode === "latest" ? "ปุ่ม “ดึงล่าสุด · บิล” จะนำข้อความลูกค้าล่าสุดที่ใช้ได้เข้าร่างเมื่อกดเท่านั้น · ข้อความภาพ/สติ๊กเกอร์จะไม่ใช้ข้อความเก่าทดแทน · ไม่ส่งแชทอัตโนมัติ" : "เปิดแผงไม่ดึงข้อมูล · เลือกข้อความในแชท แล้วกด “ดึงข้อมูลลูกค้า” เพื่อเติมชื่อเพจและแทนที่ข้อความเดิมด้วยข้อความนั้นเพียงอันเดียว · ไม่ส่งแชทอัตโนมัติ"}</p>

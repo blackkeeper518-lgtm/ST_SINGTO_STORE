@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getSupabase } from "@/lib/canonical";
+import { getSupabase, getSupabaseConfig } from "@/lib/canonical";
 import { CYBER_THEME_PRESETS, DEFAULT_CYBER_THEME, type CyberTheme } from "@/lib/theme-lab";
 
 const GLOBAL_THEME_KEY = "st-bb-global-theme-key-v1";
 const GLOBAL_THEME_EVENT = "st-bb-global-theme-change";
+const GLOBAL_THEME_PAYLOAD_KEY = "st-bb-global-theme-payload-v1";
+const GLOBAL_PUBLIC_CONFIG_KEY = "st-bb-global-public-config-v1";
 
 type GlobalThemeRow = {
   theme_key?: string;
@@ -116,6 +118,18 @@ export function GlobalThemeRuntime({ children }: { children: React.ReactNode }) 
   }, []);
 
   const theme = useMemo(() => themes.find(item => item.themeKey === activeKey) ?? themes[0] ?? fallbackTheme(), [activeKey, themes]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(GLOBAL_THEME_PAYLOAD_KEY, JSON.stringify(theme));
+      const projects = ["main", "tracking", "parcel", "vault"]
+        .map(project => {
+          const config = getSupabaseConfig("ST", project as "main" | "tracking" | "parcel" | "vault");
+          return config ? { url: config.url, anonKey: config.anonKey, label: project.toUpperCase() } : null;
+        })
+        .filter(Boolean);
+      localStorage.setItem(GLOBAL_PUBLIC_CONFIG_KEY, JSON.stringify(projects));
+    } catch { /* private mode or blocked storage */ }
+  }, [theme]);
   const selectTheme = (next: GlobalTheme) => {
     setActiveKey(next.themeKey);
     try { localStorage.setItem(GLOBAL_THEME_KEY, next.themeKey); window.dispatchEvent(new CustomEvent(GLOBAL_THEME_EVENT)); } catch { /* private mode */ }
