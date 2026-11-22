@@ -255,31 +255,61 @@ export async function recordOutgoingChatMessage(input: { portalKey?: string; cha
     sync_status: "SENT",
     dedupe_key: messageId ? `${roomChatLinkKey}:${messageId}` : `${roomChatLinkKey}:${iso}`,
   };
+  const isMissingPageMessageTextColumn = (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error ?? "");
+    return /page_message_text/i.test(message) && /PGRST204|42703|column|schema cache|could not find/i.test(message);
+  };
+  const postPageMessage = (payload: unknown) =>
+    supabasePost<Record<string, unknown>[]>(encodeURIComponent(CHAT_PAGE_TABLE), payload, "chat", "return=representation", credentials);
   try {
-    return await supabasePost<Record<string, unknown>[]>(encodeURIComponent(CHAT_PAGE_TABLE), pageMessagePayload, "chat", "return=representation", credentials);
+    return await postPageMessage(pageMessagePayload);
   } catch (error) {
+    let insertError = error;
+    // The base chat DDL has message_text; page_message_text is an optional follow-up migration.
+    // Retry with the BB-compatible base field if that migration is not present in this project.
+    if (isMissingPageMessageTextColumn(error)) {
+      const { page_message_text: _unsupportedField, ...legacyPayload } = pageMessagePayload;
+      try {
+        return await postPageMessage(legacyPayload);
+      } catch (legacyError) {
+        insertError = legacyError;
+      }
+    }
     // A webhook may have inserted the Meta message first. In that race, the
     // provider message_id is unique; enrich that existing row with the image
     // instead of losing the attachment after the next polling refresh.
-    if (!messageId || !attachmentUrl) throw error;
-    const patched = await supabasePatch<Record<string, unknown>[]>(
-      `${encodeURIComponent(CHAT_PAGE_TABLE)}?message_id=eq.${encodeURIComponent(messageId)}`,
-      {
-        page_message_text: pageMessagePayload.page_message_text,
-        message_text: pageMessagePayload.message_text,
-        has_attachment: true,
-        attachment_type: "image",
-        attachment_url: attachmentUrl,
-        attachment_urls: [attachmentUrl],
-        attachments_raw: [{ url: attachmentUrl, type: "image" }],
-        is_sent: true,
-        sync_status: "SENT",
-      },
-      "chat",
-      credentials,
-    );
-    if (patched.length) return patched;
-    throw error;
+    if (!messageId || !attachmentUrl) throw insertError;
+    const patchPayload = {
+      page_message_text: pageMessagePayload.page_message_text,
+      message_text: pageMessagePayload.message_text,
+      has_attachment: true,
+      attachment_type: "image",
+      attachment_url: attachmentUrl,
+      attachment_urls: [attachmentUrl],
+      attachments_raw: [{ url: attachmentUrl, type: "image" }],
+      is_sent: true,
+      sync_status: "SENT",
+    };
+    try {
+      const patched = await supabasePatch<Record<string, unknown>[]>(
+        `${encodeURIComponent(CHAT_PAGE_TABLE)}?message_id=eq.${encodeURIComponent(messageId)}`,
+        patchPayload,
+        "chat",
+        credentials,
+      );
+      if (patched.length) return patched;
+    } catch (patchError) {
+      if (!isMissingPageMessageTextColumn(patchError)) throw patchError;
+      const { page_message_text: _unsupportedField, ...legacyPatchPayload } = patchPayload;
+      const patched = await supabasePatch<Record<string, unknown>[]>(
+        `${encodeURIComponent(CHAT_PAGE_TABLE)}?message_id=eq.${encodeURIComponent(messageId)}`,
+        legacyPatchPayload,
+        "chat",
+        credentials,
+      );
+      if (patched.length) return patched;
+    }
+    throw insertError;
   }
 }
 export async function fetchParcelMappingQueue(input: { status: "all" | "sent"; limit: number }) {

@@ -721,14 +721,15 @@ function normalizeChatReadRows(sourceRows: any[]) {
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
     // ChatHub has exactly two message lanes. Do not promote tracking/order
     // fields or legacy summary fields into a chat bubble.
-    const sourceMessageText = isPage ? row?.page_message_text : row?.customer_message_text;
+    // message_text is the base DDL field; the lane-specific fields are optional migrations.
+    const sourceMessageText = isPage ? (row?.page_message_text || row?.message_text) : (row?.customer_message_text || row?.message_text);
     return Boolean(asText(sourceMessageText).trim() || hasChatAttachment(row));
   }).flatMap(row => {
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
     // The source table is authoritative: Cust = customer, Pg = page.
     const speaker = isPage ? "page" : "customer";
     const isPageSpeaker = speaker === "page";
-    const messageText = asText(isPageSpeaker ? row.page_message_text : row.customer_message_text).trim();
+    const messageText = asText(isPageSpeaker ? (row.page_message_text || row.message_text) : (row.customer_message_text || row.message_text)).trim();
     const threadId = String(row.thread_id ?? row.threadId ?? "").trim();
     const base = {
       ...row,

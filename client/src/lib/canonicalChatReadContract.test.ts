@@ -356,6 +356,24 @@ describe("ChatHub read contract v5", () => {
     expect(message.text).toBe("ลูกค้าทักมาก่อน ขอเช็กค่าส่งหน่อยค่ะ");
   });
 
+  it("reads the base message_text field when the per-message migration is absent", () => {
+    const [message] = mapChatRowsToMessages([{
+      _source_table: CHAT_PAGE_TABLE,
+      id: 55,
+      page_id: "page-1",
+      thread_id: "thread-1",
+      speaker: "page",
+      message_text: "📷 ส่งรูปภาพ",
+      has_attachment: true,
+      attachment_url: "https://cdn.example.test/photo.jpg",
+      occurred_at: "2026-11-23T00:00:00.000Z",
+    }]);
+
+    expect(message.direction).toBe("outbound");
+    expect(message.text).toBe("📷 ส่งรูปภาพ");
+    expect(message.attachmentsJson).toContain("https://cdn.example.test/photo.jpg");
+  });
+
   it("preserves explicit system speakers so they cannot be selected as customer messages", () => {
     const [message] = mapChatRowsToMessages([{
       _source_table: CHAT_CUSTOMER_TABLE,

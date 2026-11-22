@@ -113,7 +113,7 @@ export default function ChatHub() {
   const [stickerId, setStickerId] = useState("");
   const [optimisticMessages, setOptimisticMessages] = useState<any[]>([]);
   const optimisticMessageIdRef = useRef<string | null>(null);
-  const [deliveryStatus, setDeliveryStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const [deliveryStatus, setDeliveryStatus] = useState<"idle" | "sending" | "sent" | "warning" | "failed">("idle");
   const [replyNotice, setReplyNotice] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -292,8 +292,11 @@ export default function ChatHub() {
   const sendReply = trpc.chat.sendReply.useMutation({
     onMutate: () => { setDeliveryStatus("sending"); setReplyNotice("กำลังส่งไปยัง Facebook…"); },
     onSuccess: result => {
-      setDeliveryStatus("sent");
-      setReplyNotice("ส่งข้อความสำเร็จแล้ว");
+      const historyFailed = result.chatHistoryPersisted === false;
+      setDeliveryStatus(historyFailed ? "warning" : "sent");
+      setReplyNotice(historyFailed
+        ? "Meta รับคำสั่งแล้ว แต่บันทึกประวัติแชทไม่สำเร็จ · อย่าส่งซ้ำก่อนตรวจสอบ"
+        : "ส่งข้อความสำเร็จแล้ว");
       if (result.message_id) {
         setOptimisticMessages(current => current.map(message => message.id === optimisticMessageIdRef.current ? { ...message, messageId: result.message_id } : message));
       }
@@ -621,7 +624,7 @@ export default function ChatHub() {
     <div className={`chat-cosmos-composer mt-auto flex shrink-0 flex-col overflow-hidden border-t border-cyan-300/20 bg-gradient-to-b from-[#111326] to-[#090c14] p-3 shadow-[0_-8px_28px_rgba(34,211,238,.05)] sm:p-4 transition-[height] duration-300 ${composerOpen ? "chat-cosmos-composer--open" : "h-12 min-h-12"}`}><div className="mb-2 flex shrink-0 items-center justify-between gap-2 border-b border-fuchsia-500/10 pb-2">
       <div className="flex min-w-0 flex-1 items-center gap-1.5" aria-live="polite">
         {imageUploading ? <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[10px] text-cyan-200"><LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin" />กำลังอัปโหลดภาพ…</span> : replyImages.length ? <div className="flex min-w-0 max-w-[48vw] items-center gap-1.5 overflow-x-auto sm:max-w-[360px]">{replyImages.map((image, index) => <div key={image.url} className="relative shrink-0"><img src={image.url} alt={`ภาพแนบ ${index + 1}`} className="h-9 w-9 rounded-md border border-cyan-300/25 object-cover" /><button type="button" aria-label={`เอาภาพที่ ${index + 1} ออก`} onClick={() => setReplyImages(current => current.filter((_, imageIndex) => imageIndex !== index))} className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1 text-[9px] leading-4 text-white">×</button></div>)}<span className="text-[9px] text-emerald-300">{replyImages.length}/4</span></div> : <span className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-100/45">กล่องตอบแชท</span>}
-        {replyNotice && ((!replyImages.length && !imageUploading) || deliveryStatus === "failed") ? <span className={`min-w-0 truncate text-[10px] ${deliveryStatus === "sent" ? "text-emerald-300" : deliveryStatus === "failed" ? "text-rose-300" : "text-cyan-200"}`}>{replyNotice}</span> : null}
+        {replyNotice && ((!replyImages.length && !imageUploading) || deliveryStatus === "failed") ? <span className={`min-w-0 truncate text-[10px] ${deliveryStatus === "sent" ? "text-emerald-300" : deliveryStatus === "warning" ? "text-amber-300" : deliveryStatus === "failed" ? "text-rose-300" : "text-cyan-200"}`}>{replyNotice}</span> : null}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {([ ["all", "ทั้งหมด", MessagesSquare], ["customer", "ลูกค้า", UserRound], ["page", "เพจ", Megaphone] ] as const).map(([value, label, Icon]) => <button key={value} type="button" title={label} aria-label={`กรองข้อความ: ${label}`} aria-pressed={messageFilter === value} onClick={() => setMessageFilter(value)} className={`chat-tool-action chat-tool-action--icon ${messageFilter === value ? "chat-tool-action--active" : ""}`}><Icon className="h-4 w-4" /></button>)}
