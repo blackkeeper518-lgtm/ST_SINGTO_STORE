@@ -31,6 +31,13 @@
     root.style.setProperty("--shared-theme-muted", muted);
     root.style.setProperty("--shared-theme-radius", radius + "px");
     root.style.setProperty("--shared-theme-glow", glow + "px");
+    root.style.setProperty("--deck-bg", bg);
+    root.style.setProperty("--deck-surface", surface);
+    root.style.setProperty("--deck-primary", primary);
+    root.style.setProperty("--deck-accent", accent);
+    root.style.setProperty("--deck-text", text);
+    root.style.setProperty("--deck-muted", muted);
+    root.style.setProperty("--deck-glow", glow + "px");
     root.style.setProperty("--visual-bg", bg);
     root.style.setProperty("--visual-card", surface);
     root.style.setProperty("--visual-neon", primary);
