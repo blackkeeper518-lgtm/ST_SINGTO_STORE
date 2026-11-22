@@ -167,8 +167,9 @@ export default function ChatHub() {
   const threadsQuery = trpc.chat.threads.useQuery({ surface: "web" }, {
     enabled: hasBrowserChatConfig,
     staleTime: 0,
-    // Workflow chat runs once per minute and usually takes 34–45 seconds.
-    refetchInterval: 60_000,
+    // n8n starts once per minute; poll faster so the next completed run is
+    // visible without waiting for another full workflow interval.
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -209,7 +210,7 @@ export default function ChatHub() {
   const messagesQuery = trpc.chat.messages.useQuery({ pageId: selectedPageId, threadId: selectedThreadId, surface: "web" }, {
     enabled: hasBrowserChatConfig && Boolean(selectedPageId && selectedThreadId),
     staleTime: 0,
-    refetchInterval: 60_000,
+    refetchInterval: 15_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
