@@ -16,7 +16,11 @@ ZIP นี้รวมไฟล์ที่แก้ใน repo ST_STORE_ORDERS:
 >>>>>>> 43e6424667ed1287fd6f77e3e0106d0bee247601
 3. Save แล้วทดสอบออเดอร์ตัวอย่าง
 
+<<<<<<< HEAD
 ไฟล์ `👑ST_ORDER_SYSTEMS_FULL.json` เป็น source snapshot ที่ซิงก์กับ JS แล้ว ไม่ได้แนะนำให้นำ workflow ทั้งก้อนไป Import ทับ n8n ที่กำลังใช้งาน เพราะอาจกระทบ connection/credential
+=======
+ไฟล์ `ST_ORDER_SYSTEMS_FULL.json` เป็น source snapshot ที่ซิงก์กับ JS แล้ว ไม่ได้แนะนำให้นำ workflow ทั้งก้อนไป Import ทับ n8n ที่กำลังใช้งาน เพราะอาจกระทบ connection/credential
+>>>>>>> ea4698d0c1111ab75f4903c3f98aa420545a0ff8
 
 สิ่งที่รวมใน V3
 - การ์ด `02 / ก้อนออเดอร์แท้` ขอบ/แสงชมพูนีออนชัดขึ้น และ badge SOURCE เปลี่ยนเป็นชมพู
