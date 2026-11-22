@@ -229,6 +229,7 @@ export async function recordOutgoingChatMessage(input: { portalKey?: string; cha
   // Pg Chat is append-only for outgoing messages. Keep this payload limited to
   // columns that exist in Pg_Chat⭐BINARY_xXx_STAR; do not write to the order
   // control table from the chat lane.
+  const attachmentUrl = input.imageUrl?.trim() || null;
   const pageMessagePayload = {
     chat_link_key: chatLinkKey,
     page_id: input.pageId,
@@ -244,13 +245,42 @@ export async function recordOutgoingChatMessage(input: { portalKey?: string; cha
     message_time_display: iso,
     message_text: input.text?.trim() || (input.imageUrl ? "📷 ส่งรูปภาพ" : null),
     page_message_text: input.text?.trim() || (input.imageUrl ? "📷 ส่งรูปภาพ" : null),
-    attachment_url: input.imageUrl?.trim() || null,
+    has_attachment: Boolean(attachmentUrl),
+    attachment_type: attachmentUrl ? "image" : null,
+    attachment_url: attachmentUrl,
+    attachment_urls: attachmentUrl ? [attachmentUrl] : [],
+    attachments_raw: attachmentUrl ? [{ url: attachmentUrl, type: "image" }] : [],
     page_latest_message: input.text?.trim() || (input.imageUrl ? "📷 ส่งรูปภาพ" : null),
     page_message_time_th: iso,
     sync_status: "SENT",
     dedupe_key: messageId ? `${roomChatLinkKey}:${messageId}` : `${roomChatLinkKey}:${iso}`,
   };
-  return supabasePost<Record<string, unknown>[]>(encodeURIComponent(CHAT_PAGE_TABLE), pageMessagePayload, "chat", "return=representation", credentials);
+  try {
+    return await supabasePost<Record<string, unknown>[]>(encodeURIComponent(CHAT_PAGE_TABLE), pageMessagePayload, "chat", "return=representation", credentials);
+  } catch (error) {
+    // A webhook may have inserted the Meta message first. In that race, the
+    // provider message_id is unique; enrich that existing row with the image
+    // instead of losing the attachment after the next polling refresh.
+    if (!messageId || !attachmentUrl) throw error;
+    const patched = await supabasePatch<Record<string, unknown>[]>(
+      `${encodeURIComponent(CHAT_PAGE_TABLE)}?message_id=eq.${encodeURIComponent(messageId)}`,
+      {
+        page_message_text: pageMessagePayload.page_message_text,
+        message_text: pageMessagePayload.message_text,
+        has_attachment: true,
+        attachment_type: "image",
+        attachment_url: attachmentUrl,
+        attachment_urls: [attachmentUrl],
+        attachments_raw: [{ url: attachmentUrl, type: "image" }],
+        is_sent: true,
+        sync_status: "SENT",
+      },
+      "chat",
+      credentials,
+    );
+    if (patched.length) return patched;
+    throw error;
+  }
 }
 export async function fetchParcelMappingQueue(input: { status: "all" | "sent"; limit: number }) {
   // These are quoted PostgreSQL relation names; keep the space after the emoji.
