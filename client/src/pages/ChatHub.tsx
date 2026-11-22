@@ -167,7 +167,8 @@ export default function ChatHub() {
   const threadsQuery = trpc.chat.threads.useQuery({ surface: "web" }, {
     enabled: hasBrowserChatConfig,
     staleTime: 0,
-    refetchInterval: 30_000,
+    // Workflow chat runs once per minute and usually takes 34–45 seconds.
+    refetchInterval: 60_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -199,12 +200,16 @@ export default function ChatHub() {
   const selectedPageId = selected?.pageId ?? selected?.orders[0]?.page_id ?? "";
   const selectedThreadId = selected?.threadId ?? "";
   const selectedCustomerId = selected?.customerId ?? "";
-  const selectedMetaInboxUrl = buildMetaConversationUrl(selected?.chatLinkKey);
+  // Historical rows may not have chat_link_key; page_id + thread_id are the
+  // same canonical key accepted by the Meta URL helper.
+  const selectedMetaInboxUrl = buildMetaConversationUrl(
+    selected?.chatLinkKey || (selectedPageId && selectedThreadId ? `${selectedPageId}_t_${selectedThreadId}` : ""),
+  );
   const [handoffTracking, setHandoffTracking] = useState<Record<string, any> | null>(null);
   const messagesQuery = trpc.chat.messages.useQuery({ pageId: selectedPageId, threadId: selectedThreadId, surface: "web" }, {
     enabled: hasBrowserChatConfig && Boolean(selectedPageId && selectedThreadId),
     staleTime: 0,
-    refetchInterval: 15_000,
+    refetchInterval: 60_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -558,7 +563,7 @@ export default function ChatHub() {
   </div>;
 
   const conversation = selected ? <div className="chat-cosmos-conversation flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 bg-gradient-to-r from-cyan-400/[0.035] via-transparent to-fuchsia-500/[0.06] px-4 py-3 sm:px-5"><div className="flex min-w-0 items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 via-violet-500/20 to-fuchsia-500/25 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,.12)]"><CircleUserRound className="h-5 w-5" /></div><div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-1.5"><span className={`chat-room-code-label ${isOrderRoom(selected) ? "cod-room-header" : ""} ${hasTimeSlotLabel(selected) ? "time-slot-room-sign" : ""} rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold`} title={selected.timeSlotLabel || undefined}>ROOM · {selected.pageId ? selected.pageId.slice(-4) : "ST"}{isOrderRoom(selected) ? " ⚡" : ""}{hasTimeSlotLabel(selected) ? " 🔥" : ""}</span></div><h2 className="chat-customer-name-label truncate text-sm font-semibold">{selected.customerName || ""}</h2><div className="mt-1 flex items-center gap-2 text-xs text-cyan-100/55"><span className="truncate">{selected.pageName}</span><span>·</span><span>{timeLabel(selected.latestAt)}</span></div></div></div><div className="flex max-w-full flex-wrap items-center justify-end gap-2"><Badge className="hidden border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 sm:inline-flex">● ONLINE</Badge><div className="chat-conversation-actions"><Button size="sm" variant="outline" onClick={confirmSelectedOrder} disabled={selectedConfirmed || confirmOrder.isPending} className="chat-tool-action h-8 px-3">{selectedConfirmed ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" />ยืนยันแล้ว</> : confirmOrder.isPending ? "กำลังบันทึก…" : "ยืนยันเป็นออเดอร์"}</Button><Button size="sm" variant="outline" onClick={() => setOrderDetailOpen(true)} className="chat-tool-action h-8 px-3" title="ดูออเดอร์ที่เชื่อมกับห้องนี้">ออเดอร์ ({selected.orderCount ?? linkedOrders.length ?? 0})</Button><Button size="sm" onClick={openOrderSummary} className="chat-tool-action h-8 px-3">สรุปออเดอร์</Button></div>{isMobile ? <button onClick={() => setMobileOpen(false)} className="rounded-xl p-2 text-fuchsia-100/55 hover:bg-fuchsia-500/10 hover:text-white" aria-label="ปิดห้องแชท"><X className="h-5 w-5" /></button> : null}</div></div>
+    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 bg-gradient-to-r from-cyan-400/[0.035] via-transparent to-fuchsia-500/[0.06] px-4 py-3 sm:px-5"><div className="flex min-w-0 items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 via-violet-500/20 to-fuchsia-500/25 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,.12)]"><CircleUserRound className="h-5 w-5" /></div><div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-1.5"><span className={`chat-room-code-label ${isOrderRoom(selected) ? "cod-room-header" : ""} ${hasTimeSlotLabel(selected) ? "time-slot-room-sign" : ""} rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold`} title={selected.timeSlotLabel || undefined}>ROOM · {selected.pageId ? selected.pageId.slice(-4) : "ST"}{isOrderRoom(selected) ? " ⚡" : ""}{hasTimeSlotLabel(selected) ? " 🔥" : ""}</span></div><h2 className="chat-customer-name-label truncate text-sm font-semibold">{selected.customerName || ""}</h2><div className="mt-1 flex items-center gap-2 text-xs text-cyan-100/55"><span className="truncate">{selected.pageName}</span><span>·</span><span>{timeLabel(selected.latestAt)}</span></div></div></div><div className="flex max-w-full flex-wrap items-center justify-end gap-2"><Badge className="hidden border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 sm:inline-flex">● ONLINE</Badge>{selectedMetaInboxUrl ? <a href={selectedMetaInboxUrl} target="_blank" rel="noopener noreferrer" title="เปิดบทสนทนานี้ใน Meta Business Suite" className="chat-tool-action chat-tool-action--primary inline-flex h-8 items-center gap-1.5 px-2.5"><ExternalLink className="h-3.5 w-3.5" />แชทจริง</a> : <span title="ห้องนี้ยังไม่มี page_id/thread_id ที่ใช้เปิด Meta ได้" className="inline-flex h-8 items-center rounded-lg border border-amber-300/20 bg-amber-300/[0.06] px-2 text-[10px] text-amber-200/60">ไม่มีลิงก์ Meta</span>}<div className="chat-conversation-actions"><Button size="sm" variant="outline" onClick={confirmSelectedOrder} disabled={selectedConfirmed || confirmOrder.isPending} className="chat-tool-action h-8 px-3">{selectedConfirmed ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" />ยืนยันแล้ว</> : confirmOrder.isPending ? "กำลังบันทึก…" : "ยืนยันเป็นออเดอร์"}</Button><Button size="sm" variant="outline" onClick={() => setOrderDetailOpen(true)} className="chat-tool-action h-8 px-3" title="ดูออเดอร์ที่เชื่อมกับห้องนี้">ออเดอร์ ({selected.orderCount ?? linkedOrders.length ?? 0})</Button><Button size="sm" onClick={openOrderSummary} className="chat-tool-action h-8 px-3">สรุปออเดอร์</Button></div>{isMobile ? <button onClick={() => setMobileOpen(false)} className="rounded-xl p-2 text-fuchsia-100/55 hover:bg-fuchsia-500/10 hover:text-white" aria-label="ปิดห้องแชท"><X className="h-5 w-5" /></button> : null}</div></div>
     <div ref={chatTimelineRef} onScroll={handleTimelineScroll} className="chat-cosmos-timeline relative min-h-0 flex-1 flex flex-col justify-start gap-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_82%_8%,rgba(16,185,129,0.12),transparent_28%),radial-gradient(circle_at_12%_74%,rgba(168,85,247,0.11),transparent_30%),linear-gradient(135deg,#080c15,#0d0914_56%,#090b12)] p-4 sm:p-5 [-webkit-overflow-scrolling:touch]">
       {showNewMessages ? <button type="button" onClick={jumpToLatest} className="sticky bottom-3 left-1/2 z-20 mx-auto -mb-10 rounded-full border border-fuchsia-300/30 bg-gradient-to-r from-fuchsia-600 via-violet-600 to-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_24px_rgba(168,85,247,0.45)] transition hover:scale-105">ข้อความใหม่ · ลงล่างสุด</button> : null}
       {messagesQuery.isFetching ? <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-fuchsia-400/20 bg-[#15101d]/90 px-2.5 py-1 text-[10px] text-fuchsia-200"><LoaderCircle className="h-3 w-3 animate-spin" />กำลังอัปเดต</div> : null}
@@ -571,7 +576,7 @@ export default function ChatHub() {
           </div>
         </div>;
       }) : <div className="rounded-2xl border border-fuchsia-500/10 bg-black/20 p-4 text-sm leading-6 text-fuchsia-100/60"><p>{selected.preview}</p></div>}</> : null}
-      {visibleStoredMessages.map(message => {
+      {visibleStoredMessages.map((message, messageIndex) => {
         const isRight = ("side" in message && message.side === "right") || message.direction === "outbound" || message.senderType === "page";
         const isCustomerMessage = isSelectableCustomerMessage(message);
         const senderName = isRight ? (selected.pageName || "เพจ") : (selected.customerName || "");
@@ -581,7 +586,7 @@ export default function ChatHub() {
         const mediaOnly = attachments.length > 0 && isImagePlaceholder;
         const messageId = String(message.id ?? message.messageId ?? `${message.occurredAt ?? ""}:${text}`);
         const isSelected = isCustomerMessage && !isRight && selectedOrderMessage?.threadKey === selected.key && selectedOrderMessage.id === messageId;
-        return <div key={message.id} className={`flex w-full shrink-0 flex-col ${isRight ? "items-end" : "items-start"}`}>
+        return <div key={`${String(message.id)}:${messageIndex}`} className={`flex w-full shrink-0 flex-col ${isRight ? "items-end" : "items-start"}`}>
           <div className={`chat-message-bubble chat-bubble-frame ${isRight ? "chat-message-bubble--page rounded-br-md" : "chat-message-bubble--customer rounded-bl-md"} ${cyberFrameRooms[selected.key] || cyberFrame ? `cyber-frame-card cyber-frame-${cyberFrameRooms[selected.key] || cyberFrame}` : ""} min-w-0 max-w-[86%] shrink-0 break-words rounded-2xl ${mediaOnly ? "p-1.5" : "px-4 py-3"} text-sm leading-6 shadow-lg`}>
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-60">{senderName}</p>
             {(!attachments.length || !isImagePlaceholder) ? <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{displayMessageText(message)}</p> : null}

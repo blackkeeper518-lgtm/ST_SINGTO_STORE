@@ -668,10 +668,13 @@ export async function readDailyParcels(date: string, search = "") {
   return { parcels, total: parcels.length, sourceTable: "parcels", fetchedAt: new Date().toISOString() };
 }
 function chatSourceRowDedupKey(row: any) {
+  // Cust and Pg are separate source-of-truth lanes. A provider id can
+  // legitimately appear in both lanes, so never dedupe across the tables.
+  const source = asText(row?._source_table).trim() || "chat";
   const messageId = asText(row?.message_id).trim();
-  if (messageId && !/^(null|undefined)$/i.test(messageId)) return `message:${messageId}`;
+  if (messageId && !/^(null|undefined)$/i.test(messageId)) return `${source}:message:${messageId}`;
   const dedupeKey = asText(row?.dedupe_key).trim();
-  if (dedupeKey && !/^(null|undefined)$/i.test(dedupeKey)) return `dedupe:${dedupeKey}`;
+  if (dedupeKey && !/^(null|undefined)$/i.test(dedupeKey)) return `${source}:dedupe:${dedupeKey}`;
   return "";
 }
 function dedupeChatSourceRows(sourceRows: any[]) {
@@ -709,36 +712,54 @@ function normalizeChatReadRows(sourceRows: any[]) {
     if (!hasRoomKey) return false;
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
     // แถว delivery/status อย่างเดียวไม่ใช่ข้อความแชท และห้ามเปิดเป็นห้องเปล่า
-    const sourceMessageText = isPage ? row?.page_message_text : row?.customer_message_text;
-    return Boolean(asText(sourceMessageText).trim() || (isPage && asText(row?.facebook_tracking_message).trim()) || hasChatAttachment(row));
+    const sourceMessageText = isPage
+      ? row?.page_message_text ?? row?.message_text ?? row?.page_latest_message
+      : row?.customer_message_text ?? row?.message_text ?? row?.customer_latest_message;
+    return Boolean(asText(sourceMessageText).trim() || asText(row?.customer_latest_message).trim() || asText(row?.page_latest_message).trim() || (isPage && asText(row?.facebook_tracking_message).trim()) || hasChatAttachment(row));
   }).flatMap(row => {
     const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
+    // Older workflow rows stored the latest customer and page bubbles in one
+    // summary row. Expand that legacy shape instead of rendering one bubble.
+    const hasDirectText = asText(row?.customer_message_text ?? row?.page_message_text ?? row?.message_text).trim();
+    const legacyBubbles = !hasDirectText
+      ? (row?.page_message_time_th && row?.customer_message_time_th
+        ? [
+            asText(row?.page_latest_message).trim() ? { ...row, _syntheticSpeaker: "page", _syntheticText: asText(row.page_latest_message).trim(), _syntheticOccurred: row.page_message_time_th, _syntheticTime: row.page_message_time_th } : null,
+            asText(row?.customer_latest_message).trim() ? { ...row, _syntheticSpeaker: "customer", _syntheticText: asText(row.customer_latest_message).trim(), _syntheticOccurred: row.customer_message_time_th, _syntheticTime: row.customer_message_time_th } : null,
+          ].filter(Boolean) as Record<string, unknown>[]
+        : [{ ...row, _syntheticSpeaker: isPage ? "page" : "customer", _syntheticText: asText(isPage ? row?.page_latest_message : row?.customer_latest_message).trim() }])
+      : [row];
+    return legacyBubbles.map(legacyRow => {
+    const sourceRow = legacyRow as any;
     // สองโต๊ะต้นทางเป็น source of truth: Cust = ลูกค้า, Pg = เพจ
     // เพราะบางรอบ n8n ใส่ speaker ผิดแถวจนข้อความลูกค้าถูกตีเป็นข้อความเพจ
-    const rawSpeaker = asText(row.speaker).trim().toLowerCase();
-    const isCustomer = row._source_table === "Cust_Chat⭐BINARY_xXx_STAR";
+    const rawSpeaker = asText(sourceRow._syntheticSpeaker ?? sourceRow.speaker).trim().toLowerCase();
+    const isCustomer = !sourceRow._syntheticSpeaker && row._source_table === "Cust_Chat⭐BINARY_xXx_STAR";
     const isSystem = /^(system|notification|event|bot|automation|automated)$/i.test(rawSpeaker);
-    const speaker = isSystem ? "system" : isCustomer ? "customer" : isPage ? "page"
+    const speaker = isSystem ? "system" : sourceRow._syntheticSpeaker ? rawSpeaker : isCustomer ? "customer" : isPage ? "page"
       : rawSpeaker && /^(page|เพจ|admin|แอดมิน|outbound|เจ้าหน้าที่)$/i.test(rawSpeaker) ? "page" : "customer";
     const isPageSpeaker = speaker === "page";
-    const messageText = asText(isPageSpeaker ? row.page_message_text : row.customer_message_text).trim()
-      || (isPageSpeaker ? asText(row.facebook_tracking_message).trim() : "");
-    const threadId = String(row.thread_id ?? row.threadId ?? "").trim();
+    const messageText = asText(sourceRow._syntheticText ?? (isPageSpeaker ? sourceRow.page_message_text : sourceRow.customer_message_text)).trim()
+      || (isPageSpeaker ? asText(sourceRow.facebook_tracking_message).trim() : "")
+      || asText(sourceRow.message_text).trim();
+    const threadId = String(sourceRow.thread_id ?? sourceRow.threadId ?? "").trim();
     const base = {
-      ...row,
+      ...sourceRow,
+      _bubble_id: `${String(sourceRow._source_table ?? "chat")}:${String(sourceRow.id ?? sourceRow.message_row_id ?? sourceRow.message_id ?? sourceRow.dedupe_key ?? `${threadId}:${sourceRow.occurred_at ?? sourceRow.time ?? ""}`)}:${speaker}`,
       // เชื่อค่า speaker ที่ผู้ใช้กำหนด; ใช้ต้นทางตารางสำรองเมื่อไม่มีค่าเท่านั้น
       _speaker: speaker,
       _side: isPageSpeaker ? "right" : "left",
       // ชื่อป้ายห้องมาจาก Facebook API เท่านั้น; customer_name เป็นชื่อในบิล ห้ามนำมาแทน
-      _name: isPageSpeaker ? row.page_name : row.facebook_name,
+      _name: isPageSpeaker ? sourceRow.page_name : sourceRow.facebook_name,
       // ใช้ field ข้อความตามต้นทางโดยตรง; tracking ขาออกใช้ facebook_tracking_message เมื่อ page_message_text ว่าง
       _text: messageText || (isPageSpeaker ? asText(row.facebook_tracking_message).trim() : ""),
       _thread: threadId,
-      _occurred: row.occurred_at || row.time || (isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th) || row.time_th,
-      time_th: row.time_th || row.message_time_display || (isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th),
-      _hasAttachment: hasChatAttachment(row),
+      _occurred: sourceRow._syntheticOccurred || sourceRow.occurred_at || sourceRow.time || (isPageSpeaker ? sourceRow.page_message_time_th : sourceRow.customer_message_time_th) || sourceRow.time_th,
+      time_th: sourceRow._syntheticTime || sourceRow.time_th || sourceRow.message_time_display || (isPageSpeaker ? sourceRow.page_message_time_th : sourceRow.customer_message_time_th),
+      _hasAttachment: hasChatAttachment(sourceRow),
     };
-    return [base];
+    return base;
+    });
   }).sort((a, b) => {
     const timeDifference = (chatDateMs(a._occurred) ?? 0) - (chatDateMs(b._occurred) ?? 0);
     if (timeDifference) return timeDifference;
