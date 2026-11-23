@@ -9,7 +9,7 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 import { PRESENTATION_MODE } from "@shared/presentation";
-import { getActiveCamp, readCanonicalOrders, type Camp } from "@/lib/canonical";
+import { getActiveCamp, readCanonicalOrders, readCanonicalOrderNotifications, type Camp } from "@/lib/canonical";
 import { trpc } from "@/lib/trpc";
 import { CHAT_NOTIFICATION_EVENT, CHAT_NOTIFICATION_SETTINGS_EVENT, countUnreadChatMessages, filterChatNotificationsForEnabledPages, isChatNotificationSoundEnabled, markChatNotificationsRead, playChatNotificationSound, readChatNotificationPageSettings, readChatNotificationState, reconcileChatNotificationRows, setChatNotificationSoundEnabled, unlockChatNotificationAudio, writeChatNotificationState, type ChatNotification } from "@/lib/chat-notifications";
 import { THEME_LAB_EVENT, prepareThemeCss, readThemeLab, themeRoomFromPath } from "@/lib/theme-lab";
@@ -107,7 +107,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: DashboardLayoutCo
     let cancelled = false;
     const loadNotifications = async () => {
       try {
-        const result = await readCanonicalOrders("");
+        const result = await readCanonicalOrderNotifications();
         const rows = (result.orders ?? []) as Array<Record<string, any>>;
         const storageKey = `drakside-last-order-${getActiveCamp()}`;
         const lastSeen = localStorage.getItem(storageKey) || "";

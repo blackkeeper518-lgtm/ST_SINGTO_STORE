@@ -325,6 +325,40 @@ export async function readCanonicalOrders(search = "", since: string | null = nu
     }).sort((a: any, b: any) => orderTimeSortKey(b.order_time_display) - orderTimeSortKey(a.order_time_display)) as unknown as CanonicalOrder[];
   return { orders, itemError: null, sourceTable: "🗝️HERMES_ARCHIVE", fetchedAt: new Date().toISOString(), since };
 }
+
+const ORDER_NOTIFICATION_COLUMNS = [
+  "upsert_key",
+  "order_number_display",
+  "order_number",
+  "final_display_for_packer",
+  "final_product",
+  "order_fibo_product",
+  "telegram_product_display",
+  "order_time_display",
+  "order_time",
+  "order_time_bkk_iso",
+].join(",");
+
+function isOrderProjectionSchemaError(error: unknown) {
+  const message = String((error as any)?.message ?? error ?? "");
+  return /PGRST204|42703|schema cache|column.+(?:does not exist|not found)/i.test(message);
+}
+
+export async function readCanonicalOrderNotifications() {
+  const api = getSupabase();
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
+
+  let result = await api.from("🗝️HERMES_ARCHIVE").select(ORDER_NOTIFICATION_COLUMNS).limit(ORDER_OPERATIONAL_LIMIT);
+  // HERMES schemas can be pruned; retain the previous wildcard read when an optional field is absent.
+  if (result.error && isOrderProjectionSchemaError(result.error)) {
+    result = await api.from("🗝️HERMES_ARCHIVE").select("*").limit(ORDER_OPERATIONAL_LIMIT);
+  }
+  if (result.error) fail(result.error);
+
+  const orders = (result.data ?? []).sort((a: any, b: any) => orderTimeSortKey(b.order_time_display) - orderTimeSortKey(a.order_time_display)) as CanonicalOrder[];
+  return { orders, itemError: null, sourceTable: "🗝️HERMES_ARCHIVE", fetchedAt: new Date().toISOString(), since: null };
+}
+
 export async function readTelegramDeliveryOrders(search = "", room: "queue" | "today" | "yesterday_after_14" | "sent" = "queue") {
   const api = getSupabase();
   if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });

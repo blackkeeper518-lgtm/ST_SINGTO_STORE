@@ -149,6 +149,7 @@ function businessInboxUrl(row: Record<string, any>) {
 // ⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
 export default function OrderControl() {
   const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get("search") ?? "");
+  const [querySearch, setQuerySearch] = useState(search);
   const [fromDate, setFromDate] = useState("");
   const [untilDate, setUntilDate] = useState("");
   const [pageFilter, setPageFilter] = useState("ทั้งหมด");
@@ -159,11 +160,15 @@ export default function OrderControl() {
   const [searchPanelOpen, setSearchPanelOpen] = useState(() => new URLSearchParams(window.location.search).get("universal") === "1");
   const [trackingCopied, setTrackingCopied] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setQuerySearch(search), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
   const trackingInput = splitTrackingInput(search);
   const trackingSearchReady = search.trim().length >= 3;
   const query = useQuery({
-    queryKey: ["canonical-orders", search, fromDate, untilDate],
-    queryFn: () => readCanonicalOrders(search, fromDate || null, untilDate || null),
+    queryKey: ["canonical-orders", querySearch, fromDate, untilDate],
+    queryFn: () => readCanonicalOrders(querySearch, fromDate || null, untilDate || null),
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
@@ -185,27 +190,27 @@ export default function OrderControl() {
     select: mapChatRowsToThreads,
   });
   const telegramQueueQuery = useQuery({
-    queryKey: ["order-control-telegram-queue", getActiveCamp(), search.trim()],
-    queryFn: () => readTelegramDeliveryOrders(search, "queue"),
-    enabled: searchPanelOpen && trackingSearchReady,
+    queryKey: ["order-control-telegram-queue", getActiveCamp(), querySearch.trim()],
+    queryFn: () => readTelegramDeliveryOrders(querySearch, "queue"),
+    enabled: searchPanelOpen && trackingSearchReady && querySearch === search,
     staleTime: 15_000,
   });
   const telegramSentQuery = useQuery({
-    queryKey: ["order-control-telegram-sent", getActiveCamp(), search.trim()],
-    queryFn: () => readTelegramDeliveryOrders(search, "sent"),
-    enabled: searchPanelOpen && trackingSearchReady,
+    queryKey: ["order-control-telegram-sent", getActiveCamp(), querySearch.trim()],
+    queryFn: () => readTelegramDeliveryOrders(querySearch, "sent"),
+    enabled: searchPanelOpen && trackingSearchReady && querySearch === search,
     staleTime: 15_000,
   });
   const paradoxQuery = useQuery({
-    queryKey: ["order-control-paradox-trace", getActiveCamp(), search.trim()],
-    queryFn: () => readBbAlertRoom(search),
-    enabled: searchPanelOpen && trackingSearchReady,
+    queryKey: ["order-control-paradox-trace", getActiveCamp(), querySearch.trim()],
+    queryFn: () => readBbAlertRoom(querySearch),
+    enabled: searchPanelOpen && trackingSearchReady && querySearch === search,
     staleTime: 15_000,
   });
   const blackboxQuery = useQuery({
-    queryKey: ["order-control-blackbox-trace", getActiveCamp(), search.trim()],
-    queryFn: () => readBlackboxRoom(search),
-    enabled: searchPanelOpen && trackingSearchReady,
+    queryKey: ["order-control-blackbox-trace", getActiveCamp(), querySearch.trim()],
+    queryFn: () => readBlackboxRoom(querySearch),
+    enabled: searchPanelOpen && trackingSearchReady && querySearch === search,
     staleTime: 15_000,
   });
   // ⫘ ORDER SORT · ใช้ CENTRAL ORDER CLOCK เรียงล่าสุดไว้บนสุดเสมอ
@@ -243,7 +248,7 @@ export default function OrderControl() {
     ...(telegramSentQuery.data?.orders ?? []).map((row: any) => ({ ...row, _traceRoom: "sent" })),
     ...(telegramQueueQuery.data?.orders ?? []).map((row: any) => ({ ...row, _traceRoom: "queue" })),
   ].slice(0, 12);
-  const isRefreshing = query.isFetching || trackingQueueQuery.isFetching || directParcelQuery.isFetching || chatThreadsQuery.isFetching || telegramQueueQuery.isFetching || telegramSentQuery.isFetching;
+  const isRefreshing = search !== querySearch || query.isFetching || trackingQueueQuery.isFetching || directParcelQuery.isFetching || chatThreadsQuery.isFetching || telegramQueueQuery.isFetching || telegramSentQuery.isFetching;
   const todayOrders = orders.filter(isToday);
   const sentOrders = orders.filter(isSent);
   const sendableOrders = orders.filter(canSend);
