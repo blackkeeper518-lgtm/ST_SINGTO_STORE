@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { getActiveCamp, getSupabase, mapChatRowsToMessages, mapChatRowsToThreads, readCanonicalOrders, reconcileOptimisticMessages } from "@/lib/canonical";
+import { extractChatImageUrls, getActiveCamp, getSupabase, mapChatRowsToMessages, mapChatRowsToThreads, readCanonicalOrders, reconcileOptimisticMessages } from "@/lib/canonical";
 import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { getLatestBBChatCustomerMessage, getSelectedOrderMessageText, isImportableLatestCustomerMessage } from "@/lib/order-deck-context";
 import { CYBER_FRAME_EVENT, CYBER_FRAME_OPTIONS, readCyberFrame, readCyberFrameRooms, saveCyberFrameRoom } from "@/lib/cyber-frame";
@@ -30,19 +30,7 @@ function timeLabel(value: string | null | undefined) {
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
 }
 function imageUrls(value: string | null | undefined) {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    const urls: string[] = [];
-    const walk = (item: unknown) => {
-      if (!item || typeof item !== "object") return;
-      const record = item as Record<string, unknown>;
-      [record.url, record.file_url, (record.payload as Record<string, unknown> | undefined)?.url].forEach(url => { if (typeof url === "string" && /^https?:\/\//i.test(url) && !urls.includes(url)) urls.push(url); });
-      Object.values(record).forEach(child => Array.isArray(child) && child.forEach(walk));
-    };
-    if (Array.isArray(parsed)) parsed.forEach(walk); else walk(parsed);
-    return urls;
-  } catch { return []; }
+  return extractChatImageUrls(value);
 }
 function messageText(message: Record<string, any> | null | undefined) {
   if (!message || typeof message !== "object") return "";

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useIsMobile } from "@/hooks/useMobile";
-import { getSupabase, mapChatRowsToMessages, mapChatRowsToThreads, reconcileOptimisticMessages } from "@/lib/canonical";
+import { extractChatImageUrls, getSupabase, mapChatRowsToMessages, mapChatRowsToThreads, reconcileOptimisticMessages } from "@/lib/canonical";
 import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { buildMetaConversationUrl } from "@/lib/meta-inbox";
 import { metaTransientSendNotice } from "@/lib/meta-send-notice";
@@ -27,22 +27,7 @@ function messageTimeLabel(message: { timeTh?: string | null; messageTimeDisplay?
 }
 
 function imageUrls(value: string | null | undefined) {
-  if (!value) return [];
-  try {
-    const attachments = JSON.parse(value) as unknown;
-    const urls: string[] = [];
-    const walk = (item: unknown) => {
-      if (!item || typeof item !== "object") return;
-      const record = item as Record<string, unknown>;
-      const payload = record.payload as Record<string, unknown> | undefined;
-      for (const candidate of [record.url, record.image_url, record.file_url, record.original_url, record.source_url, payload?.url, payload?.image_url, payload?.file_url]) {
-        if (typeof candidate === "string" && /^https?:\/\//i.test(candidate) && !urls.includes(candidate)) urls.push(candidate);
-      }
-      Object.values(record).forEach(child => Array.isArray(child) && child.forEach(walk));
-    };
-    if (Array.isArray(attachments)) attachments.forEach(walk); else walk(attachments);
-    return urls;
-  } catch { return []; }
+  return extractChatImageUrls(value);
 }
 
 function stripSpeakerPrefix(value: string) { return value.replace(/^\s*\[(?:เพจ|ลูกค้า)\]\s*/i, "").trim(); }

@@ -42,6 +42,40 @@ export const supabase = { from: (table: string) => getSupabase().from(table) } a
 function fail(error: any): never { throw new Error(error?.message || "Supabase connection failed"); }
 function num(v: any) { const n = Number(v); return v == null || v === "" || !Number.isFinite(n) ? null : n; }
 function asText(v: any) { return typeof v === "string" ? v : v == null ? "" : JSON.stringify(v); }
+export function extractChatImageUrls(value: unknown) {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+  const addUrl = (candidate: unknown) => {
+    if (typeof candidate !== "string") return;
+    const url = candidate.trim();
+    if (!/^https?:\/\//i.test(url) || seen.has(url)) return;
+    seen.add(url);
+    urls.push(url);
+  };
+  const walk = (item: unknown) => {
+    if (item == null || item === "") return;
+    if (typeof item === "string") {
+      const text = item.trim();
+      addUrl(text);
+      try { walk(JSON.parse(text)); } catch { /* plain non-JSON text */ }
+      return;
+    }
+    if (Array.isArray(item)) { item.forEach(walk); return; }
+    if (typeof item !== "object") return;
+    const record = item as Record<string, unknown>;
+    for (const key of ["url", "file_url", "image_url", "original_url", "source_url", "preview_url"]) addUrl(record[key]);
+    for (const key of ["payload", "image_data", "media", "shares"]) {
+      const child = record[key];
+      if (child && typeof child === "object") walk(child);
+    }
+    for (const [key, child] of Object.entries(record)) {
+      if (["payload", "image_data", "media", "shares"].includes(key)) continue;
+      if (Array.isArray(child) || (child && typeof child === "object")) walk(child);
+    }
+  };
+  walk(value);
+  return urls;
+}
 function chatAttachmentPayload(row: any) {
   const values: any[] = [];
   const add = (value: any) => {
@@ -924,7 +958,7 @@ export function mapChatRowsToMessages(sourceRows: any[]) {
     pageLatestMessage: row._speaker === "page" ? row._text : null,
     pageMessageTimeTh: row._speaker === "page" ? row.time_th : null,
     attachmentsJson: chatAttachmentPayload(row),
-    imageUrls: Array.isArray(row.attachment_urls) ? row.attachment_urls : row.attachment_url ? [row.attachment_url] : [],
+    imageUrls: extractChatImageUrls(chatAttachmentPayload(row)),
   }));
 }
 export function reconcileOptimisticMessages(optimistic: any[], persisted: any[]) {
