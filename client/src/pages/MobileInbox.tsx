@@ -458,7 +458,7 @@ export default function MobileInbox() {
     const registration = await navigator.serviceWorker.ready.catch(() => null);
     if (!registration) return;
     const item = items[0];
-    await registration.showNotification(`ข้อความใหม่ · ${item.pageName || "Facebook"}`, { body: `${item.customerName || "ลูกค้า"}: ${item.message}`, tag: `bb-chat-${item.threadKey}`, icon: "/icons/icon-192.png", data: { url: `/mobile-inbox?page=${encodeURIComponent(item.pageId)}&thread=${encodeURIComponent(item.threadId)}` } });
+    await registration.showNotification(`ข้อความใหม่ · ${item.pageName || "Facebook"}`, { body: `${item.customerName || "ลูกค้า"}: ${item.message}`, tag: `bb-chat-${item.threadKey}`, icon: "/st-singto-lion.svg", data: { url: `/mobile-inbox?page=${encodeURIComponent(item.pageId)}&thread=${encodeURIComponent(item.threadId)}` } });
   };
   const markAllNotificationsRead = () => {
     const state = readChatNotificationState();

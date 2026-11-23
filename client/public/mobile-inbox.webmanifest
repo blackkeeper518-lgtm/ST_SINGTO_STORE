@@ -1,7 +1,7 @@
 {
-  "name": "BB Store Inbox",
-  "short_name": "BB Inbox",
-  "description": "กล่องข้อความแอดมินสำหรับตอบแชทลูกค้า BB Store",
+  "name": "ST SINGTO STORE",
+  "short_name": "ST Inbox",
+  "description": "กล่องข้อความแอดมินสำหรับตอบแชทลูกค้า ST SINGTO STORE",
   "lang": "th",
   "start_url": "/mobile-inbox",
   "scope": "/mobile-inbox",
@@ -12,6 +12,6 @@
   "theme_color": "#080b14",
   "categories": ["business", "communication"],
   "icons": [
-    { "src": "/mobile-inbox-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/st-singto-lion.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }
