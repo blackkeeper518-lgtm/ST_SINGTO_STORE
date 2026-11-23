@@ -68,4 +68,12 @@ describe("ORDER DECK product catalog integration", () => {
     expect(deckSource).toContain("function groupOf(name){return productGroups[name]||inferredProductLane(name)||''}");
     expect(deckPublic).toBe(deckSource);
   });
+  it("persists Cloud-loaded product names and migrates renamed products without an undefined write helper", () => {
+    expect(deckSource).not.toContain("write('drak-image-products-v1',imageProducts)");
+    expect(deckSource).toContain("localStorage.setItem('drak-image-products-v1',JSON.stringify(imageProducts))");
+    expect(deckSource).toContain('async function renameProductLocally(oldName,newName)');
+    expect(deckSource).toContain('if(item.product&&item.product!==product)await renameProductLocally(item.product,product)');
+    expect(deckSource).toContain('page.selected=[...new Set(page.selected.map(name=>name===oldName?newName:name))]');
+    expect(deckPublic).toBe(deckSource);
+  });
 });
