@@ -35,12 +35,12 @@ describe("ChatHub read contract v5", () => {
       expect.stringContaining(`/rest/v1/${encodeURIComponent(CHAT_PAGE_TABLE)}?`),
     ]));
     expect(requests.filter(({ url }) => new URL(url).searchParams.get("select") === "*")).toHaveLength(2);
-    expect(requests.some(({ url }) => url.includes(encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)) && new URL(url).searchParams.get("select") === "page_id,status")).toBe(true);
+    expect(requests.some(({ url }) => url.includes(encodeURIComponent(CHAT_PAGE_TOKEN_TABLE)) && new URL(url).searchParams.get("select") === "page_id,status,status_web")).toBe(true);
     expect(rows.map(row => row._source_table)).toEqual([CHAT_CUSTOMER_TABLE, CHAT_PAGE_TABLE]);
     expect(requests.every(({ init }) => (init?.headers as Record<string, string>).Authorization === "Bearer test-chat-service-role-key")).toBe(true);
   });
 
-  it("uses browser-selected Chat credentials for the protected two-table read", async () => {
+  it("cannot redirect Chat reads with a legacy credential argument", async () => {
     vi.stubEnv("CHAT_SUPABASE_URL", "https://server-chat.supabase.co");
     vi.stubEnv("CHAT_SUPABASE_SERVICE_ROLE_KEY", "server-chat-key");
     const requests: Array<{ url: string; init?: RequestInit }> = [];
@@ -49,14 +49,10 @@ describe("ChatHub read contract v5", () => {
       return new Response("[]", { status: 200, headers: { "content-type": "application/json" } });
     });
 
-    await fetchChatThreadRows({
-      url: "https://browser-chat.supabase.co",
-      serviceRoleKey: "browser-chat-key",
-    });
-
+    await fetchChatThreadRows({ url: "https://browser-chat.supabase.co", serviceRoleKey: "browser-chat-key" });
     expect(requests).toHaveLength(3);
-    expect(requests.every(({ url }) => url.startsWith("https://browser-chat.supabase.co/rest/v1/"))).toBe(true);
-    expect(requests.every(({ init }) => (init?.headers as Record<string, string>).Authorization === "Bearer browser-chat-key")).toBe(true);
+    expect(requests.every(({ url }) => url.startsWith("https://server-chat.supabase.co/rest/v1/"))).toBe(true);
+    expect(requests.every(({ init }) => (init?.headers as Record<string, string>).Authorization === "Bearer server-chat-key")).toBe(true);
   });
 
   it("filters selected-room messages in both source-table requests", async () => {

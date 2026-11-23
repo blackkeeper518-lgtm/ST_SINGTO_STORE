@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getLiveOrderStats, recordOutgoingChatMessage, type LiveOrder } from "./supabase";
+
+afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe("getLiveOrderStats", () => {
   it("ignores null rows before reading telegram_status", () => {
@@ -32,6 +34,8 @@ describe("getLiveOrderStats", () => {
 
 describe("recordOutgoingChatMessage", () => {
   it("persists each outgoing image URL alongside its own provider message ID", async () => {
+    vi.stubEnv("CHAT_SUPABASE_URL", "https://server-chat.supabase.co");
+    vi.stubEnv("CHAT_SUPABASE_SERVICE_ROLE_KEY", "server-chat-key");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       new Response("[]", { status: 201, headers: { "Content-Type": "application/json" } }),
     );
@@ -59,6 +63,8 @@ describe("recordOutgoingChatMessage", () => {
   });
 
   it("retries the webhook-race PATCH without page_message_text when the migration is absent", async () => {
+    vi.stubEnv("CHAT_SUPABASE_URL", "https://server-chat.supabase.co");
+    vi.stubEnv("CHAT_SUPABASE_SERVICE_ROLE_KEY", "server-chat-key");
     const missingColumn = {
       code: "PGRST204",
       message: "Could not find the 'page_message_text' column of 'Pg_Chat⭐BINARY_xXx_STAR' in the schema cache",
@@ -94,6 +100,8 @@ describe("recordOutgoingChatMessage", () => {
   });
 
   it("retries with the base message_text contract when page_message_text is missing", async () => {
+    vi.stubEnv("CHAT_SUPABASE_URL", "https://server-chat.supabase.co");
+    vi.stubEnv("CHAT_SUPABASE_SERVICE_ROLE_KEY", "server-chat-key");
     const fetchSpy = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify({
         code: "PGRST204",

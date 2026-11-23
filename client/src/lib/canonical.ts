@@ -10,118 +10,35 @@
 // สถานะส่งใช้ delivery_state · ห้ามลบหลักฐาน · ห้ามเอา ST logic มาปน
 // ⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { cacheServerProjectStatus, clearLegacyBrowserSupabaseSettings, createServerSupabaseClient, getCachedServerProjectStatus, projectApi, type ServerProjectStatus } from "@/lib/server-project-client";
 
-const CONFIG_KEY = "st-supabase-config";
-const TRACKING_CONFIG_KEY = "st-tracking-supabase-config";
-const PARCEL_CONFIG_KEY = "st-parcel-supabase-config";
-const VAULT_CONFIG_KEY = "st-vault-supabase-config";
 export type Camp = "ST";
 export type SupabaseProject = "main" | "tracking" | "parcel" | "vault";
 const DEPLOYMENT_CAMP: Camp = "ST";
 export type SupabaseConfig = { url: string; anonKey: string; orderTable?: string };
-// Browser client ใช้เฉพาะ Anon/Publishable key; Chat ต้องผ่าน protected server route เท่านั้น
-const DEPLOYMENT_SUPABASE_URL = String(import.meta.env.VITE_SUPABASE_URL ?? "").trim().replace(/\/$/, "");
-const DEPLOYMENT_SUPABASE_ANON_KEY = String(import.meta.env.VITE_SUPABASE_ANON_KEY ?? "").trim();
-const DEPLOYMENT_TRACKING_URL = String(import.meta.env.VITE_TRACKING_SUPABASE_URL ?? "").trim().replace(/\/$/, "");
-const DEPLOYMENT_TRACKING_ANON_KEY = String(import.meta.env.VITE_TRACKING_SUPABASE_ANON_KEY ?? "").trim();
-const DEPLOYMENT_PARCEL_URL = String(import.meta.env.VITE_PARCEL_SUPABASE_URL ?? "").trim().replace(/\/$/, "");
-const DEPLOYMENT_PARCEL_ANON_KEY = String(import.meta.env.VITE_PARCEL_SUPABASE_ANON_KEY ?? "").trim();
-const DEPLOYMENT_VAULT_URL = String(import.meta.env.VITE_VAULT_SUPABASE_URL ?? "").trim().replace(/\/$/, "");
-const DEPLOYMENT_VAULT_ANON_KEY = String(import.meta.env.VITE_VAULT_SUPABASE_ANON_KEY ?? "").trim();
-const clients: Partial<Record<SupabaseProject, SupabaseClient>> = {};
-const clientSignatures: Partial<Record<SupabaseProject, string>> = {};
-let room04StockClient: SupabaseClient | null = null;
-let room04StockClientSignature = "";
 export function getActiveCamp(): Camp { return DEPLOYMENT_CAMP; }
-export function setActiveCamp(_camp: Camp) { for (const project of ["main", "tracking", "parcel", "vault"] as const) { delete clients[project]; delete clientSignatures[project]; } }
-function profileKey(_camp: Camp, project: SupabaseProject) {
-  if (project === "tracking") return TRACKING_CONFIG_KEY;
-  if (project === "parcel") return PARCEL_CONFIG_KEY;
-  if (project === "vault") return VAULT_CONFIG_KEY;
-  return CONFIG_KEY;
-}
+export function setActiveCamp(_camp: Camp) {}
 export function getSupabaseConfig(camp: Camp = getActiveCamp(), project: SupabaseProject = "main"): SupabaseConfig | null {
-  const deploymentUrl = project === "tracking" ? DEPLOYMENT_TRACKING_URL : project === "parcel" ? DEPLOYMENT_PARCEL_URL || DEPLOYMENT_TRACKING_URL : project === "vault" ? DEPLOYMENT_VAULT_URL : DEPLOYMENT_SUPABASE_URL;
-  const deploymentAnonKey = project === "tracking" ? DEPLOYMENT_TRACKING_ANON_KEY : project === "parcel" ? DEPLOYMENT_PARCEL_ANON_KEY || DEPLOYMENT_TRACKING_ANON_KEY : project === "vault" ? DEPLOYMENT_VAULT_ANON_KEY : DEPLOYMENT_SUPABASE_ANON_KEY;
-  // Render is the shared source of truth. Browser-local settings remain only
-  // as a compatibility fallback for older deployments without env values.
-  if (deploymentUrl && deploymentAnonKey) return { url: deploymentUrl, anonKey: deploymentAnonKey, orderTable: project === "main" ? defaultOrderView(camp) : undefined };
-  try {
-    const raw = localStorage.getItem(profileKey(camp, project));
-    if (raw) {
-      const value = JSON.parse(raw) as Partial<SupabaseConfig>;
-      if (value.url && value.anonKey) return { url: value.url.replace(/\/$/, ""), anonKey: value.anonKey, orderTable: project === "main" ? defaultOrderView(camp) : undefined };
-    }
-    if (project === "parcel") {
-      const fallback = localStorage.getItem(TRACKING_CONFIG_KEY);
-      if (fallback) {
-        const value = JSON.parse(fallback) as Partial<SupabaseConfig>;
-        if (value.url && value.anonKey) return { url: value.url.replace(/\/$/, ""), anonKey: value.anonKey };
-      }
-    }
-  } catch { /* invalid local value; try deployment defaults */ }
-  // Vault UI settings saved in this browser must take precedence over the
-  // legacy main-project fallback; a dedicated deployment Vault still wins above.
-  if (project === "vault") {
-    try {
-      const raw = localStorage.getItem(VAULT_CONFIG_KEY);
-      if (raw) {
-        const value = JSON.parse(raw) as Partial<SupabaseConfig>;
-        if (value.url && value.anonKey) return { url: value.url.replace(/\/$/, ""), anonKey: value.anonKey };
-      }
-    } catch { /* invalid Vault profile; continue to legacy fallback */ }
-    return DEPLOYMENT_SUPABASE_URL && DEPLOYMENT_SUPABASE_ANON_KEY
-      ? { url: DEPLOYMENT_SUPABASE_URL, anonKey: DEPLOYMENT_SUPABASE_ANON_KEY }
-      : null;
-  }
-  return deploymentUrl && deploymentAnonKey ? { url: deploymentUrl, anonKey: deploymentAnonKey, orderTable: project === "main" ? defaultOrderView(camp) : undefined } : null;
+  void camp;
+  const status = getCachedServerProjectStatus();
+  const configured = project === "vault" ? status?.vault : project === "tracking" || project === "parcel" ? status?.trackingParcel : status?.order;
+  return configured ? { url: "server-only", anonKey: "server-only", orderTable: project === "main" ? defaultOrderView(getActiveCamp()) : undefined } : null;
 }
 export function saveSupabaseConfig(config: SupabaseConfig, camp: Camp = getActiveCamp(), project: SupabaseProject = "main") {
-  const clean = { url: config.url.trim().replace(/\/$/, ""), anonKey: config.anonKey.trim(), ...(project === "main" ? { orderTable: defaultOrderView(camp) } : {}) };
-  localStorage.setItem(profileKey(camp, project), JSON.stringify(clean));
-  delete clients[project]; delete clientSignatures[project];
-  if (project === "vault") { room04StockClient = null; room04StockClientSignature = ""; }
+  void config; void camp; void project;
+  throw new Error("การเชื่อมต่อ Supabase ต้องตั้งค่าเฉพาะบน Server ไม่สามารถบันทึก credential ใน browser ได้");
 }
 export function clearSupabaseConfig(camp: Camp = getActiveCamp(), project: SupabaseProject = "main") {
-  localStorage.removeItem(profileKey(camp, project)); delete clients[project]; delete clientSignatures[project];
-  if (project === "vault") { room04StockClient = null; room04StockClientSignature = ""; }
+  void camp; void project;
+  clearLegacyBrowserSupabaseSettings();
 }
 export function getSupabase(project: SupabaseProject = "main") {
-  const config = getSupabaseConfig(getActiveCamp(), project);
-  if (!config) return null;
-  const signature = `${getActiveCamp()}|${config.url}|${config.anonKey}`;
-  if (!clients[project] || signature !== clientSignatures[project]) {
-    clients[project] = createClient(config.url, config.anonKey);
-    clientSignatures[project] = signature;
-  }
-  return clients[project] ?? null;
-}
-function getRoom04StockClient() {
-  let config: SupabaseConfig | null = null;
-  if (DEPLOYMENT_VAULT_URL && DEPLOYMENT_VAULT_ANON_KEY) {
-    config = { url: DEPLOYMENT_VAULT_URL, anonKey: DEPLOYMENT_VAULT_ANON_KEY };
-  } else {
-    try {
-      const raw = localStorage.getItem(VAULT_CONFIG_KEY);
-      if (raw) {
-        const value = JSON.parse(raw) as Partial<SupabaseConfig>;
-        if (value.url && value.anonKey) config = { url: value.url.replace(/\/$/, ""), anonKey: value.anonKey };
-      }
-    } catch { /* invalid ROOM 04 profile */ }
-  }
-  if (!config) fail({ message: "ยังไม่ได้เชื่อม ROOM 04 · ตั้งค่า Private Vault ใน Secret Gallery ก่อน" });
-  const signature = `${config.url}|${config.anonKey}`;
-  if (!room04StockClient || signature !== room04StockClientSignature) {
-    room04StockClient = createClient(config.url, config.anonKey);
-    room04StockClientSignature = signature;
-  }
-  return room04StockClient;
+  return createServerSupabaseClient(project);
 }
 function getStockRoomClient() {
-  return getRoom04StockClient();
+  return createServerSupabaseClient("vault");
 }
-export const supabase = { from: (table: string) => { const api = getSupabase(); if (!api) throw new Error("ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key"); return api.from(table); } } as any;
+export const supabase = { from: (table: string) => getSupabase().from(table) } as any;
 function fail(error: any): never { throw new Error(error?.message || "Supabase connection failed"); }
 function num(v: any) { const n = Number(v); return v == null || v === "" || !Number.isFinite(n) ? null : n; }
 function asText(v: any) { return typeof v === "string" ? v : v == null ? "" : JSON.stringify(v); }
@@ -388,7 +305,7 @@ function asBoolean(value: unknown): boolean {
 
 export async function readCanonicalOrders(search = "", since: string | null = null, until: string | null = null) {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
 
   // n8n owns parsing, mapping, canonical selection and deduplication.
   // Read the live HERMES row shape instead of naming retired columns one by one.
@@ -410,7 +327,7 @@ export async function readCanonicalOrders(search = "", since: string | null = nu
 }
 export async function readTelegramDeliveryOrders(search = "", room: "queue" | "today" | "yesterday_after_14" | "sent" = "queue") {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
 
   // Telegram has one room with two views: live queue from PIONEER and
   // the final sent archive from GENESIS. ANDROMEDA is retired.
@@ -430,7 +347,7 @@ export async function readTelegramDeliveryOrders(search = "", room: "queue" | "t
 
 export async function readBbAlertRoom(search = "") {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
   const { data, error } = await api.from("🔸PARADOX_xXx_EXCHANGE").select("*").order("order_time_display", { ascending: false }).limit(2000);
   if (error) fail(error);
   const query = search.trim().toLowerCase();
@@ -441,7 +358,7 @@ export async function readBbAlertRoom(search = "") {
 
 export async function readBlackboxRoom(search = "") {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
   const { data, error } = await api.from("💀THANATOS_xXx_DEATH_NOTE").select("*").order("order_time_display", { ascending: false }).limit(2000);
   if (error) fail(error);
   const query = search.trim().toLowerCase();
@@ -450,7 +367,7 @@ export async function readBlackboxRoom(search = "") {
 
 export async function updateBbOrder(upsertKey: string | number, patch: Record<string, unknown>) {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
   const { data, error } = await api.from(defaultOrderView("ST")).update(patch).eq("upsert_key", String(upsertKey)).select("upsert_key");
   if (error) fail(error);
   if (!data?.length) fail({ message: `ไม่พบออเดอร์ upsert_key=${upsertKey} หรือสิทธิ์ RLS ไม่อนุญาตให้อัปเดต` });
@@ -459,7 +376,7 @@ export async function updateBbOrder(upsertKey: string | number, patch: Record<st
 }
 export async function updateBbOrderByKey(upsertKey: string, patch: Record<string, unknown>, sourceTable: "🗝️HERMES_ARCHIVE" | "🌀SINGULARITY_xXx_EXCHANGE" = "🗝️HERMES_ARCHIVE") {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
   const { data, error } = await api.from(sourceTable).update(patch).eq("upsert_key", upsertKey).select("upsert_key");
   if (error) fail(error);
   if (!data?.length) fail({ message: `ไม่พบออเดอร์ upsert_key=${upsertKey} หรือสิทธิ์ RLS ไม่อนุญาตให้อัปเดต` });
@@ -481,7 +398,7 @@ async function withSentWriteTimeout<T>(request: PromiseLike<T>, timeoutMs = 15_0
 
 export async function markBbOrderSentByKey(upsertKey: string, sourceTable: "🗝️HERMES_ARCHIVE" | "🌀SINGULARITY_xXx_EXCHANGE") {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
   const patch = { delivery_status: "SENT", sent_at: new Date().toISOString() };
   const request = api.from(sourceTable)
     .update(patch)
@@ -556,7 +473,7 @@ const GENESIS_HISTORY_COLUMNS = [
 
 export async function readGenesisOrderHistory(date: string) {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
   const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return { orders: [], total: 0, sourceView: "🌟GENESIS_xXx_HISTORY", fetchedAt: new Date().toISOString() };
 
@@ -585,7 +502,7 @@ export async function readGenesisOrderHistory(date: string) {
 
 export async function readDailyTrackingHistory(date: string) {
   const api = getSupabase("parcel");
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Tracking & Messenger: ไปที่ /secret-gallery แล้วบันทึก URL กับ Anon/Publishable Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบ TRACKING/PARCEL ที่ /secret-gallery" });
   const { data, error } = await api.from("📓DEAD_xXx_NOTE").select("*").limit(2000);
   if (error) fail(error);
   const dayKey = (value: unknown) => {
@@ -607,7 +524,7 @@ export async function readDailyTrackingHistory(date: string) {
 }
 export async function readTelegramSentHistory(search = "") {
   const api = getSupabase();
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Supabase: ไปที่ /connect แล้วกรอก URL และ Anon Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบสถานะ project ที่ /connect" });
 
   const { data, error } = await api.from("🌟GENESIS_xXx_HISTORY")
     .select(GENESIS_HISTORY_COLUMNS)
@@ -628,7 +545,7 @@ export async function readTelegramSentHistory(search = "") {
 }
 export async function readDailyParcels(date: string, search = "") {
   const api = getSupabase("parcel");
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Tracking & Messenger: ไปที่ /secret-gallery แล้วบันทึก URL กับ Anon/Publishable Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบ TRACKING/PARCEL ที่ /secret-gallery" });
   const parsedDate = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!parsedDate) return { parcels: [], total: 0, sourceTable: "parcels", fetchedAt: new Date().toISOString() };
   const todayKey = isoDateKey(new Date().toISOString());
@@ -714,36 +631,60 @@ function dedupeChatSourceRows(sourceRows: any[]) {
   return output;
 }
 function normalizeChatReadRows(sourceRows: any[]) {
-  const normalizedRows = dedupeChatSourceRows(sourceRows).filter(row => {
+  const sourceRowsDeduped = dedupeChatSourceRows(sourceRows).filter(row => {
     // ห้องจริงต้องมี page_id และ thread_id; กันแถว metadata/แถวว่างไม่ให้กลายเป็นห้อง
-    const hasRoomKey = String(row?.page_id ?? "").trim() && String(row?.thread_id ?? row?.threadId ?? "").trim();
-    if (!hasRoomKey) return false;
-    const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
-    // ChatHub has exactly two message lanes. Do not promote tracking/order
-    // fields or legacy summary fields into a chat bubble.
-    // message_text is the base DDL field; the lane-specific fields are optional migrations.
-    const sourceMessageText = isPage ? (row?.page_message_text || row?.message_text) : (row?.customer_message_text || row?.message_text);
-    return Boolean(asText(sourceMessageText).trim() || hasChatAttachment(row));
-  }).flatMap(row => {
-    const isPage = row._source_table === "Pg_Chat⭐BINARY_xXx_STAR";
-    // The source table is authoritative: Cust = customer, Pg = page.
-    const speaker = isPage ? "page" : "customer";
+    return Boolean(String(row?.page_id ?? "").trim() && String(row?.thread_id ?? row?.threadId ?? "").trim());
+  });
+  const speakerFor = (row: any): "customer" | "page" | "system" => {
+    const explicit = String(row?.speaker ?? row?.speaker_type ?? "").trim().toLowerCase();
+    if (explicit === "system") return "system";
+    if (row?._source_table === "Pg_Chat⭐BINARY_xXx_STAR") return "page";
+    if (row?._source_table === "Cust_Chat⭐BINARY_xXx_STAR") return "customer";
+    if (["page", "admin", "agent", "staff"].includes(explicit)) return "page";
+    return "customer";
+  };
+  const normalizeOne = (row: any, speaker: "customer" | "page" | "system", text: unknown, occurredOverride?: unknown) => {
     const isPageSpeaker = speaker === "page";
-    const messageText = asText(isPageSpeaker ? (row.page_message_text || row.message_text) : (row.customer_message_text || row.message_text)).trim();
     const threadId = String(row.thread_id ?? row.threadId ?? "").trim();
-    const base = {
+    const speakerTime = speaker === "page" ? row.page_message_time_th : row.customer_message_time_th;
+    return {
       ...row,
       _bubble_id: `${String(row._source_table ?? "chat")}:${String(row.id ?? row.message_row_id ?? row.message_id ?? row.dedupe_key ?? `${threadId}:${row.occurred_at ?? row.time ?? ""}`)}:${speaker}`,
       _speaker: speaker,
       _side: isPageSpeaker ? "right" : "left",
       _name: isPageSpeaker ? row.page_name : row.facebook_name,
-      _text: messageText,
+      _text: asText(text).trim(),
       _thread: threadId,
-      _occurred: row.occurred_at || row.time || (isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th) || row.time_th,
-      time_th: isPageSpeaker ? row.page_message_time_th : row.customer_message_time_th,
+      _occurred: occurredOverride || row.occurred_at || row.time || speakerTime || row.time_th,
+      time_th: speakerTime || row.time_th || null,
       _hasAttachment: hasChatAttachment(row),
     };
-    return base;
+  };
+
+  return sourceRowsDeduped.flatMap(row => {
+    const hasPerMessageText = [row.message_text, row.customer_message_text, row.page_message_text].some(value => asText(value).trim());
+    // Some legacy workflows write both latest-side fields into one Pg snapshot row.
+    // Expand that snapshot into the two original bubbles instead of dropping the history.
+    if (row._source_table === "Pg_Chat⭐BINARY_xXx_STAR" && !hasPerMessageText) {
+      const pageLatest = asText(row.page_latest_message).trim();
+      const customerLatest = asText(row.customer_latest_message).trim();
+      if (pageLatest && customerLatest) {
+        return [
+          normalizeOne(row, "page", pageLatest, row.page_message_time_th || row.time_th),
+          normalizeOne(row, "customer", customerLatest, row.customer_message_time_th || row.time_th),
+        ].sort((a, b) => (chatDateMs(a._occurred) ?? 0) - (chatDateMs(b._occurred) ?? 0));
+      }
+    }
+
+    const speaker = speakerFor(row);
+    const isPage = speaker === "page";
+    const text = speaker === "system"
+      ? row.message_text || row.customer_message_text || row.page_message_text
+      : isPage
+        ? row.page_message_text || row.message_text || row.page_latest_message
+        : row.customer_message_text || row.message_text || row.customer_latest_message;
+    if (!asText(text).trim() && !hasChatAttachment(row)) return [];
+    return [normalizeOne(row, speaker, text)];
   }).sort((a, b) => {
     const timeDifference = (chatDateMs(a._occurred) ?? 0) - (chatDateMs(b._occurred) ?? 0);
     if (timeDifference) return timeDifference;
@@ -756,8 +697,8 @@ function normalizeChatReadRows(sourceRows: any[]) {
       return first < second ? -1 : first > second ? 1 : 0;
     } catch { return 0; }
   });
-  return normalizedRows;
 }
+
 function chatRowSequence(row: any): string {
   const value = String(row?.message_row_id ?? row?.id ?? "").trim();
   return /^\d+$/.test(value) ? value : "";
@@ -918,6 +859,10 @@ export function mapChatRowsToThreads(sourceRows: any[]) {
     searchText: [thread.customerName, thread.customerPhone, thread.customerId, thread.chatLinkKey, thread.upsert_key, thread.order_number, thread.order_number_display, _searchTokens, thread.preview].filter(Boolean).join(" "),
   })).sort((a, b) => (chatDateMs(b.latestAt) ?? 0) - (chatDateMs(a.latestAt) ?? 0));
 }
+export async function readChatThreads(surface: "web" | "mobile" = "web") {
+  const sourceRows = await projectApi.chat.threads.query({ surface });
+  return mapChatRowsToThreads(sourceRows);
+}
 export function mapChatRowsToMessages(sourceRows: any[]) {
   return normalizeChatReadRows(sourceRows).map((row: any) => ({
     // บางโต๊ะแชทไม่มี id ของแถว; ห้ามปล่อย undefined ซ้ำทุก bubble
@@ -997,7 +942,7 @@ export async function saveCloseJobCaseFields(input: { caseId: string; branch: st
 }
 export async function readParcelMappingQueue(status: "all" | "sent" = "all", limit = 300) {
   const api = getSupabase("parcel");
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Tracking & Messenger: ไปที่ /secret-gallery แล้วบันทึก URL กับ Anon/Publishable Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบ TRACKING/PARCEL ที่ /secret-gallery" });
   const safeLimit = Math.max(1, Math.min(limit, 5000));
   const activeData = status === "sent" ? { data: [], error: null } : (await api.from("🦅ROGUE_xXx_SHIPPINGz").select("*").limit(safeLimit));
   if ("error" in activeData && activeData.error) fail(activeData.error);
@@ -1040,7 +985,7 @@ export async function readParcelByTrackingNumber(trackingNumber: string) {
 export type PostalMasterMatch = { district: string | null; amphoe: string | null; province: string | null; zipcode: string | null };
 export async function searchThailandPostalMaster(raw: string): Promise<PostalMasterMatch[]> {
   const api = getSupabase("tracking");
-  if (!api) fail({ message: "ยังไม่ได้เชื่อม Tracking & Messenger: ไปที่ /secret-gallery แล้วบันทึก URL กับ Anon/Publishable Key" });
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบ TRACKING/PARCEL ที่ /secret-gallery" });
   const input = String(raw ?? "").normalize("NFC").trim().slice(0, 160);
   if (!input) return [];
   const postalCode = input.match(/(?:^|\D)(\d{5})(?!\d)/)?.[1] ?? "";

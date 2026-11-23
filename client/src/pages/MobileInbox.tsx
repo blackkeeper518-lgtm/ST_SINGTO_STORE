@@ -4,7 +4,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { getActiveCamp, getSupabase, mapChatRowsToMessages, mapChatRowsToThreads, readCanonicalOrders, reconcileOptimisticMessages } from "@/lib/canonical";
 import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { getLatestBBChatCustomerMessage, getSelectedOrderMessageText, isImportableLatestCustomerMessage } from "@/lib/order-deck-context";
-import { CHAT_BROWSER_CONFIG_EVENT, readBrowserChatConfig } from "@/lib/chat-config";
 import { CYBER_FRAME_EVENT, CYBER_FRAME_OPTIONS, readCyberFrame, readCyberFrameRooms, saveCyberFrameRoom } from "@/lib/cyber-frame";
 import { CYBER_THEME_PRESETS, readCyberTheme, saveCyberTheme, type CyberTheme } from "@/lib/theme-lab";
 import { CHAT_NOTIFICATION_EVENT, countUnreadChatMessages, isChatNotificationSoundEnabled, markChatNotificationsRead, playChatNotificationSound, readChatNotificationState, reconcileChatNotificationRows, setChatNotificationSound, setChatNotificationSoundEnabled, unlockChatNotificationAudio, writeChatNotificationState, type ChatNotification } from "@/lib/chat-notifications";
@@ -53,8 +52,6 @@ function profileAvatar(thread: Thread) { return thread.profilePictureUrl ? <img 
 
 export default function MobileInbox() {
   const [, setLocation] = useLocation();
-  const [browserChatConfig, setBrowserChatConfig] = useState(() => readBrowserChatConfig());
-  const hasBrowserConfig = Boolean(browserChatConfig?.url && browserChatConfig.serviceRoleKey);
   const [search, setSearch] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(() => typeof window === "undefined" ? null : localStorage.getItem(SELECTED_ROOM_KEY));
   const [pageFilter, setPageFilter] = useState("all");
@@ -132,14 +129,8 @@ export default function MobileInbox() {
   const menuTouchStartXRef = useRef<number | null>(null);
   const roomHistoryRef = useRef(false);
   useEffect(() => {
-    const refresh = () => setBrowserChatConfig(readBrowserChatConfig());
-    window.addEventListener("storage", refresh);
-    window.addEventListener(CHAT_BROWSER_CONFIG_EVENT, refresh);
-    return () => { window.removeEventListener("storage", refresh); window.removeEventListener(CHAT_BROWSER_CONFIG_EVENT, refresh); };
-  }, []);
-  useEffect(() => {
     const sync = () => {
-      const state = readChatNotificationState(readBrowserChatConfig()?.url);
+      const state = readChatNotificationState();
       setChatUnreadCount(countUnreadChatMessages(state));
       setChatNotificationItems(state.pending);
     };
@@ -245,8 +236,8 @@ export default function MobileInbox() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-  const chatConfiguredQuery = trpc.chat.configured.useQuery(undefined, { enabled: !hasBrowserConfig, staleTime: 60_000, retry: false });
-  const hasConfig = hasBrowserConfig || Boolean(chatConfiguredQuery.data?.configured);
+  const chatConfiguredQuery = trpc.chat.configured.useQuery(undefined, { staleTime: 60_000, retry: false });
+  const hasConfig = Boolean(chatConfiguredQuery.data?.configured);
   const threadsQuery = trpc.chat.threads.useQuery({ surface: "mobile" }, { enabled: hasConfig && platform === "facebook", staleTime: 0, refetchInterval: 20_000, refetchIntervalInBackground: false, refetchOnWindowFocus: true, refetchOnReconnect: true, select: mapChatRowsToThreads });
   const pageCatalogQuery = trpc.chat.pages.useQuery(undefined, { enabled: hasConfig, staleTime: 0, refetchInterval: false, refetchOnWindowFocus: false, retry: false });
   const lineConversationsQuery = trpc.line.conversations.useQuery({ surface: "mobile" }, { staleTime: 0, refetchInterval: false, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false });
@@ -258,11 +249,11 @@ export default function MobileInbox() {
     let cancelled = false;
     const poll = async () => {
       try {
-        const current = readChatNotificationState(browserChatConfig?.url);
+        const current = readChatNotificationState();
         const response = await pollNotifications({ afterRowId: current.cursorRowId });
         if (cancelled) return;
         const result = reconcileChatNotificationRows(current, response.rows, Date.now(), response.cursorRowId);
-        writeChatNotificationState(result.state, browserChatConfig?.url);
+        writeChatNotificationState(result.state);
         setChatNotificationItems(result.state.pending);
         const changedForPage = pageFilter === "all" ? result.changed : result.changed.filter(item => item.pageId === pageFilter);
         if (changedForPage.length) { playChatNotificationSound(); void showChatNotifications(changedForPage); }
@@ -271,7 +262,7 @@ export default function MobileInbox() {
     void poll();
     const timer = window.setInterval(() => void poll(), 8000);
     return () => { cancelled = true; window.clearInterval(timer); };
-  }, [hasConfig, browserChatConfig?.url, pageFilter, pollNotifications]);
+  }, [hasConfig, pageFilter, pollNotifications]);
   useEffect(() => {
     let cancelled = false;
     const loadOrders = async () => {
@@ -364,9 +355,9 @@ export default function MobileInbox() {
     });
   }, [openRoom, messagesQuery.data?.length, optimisticMessages.length]);
   const markThreadNotificationsRead = (threadKey: string) => {
-    const state = readChatNotificationState(browserChatConfig?.url);
+    const state = readChatNotificationState();
     const next = markChatNotificationsRead(state, threadKey);
-    writeChatNotificationState(next, browserChatConfig?.url);
+    writeChatNotificationState(next);
     setChatNotificationItems(next.pending);
   };
   const selectRoom = (thread: Thread) => {
@@ -470,9 +461,9 @@ export default function MobileInbox() {
     await registration.showNotification(`ข้อความใหม่ · ${item.pageName || "Facebook"}`, { body: `${item.customerName || "ลูกค้า"}: ${item.message}`, tag: `bb-chat-${item.threadKey}`, icon: "/icons/icon-192.png", data: { url: `/mobile-inbox?page=${encodeURIComponent(item.pageId)}&thread=${encodeURIComponent(item.threadId)}` } });
   };
   const markAllNotificationsRead = () => {
-    const state = readChatNotificationState(browserChatConfig?.url);
+    const state = readChatNotificationState();
     const next = markChatNotificationsRead(state);
-    writeChatNotificationState(next, browserChatConfig?.url);
+    writeChatNotificationState(next);
     setChatNotificationItems([]);
     setNotificationOpen(false);
   };

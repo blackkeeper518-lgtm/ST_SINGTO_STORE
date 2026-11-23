@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getSupabase, getSupabaseConfig } from "@/lib/canonical";
+import { getSupabase } from "@/lib/canonical";
+import { refreshServerProjectStatus } from "@/lib/server-project-client";
 import { CYBER_THEME_PRESETS, DEFAULT_CYBER_THEME, type CyberTheme } from "@/lib/theme-lab";
 
 const GLOBAL_THEME_KEY = "st-bb-global-theme-key-v1";
 const GLOBAL_THEME_EVENT = "st-bb-global-theme-change";
 const GLOBAL_THEME_PAYLOAD_KEY = "st-bb-global-theme-payload-v1";
-const GLOBAL_PUBLIC_CONFIG_KEY = "st-bb-global-public-config-v1";
 
 type GlobalThemeRow = {
   theme_key?: string;
@@ -92,6 +92,8 @@ export function GlobalThemeRuntime({ children }: { children: React.ReactNode }) 
   const refreshThemes = async () => {
     setLoading(true);
     try {
+      const status = await refreshServerProjectStatus();
+      if (!status.vault) { setConnected(false); return; }
       const api = getSupabase("vault");
       if (!api) { setConnected(false); return; }
       const result = await api.from("app_themes").select("theme_key,name,description,background_color,surface_color,primary_color,accent_color,text_primary_color,text_secondary_color,font_body,font_heading,graphic_url,border_style,button_style,radius,glow,motion_enabled,is_enabled,sort_order").eq("is_enabled", true).order("sort_order", { ascending: true });
@@ -121,13 +123,7 @@ export function GlobalThemeRuntime({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     try {
       localStorage.setItem(GLOBAL_THEME_PAYLOAD_KEY, JSON.stringify(theme));
-      const projects = ["main", "tracking", "parcel", "vault"]
-        .map(project => {
-          const config = getSupabaseConfig("ST", project as "main" | "tracking" | "parcel" | "vault");
-          return config ? { url: config.url, anonKey: config.anonKey, label: project.toUpperCase() } : null;
-        })
-        .filter(Boolean);
-      localStorage.setItem(GLOBAL_PUBLIC_CONFIG_KEY, JSON.stringify(projects));
+      localStorage.removeItem("st-bb-global-public-config-v1");
     } catch { /* private mode or blocked storage */ }
   }, [theme]);
   const selectTheme = (next: GlobalTheme) => {

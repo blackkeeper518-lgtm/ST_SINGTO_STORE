@@ -9,7 +9,6 @@ import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { buildMetaConversationUrl } from "@/lib/meta-inbox";
 import { metaTransientSendNotice } from "@/lib/meta-send-notice";
 import { getSelectedOrderMessageText, isSelectableCustomerMessage } from "@/lib/order-deck-context";
-import { CHAT_BROWSER_CONFIG_EVENT, readBrowserChatConfig } from "@/lib/chat-config";
 import { CYBER_FRAME_EVENT, CYBER_FRAME_OPTIONS, readCyberFrame, readCyberFrameRooms, saveCyberFrameRoom } from "@/lib/cyber-frame";
 import { trpc } from "@/lib/trpc";
 import "@/styles/cyber-frames.css";
@@ -86,10 +85,8 @@ function SendStatusBadge({ label, value, route }: { label: string; value: unknow
 export default function ChatHub() {
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
-  const [browserChatConfig, setBrowserChatConfig] = useState(() => readBrowserChatConfig());
-  const hasBrowserConfig = Boolean(browserChatConfig?.url && browserChatConfig.serviceRoleKey);
-  const chatConfiguredQuery = trpc.chat.configured.useQuery(undefined, { enabled: !hasBrowserConfig, staleTime: 60_000, retry: false });
-  const hasBrowserChatConfig = hasBrowserConfig || Boolean(chatConfiguredQuery.data?.configured);
+  const chatConfiguredQuery = trpc.chat.configured.useQuery(undefined, { staleTime: 60_000, retry: false });
+  const hasServerChatConfig = Boolean(chatConfiguredQuery.data?.configured);
   const [search, setSearch] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(() => typeof window === "undefined" ? null : localStorage.getItem(CHAT_SELECTED_ROOM_KEY));
   const [composerOpen, setComposerOpen] = useState(true);
@@ -135,15 +132,6 @@ export default function ChatHub() {
   const lastLatestMessageKeyRef = useRef<string | null>(null);
   const routeSelectionPendingRef = useRef<string | null>(null);
   useEffect(() => {
-    const refreshConfig = () => setBrowserChatConfig(readBrowserChatConfig());
-    window.addEventListener("storage", refreshConfig);
-    window.addEventListener(CHAT_BROWSER_CONFIG_EVENT, refreshConfig);
-    return () => {
-      window.removeEventListener("storage", refreshConfig);
-      window.removeEventListener(CHAT_BROWSER_CONFIG_EVENT, refreshConfig);
-    };
-  }, []);
-  useEffect(() => {
     const refreshFrame = () => { setCyberFrame(readCyberFrame()); setCyberFrameRooms(readCyberFrameRooms()); };
     window.addEventListener("storage", refreshFrame);
     window.addEventListener(CYBER_FRAME_EVENT, refreshFrame);
@@ -166,7 +154,7 @@ export default function ChatHub() {
   }, [replyText]);
   useEffect(() => { if (selectedKey) localStorage.setItem(CHAT_SELECTED_ROOM_KEY, selectedKey); }, [selectedKey]);
   const threadsQuery = trpc.chat.threads.useQuery({ surface: "web" }, {
-    enabled: hasBrowserChatConfig,
+    enabled: hasServerChatConfig,
     staleTime: 0,
     // Keep the inbox close to the n8n completion window without reloading the page.
     refetchInterval: 20_000,
@@ -175,7 +163,7 @@ export default function ChatHub() {
     refetchOnReconnect: true,
     select: mapChatRowsToThreads,
   });
-  const pageCatalogQuery = trpc.chat.pages.useQuery(undefined, { enabled: hasBrowserChatConfig, staleTime: 0, refetchInterval: false, refetchOnWindowFocus: false, retry: false });
+  const pageCatalogQuery = trpc.chat.pages.useQuery(undefined, { enabled: hasServerChatConfig, staleTime: 0, refetchInterval: false, refetchOnWindowFocus: false, retry: false });
   const setPageWebStatus = trpc.chat.setPageWebStatus.useMutation({ onSuccess: () => { void pageCatalogQuery.refetch(); void threadsQuery.refetch(); } });
   const threads = threadsQuery.data ?? [];
   const availablePages = useMemo<Array<[string, string, boolean, boolean]>>(
@@ -208,7 +196,7 @@ export default function ChatHub() {
   );
   const [handoffTracking, setHandoffTracking] = useState<Record<string, any> | null>(null);
   const messagesQuery = trpc.chat.messages.useQuery({ pageId: selectedPageId, threadId: selectedThreadId, surface: "web" }, {
-    enabled: hasBrowserChatConfig && Boolean(selectedPageId && selectedThreadId),
+    enabled: hasServerChatConfig && Boolean(selectedPageId && selectedThreadId),
     staleTime: 0,
     refetchInterval: 20_000,
     refetchIntervalInBackground: false,
@@ -430,7 +418,7 @@ export default function ChatHub() {
     if (!files.length) { setReplyNotice("แนบภาพได้สูงสุด 4 ภาพต่อข้อความ"); return; }
     const supportedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
     const vaultClient = getSupabase("vault");
-    if (!vaultClient) { setReplyNotice("อัปโหลดภาพไม่สำเร็จ: ไม่พบ ROOM 04 · PRIVATE VAULT · กรอก Supabase URL กับ Anon/Publishable Key ก่อน"); return; }
+    if (!vaultClient) { setReplyNotice("อัปโหลดภาพไม่สำเร็จ: ยังไม่ได้ตั้งค่า VAULT server credentials บน deployment"); return; }
     setImageUploading(true);
     setReplyNotice(`กำลังอัปโหลด ${files.length} ภาพเข้า ROOM 04 · PRIVATE VAULT…`);
     const uploaded: Array<{ url: string; sendUrl: string; name: string }> = [];
@@ -636,7 +624,7 @@ export default function ChatHub() {
 
   return <div className={`chat-cosmos-shell cosmic-stage h-full min-h-0 overflow-hidden bg-[radial-gradient(ellipse_at_top_left,rgba(34,211,238,0.11),transparent_38%),radial-gradient(ellipse_at_bottom_right,rgba(168,85,247,0.10),transparent_40%),#070912] text-white ${isMobile ? "chat-hub-mobile" : ""}`}><div className={`chat-hub-content mx-auto flex h-full min-h-0 max-w-[1600px] flex-col gap-3 overflow-hidden p-2 sm:p-4 lg:p-6 ${orderDeckOpen ? "chat-hub-content--deck-open" : ""}`}>
     <div className="chat-live-strip flex shrink-0 items-center gap-2 rounded-xl border border-cyan-300/15 bg-[#0c1320]/80 px-3 py-2 text-xs text-cyan-100/70 shadow-[inset_0_0_16px_rgba(34,211,238,.04)] backdrop-blur-lg"><span className="inline-flex items-center gap-1.5 text-emerald-300"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />SIGNAL LIVE</span><span className="text-fuchsia-100/20">·</span><span>รอบล่าสุด: {threadsQuery.dataUpdatedAt ? new Date(threadsQuery.dataUpdatedAt).toLocaleString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "กำลังโหลด"}</span></div>
-    {!hasBrowserChatConfig ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-100"><span>ยังไม่ได้ตั้งค่า Chat ใน browser นี้ · ระบบจะยังไม่เรียกฐานข้อมูลแชท</span><Button size="sm" variant="outline" onClick={() => setLocation("/secret-gallery")} className="border-amber-200/25 bg-transparent text-amber-100">ตั้งค่า ROOM 02</Button></div> : null}
+    {!hasServerChatConfig ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-100"><span>ยังไม่ได้ตั้งค่า CHAT server · ระบบจะยังไม่เรียกฐานข้อมูลแชท</span><Button size="sm" variant="outline" onClick={() => setLocation("/secret-gallery")} className="border-amber-200/25 bg-transparent text-amber-100">ตั้งค่า ROOM 02</Button></div> : null}
     {threadsQuery.isError ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3 text-xs text-red-200"><span>โหลดห้องแชทไม่สำเร็จ: {threadsQuery.error.message}</span><Button size="sm" variant="outline" onClick={() => threadsQuery.refetch()} className="border-red-300/20 bg-transparent text-red-100">ลองใหม่</Button></div> : null}
     {threads.find(thread => thread.orderCountError)?.orderCountError ? <div role="alert" className="rounded-2xl border border-cyan-400/25 bg-cyan-400/[0.06] px-4 py-3 text-xs leading-5 text-cyan-200">โหลดแชทได้ แต่การเชื่อมแถวออเดอร์มีปัญหา: {String(threads.find(thread => thread.orderCountError)?.orderCountError)}</div> : null}
     <header className="neon-sign relative shrink-0 overflow-hidden rounded-2xl border border-cyan-300/35 bg-gradient-to-r from-[#0c1421] via-[#151020] to-[#170d1d] px-4 py-3 shadow-[0_0_14px_rgba(34,211,238,.24),0_0_32px_rgba(168,85,247,.20),inset_0_0_20px_rgba(217,70,239,.10)] backdrop-blur-xl"><div className="hero-orbit pointer-events-none opacity-60" aria-hidden="true" /><div className="relative z-10 flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fuchsia-300">COSMIC · CHAT CONTROL</p><button type="button" onClick={() => { void Promise.all([threadsQuery.refetch(), pageCatalogQuery.refetch(), messagesQuery.refetch()]); }} className="mt-1 text-left text-xl font-semibold tracking-tight text-white drop-shadow-[0_0_8px_rgba(244,114,182,.95)] hover:text-cyan-200">กล่องข้อความ{threadsQuery.isFetching ? <RefreshCw className="ml-2 inline h-4 w-4 animate-spin" /> : null}</button></div><span className="hidden text-[10px] text-fuchsia-100/35 sm:inline">กดชื่อเพื่อรีเฟรชข้อมูล</span></div></header>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { buildOrderDeckContextMessage } from "@/lib/order-deck-context";
-import { getSupabaseConfig } from "@/lib/canonical";
+import { projectApi } from "@/lib/server-project-client";
 import { useGlobalThemeRuntime } from "@/contexts/GlobalThemeRuntime";
 
 type OrderDeckFrameProps = {
@@ -30,13 +30,6 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
   const [frameReady, setFrameReady] = useState(false);
   const { theme } = useGlobalThemeRuntime();
   currentProps.current = props;
-
-  const sharedProjects = useMemo(() => ["main", "tracking", "parcel", "vault"]
-    .map(project => {
-      const config = getSupabaseConfig("ST", project as "main" | "tracking" | "parcel" | "vault");
-      return config ? { url: config.url, anonKey: config.anonKey, label: project.toUpperCase() } : null;
-    })
-    .filter((project): project is { url: string; anonKey: string; label: string } => Boolean(project)), []);
 
   const sendContext = useCallback((importSelectedCustomerMessage = false) => {
     const target = frameRef.current?.contentWindow;
@@ -76,9 +69,63 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
         glow: theme.glow,
         motion: theme.motion,
       },
-      projects: sharedProjects,
     }, window.location.origin);
-  }, [sharedProjects, theme]);
+  }, [theme]);
+
+  const handleServerRelay = useCallback(async (event: MessageEvent) => {
+    const target = frameRef.current?.contentWindow;
+    if (!target || event.source !== target || event.origin !== window.location.origin || event.data?.type !== "ST_ORDER_DECK_SERVER_REQUEST") return;
+    const requestId = typeof event.data.requestId === "string" ? event.data.requestId.slice(0, 100) : "";
+    const operation = String(event.data.operation || "");
+    const input = event.data.input && typeof event.data.input === "object" ? event.data.input as Record<string, unknown> : {};
+    if (!requestId) return;
+    try {
+      let result: unknown;
+      if (operation === "serverStatus") {
+        result = await projectApi.projects.status.query();
+      } else if (operation === "postalSearch") {
+        const allowed = new Set(["district", "amphoe", "province", "zipcode", "or"]);
+        const filters = input.filters && typeof input.filters === "object" ? input.filters as Record<string, unknown> : {};
+        const params: Record<string, string> = { select: "district,amphoe,province,zipcode", limit: String(Math.max(1, Math.min(100, Number(input.limit) || 40))) };
+        for (const [key, value] of Object.entries(filters)) {
+          if (!allowed.has(key) || typeof value !== "string" || value.length > 500) throw new Error("Invalid postal search filter");
+          params[key] = value;
+        }
+        result = await projectApi.projects.execute.mutate({ project: "tracking", table: "thailand_address_master", method: "GET", params });
+      } else if (operation === "parcelLookup") {
+        result = await projectApi.projects.parcelLookup.mutate({ phone: String(input.phone || "").slice(0, 24) });
+      } else if (operation === "productCatalog") {
+        result = await projectApi.projects.execute.mutate({ project: "main", table: "🛒product_master", method: "GET", params: { select: "emoji,master_sku,th_name,name_standard,brand,variant,unit_price,alias,status", status: "eq.ACTIVE", order: "th_name.asc", limit: "500" } });
+      } else if (operation === "scriptCardsList") {
+        const offset = Math.max(0, Math.min(4500, Math.floor(Number(input.offset) || 0)));
+        result = await projectApi.projects.execute.mutate({ project: "vault", table: "sales_script_cards", method: "GET", params: { select: "id,sku,title,blocks_json,updated_at", order: "updated_at.desc", limit: "500", offset: String(offset) } });
+      } else if (operation === "scriptCardByTitle") {
+        const title = String(input.title || "").trim().slice(0, 160);
+        result = await projectApi.projects.execute.mutate({ project: "vault", table: "sales_script_cards", method: "GET", params: { select: "id,title,subtitle,script_text,ai_context,ai_instruction,blocks_json,status,version,updated_at", title: `eq.${title}`, order: "updated_at.desc", limit: "1" } });
+      } else if (operation === "updateScriptCard") {
+        const id = Math.floor(Number(input.id));
+        const body = input.body && typeof input.body === "object" ? input.body : {};
+        result = await projectApi.projects.execute.mutate({ project: "vault", table: "sales_script_cards", method: "PATCH", params: { id: `eq.${id}`, select: "id" }, body, prefer: "return=representation" });
+      } else if (operation === "insertScriptCard") {
+        result = await projectApi.projects.execute.mutate({ project: "vault", table: "sales_script_cards", method: "POST", params: { select: "id" }, body: input.body, prefer: "return=minimal" });
+      } else if (operation === "uploadWarpImage") {
+        const path = String(input.path || "");
+        const contentBase64 = String(input.contentBase64 || "");
+        const contentType = String(input.contentType || "image/webp").slice(0, 120);
+        result = await projectApi.projects.storage.mutate({ operation: "upload", bucket: "warp-images", path, contentBase64, contentType, upsert: false });
+      } else {
+        throw new Error("Unsupported Order Deck server operation");
+      }
+      target.postMessage({ type: "ST_ORDER_DECK_SERVER_RESPONSE", requestId, ok: true, result }, window.location.origin);
+    } catch (error) {
+      target.postMessage({ type: "ST_ORDER_DECK_SERVER_RESPONSE", requestId, ok: false, error: error instanceof Error ? error.message : String(error) }, window.location.origin);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("message", handleServerRelay);
+    return () => window.removeEventListener("message", handleServerRelay);
+  }, [handleServerRelay]);
 
   useEffect(() => {
     const request = props.messageRequest;
@@ -123,7 +170,7 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
           ? event.data.imageUrls.filter((url: unknown): url is string => typeof url === "string" && (/^https?:\/\//i.test(url) || (url.length <= 8_100_000 && /^data:image\/(?:png|jpeg|gif|webp);base64,/i.test(url)))).slice(0, 4)
           : [];
         const textVariants = Array.isArray(event.data.textVariants)
-          ? event.data.textVariants.filter((text: unknown): text is string => typeof text === "string" && text.trim()).map(text => text.trim().slice(0, 8_000)).slice(0, 3)
+          ? event.data.textVariants.filter((text: unknown): text is string => typeof text === "string" && Boolean(text.trim())).map(text => text.trim().slice(0, 8_000)).slice(0, 3)
           : [];
         const productInfo = event.data.productInfo && typeof event.data.productInfo === "object" ? event.data.productInfo as Record<string, unknown> : {};
         currentProps.current.onProductSelected?.({ product, textVariants, productInfo, imageUrls });
