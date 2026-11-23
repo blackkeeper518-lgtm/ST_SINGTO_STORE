@@ -462,7 +462,7 @@ body.visual-theme .parcel-panel .postal-state.loading:before{color:var(--visual-
     <div class="postal-box">
       <div id="postalState" class="postal-state">RADAR READY · รอที่อยู่หรือชื่อจังหวัด</div>
       <div id="postalResults" class="postal-results"><div class="postal-empty"><strong>NO SCAN YET</strong><br>วางที่อยู่จากหน้าแชท แล้วกดสแกน<br>ระบบจะแสดงรหัสและพื้นที่ที่จับคู่ได้</div></div>
-      <div class="postal-source"><span>QUERY TARGET</span><span>TRACKING/PARCEL SERVER · thailand_address_master · SELECT ONLY</span></div>
+      <div class="postal-source"><span>QUERY TARGET</span><span>ROOM 04 · PRIVATE VAULT · thailand_address_master · SELECT ONLY</span></div>
     </div>
   </div>
 </section>
@@ -754,7 +754,7 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
     }catch(error){
       if(requestId!==activeRequest)return;
       state.className='postal-state bad';state.textContent='RADAR OFFLINE · เชื่อมฐาน ปณ. ไม่สำเร็จ';
-      results.innerHTML='<div class="postal-empty"><strong>CONNECTION ERROR</strong><br>ตรวจการตั้งค่า Server TRACKING/PARCEL แล้วลองอีกครั้ง</div>';
+      results.innerHTML='<div class="postal-empty"><strong>CONNECTION ERROR</strong><br>ตรวจการตั้งค่า Server ROOM 04 · PRIVATE VAULT แล้วลองอีกครั้ง</div>';
     }
   }
   searchButton.addEventListener('click',runSearch);
@@ -890,11 +890,6 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
     if(event.source!==parent||event.origin!==location.origin)return;
     const message=event.data;
     if(!message||message.type!=='ST_ORDER_DECK_CONTEXT')return;
-    if(message.importSelectedCustomerMessage!==true)return;
-    const selectedCustomerMessage=typeof message.selectedCustomerMessage==='string'
-      ?message.selectedCustomerMessage.trim().slice(0,2400)
-      :'';
-    if(!selectedCustomerMessage)return;
     const requestedPage=typeof message.pageName==='string'?message.pageName.trim().replace(/[\r\n]+/g,' '):'';
     if(requestedPage){
       pageOptions=[requestedPage];
@@ -903,6 +898,11 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
       syncChoices();
       refreshPreview();
     }
+    if(message.importSelectedCustomerMessage!==true)return;
+    const selectedCustomerMessage=typeof message.selectedCustomerMessage==='string'
+      ?message.selectedCustomerMessage.trim().slice(0,2400)
+      :'';
+    if(!selectedCustomerMessage)return;
     raw.readOnly=false;
     raw.value=selectedCustomerMessage;
     document.querySelector('.bottom-tab[data-tab="tab-order"]')?.click();

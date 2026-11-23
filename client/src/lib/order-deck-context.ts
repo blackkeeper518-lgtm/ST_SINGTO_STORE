@@ -54,18 +54,17 @@ export function buildOrderDeckContextMessage(
   input: OrderDeckContextInput,
   importSelectedCustomerMessage = false,
 ) {
+  const pageName = input.pageName.trim();
   const selectedCustomerMessage = String(input.selectedCustomerMessage ?? "")
     .trim()
     .slice(0, 2400);
 
-  if (!importSelectedCustomerMessage || !selectedCustomerMessage) {
-    return { type: "ST_ORDER_DECK_CONTEXT" as const };
-  }
+  if (!importSelectedCustomerMessage || !selectedCustomerMessage) return { type: "ST_ORDER_DECK_CONTEXT" as const, pageName };
 
   return {
     type: "ST_ORDER_DECK_CONTEXT" as const,
     importSelectedCustomerMessage: true as const,
-    pageName: input.pageName.trim(),
+    pageName,
     selectedCustomerMessage,
   };
 }

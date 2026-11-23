@@ -334,8 +334,8 @@ describe("ChatHub read contract v5", () => {
     expect(thread.delivery_status).toBe("🔥SENT");
   });
 
-  it("uses customer_latest_message when the customer source row has no message_text", () => {
-    const [message] = mapChatRowsToMessages([{
+  it("ignores removed customer_latest_message when the customer source row has no message_text", () => {
+    const messages = mapChatRowsToMessages([{
       _source_table: CHAT_CUSTOMER_TABLE,
       page_id: "page-1",
       thread_id: "thread-1",
@@ -347,9 +347,7 @@ describe("ChatHub read contract v5", () => {
       occurred_at: "2026-11-13T08:00:00.000Z",
     }]);
 
-    expect(message.senderType).toBe("customer");
-    expect(message.direction).toBe("inbound");
-    expect(message.text).toBe("ลูกค้าทักมาก่อน ขอเช็กค่าส่งหน่อยค่ะ");
+    expect(messages).toHaveLength(0);
   });
 
   it("reads the base message_text field when the per-message migration is absent", () => {
@@ -383,7 +381,7 @@ describe("ChatHub read contract v5", () => {
     expect(message.direction).toBe("inbound");
   });
 
-  it("splits customer and page latest fields when staggered flows write one summary row", () => {
+  it("keeps only the page field when a legacy summary row has no current customer text", () => {
     const messages = mapChatRowsToMessages([{
       _source_table: CHAT_PAGE_TABLE,
       page_id: "page-1",
@@ -396,14 +394,12 @@ describe("ChatHub read contract v5", () => {
       time_th: "14/11/2569 10:00:00",
     }]);
 
-    expect(messages).toHaveLength(2);
+    expect(messages).toHaveLength(1);
     expect(messages.map(message => [message.senderType, message.text])).toEqual([
       ["page", "รับโปรลับในแชทนะเจ้าค่ะ"],
-      ["customer", "🔥ร้อนๆมีป่าว"],
     ]);
     expect(messages.map(message => message.timeTh)).toEqual([
       "14/11/2569 11:17:37",
-      "14/11/2569 11:17:38",
     ]);
   });
 

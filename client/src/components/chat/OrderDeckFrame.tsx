@@ -91,7 +91,7 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
           if (!allowed.has(key) || typeof value !== "string" || value.length > 500) throw new Error("Invalid postal search filter");
           params[key] = value;
         }
-        result = await projectApi.projects.execute.mutate({ project: "chat", table: "thailand_address_master", method: "GET", params });
+        result = await projectApi.projects.execute.mutate({ project: "vault", table: "thailand_address_master", method: "GET", params });
       } else if (operation === "parcelLookup") {
         result = await projectApi.projects.parcelLookup.mutate({ phone: String(input.phone || "").slice(0, 24) });
       } else if (operation === "productCatalog") {

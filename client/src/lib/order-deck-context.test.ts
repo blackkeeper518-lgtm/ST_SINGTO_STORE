@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { buildOrderDeckContextMessage, getLatestBBChatCustomerMessage, getSelectedOrderMessageText, isImportableLatestCustomerMessage, isSelectableCustomerMessage } from "./order-deck-context";
 
 describe("Order Deck chat context", () => {
-  it("sends no page or customer data when the Order Deck is only opened", () => {
+  it("sends the page name when the Order Deck is opened without importing a message", () => {
     const message = buildOrderDeckContextMessage({
       pageName: "ST Singto Store",
       selectedCustomerMessage: "อภิโชค เสระ 0655310082 ที่อยู่ลูกค้า",
     });
 
-    expect(message).toEqual({ type: "ST_ORDER_DECK_CONTEXT" });
+    expect(message).toEqual({ type: "ST_ORDER_DECK_CONTEXT", pageName: "ST Singto Store" });
   });
 
   it("sends the page name and only the one customer message after explicit import", () => {
@@ -28,9 +28,9 @@ describe("Order Deck chat context", () => {
     expect(message).not.toHaveProperty("customerPhone");
   });
 
-  it("does not import the page when no message has been selected", () => {
+  it("does not import the message when no message has been selected", () => {
     const message = buildOrderDeckContextMessage({ pageName: "ST Singto Store", selectedCustomerMessage: "  " }, true);
-    expect(message).toEqual({ type: "ST_ORDER_DECK_CONTEXT" });
+    expect(message).toEqual({ type: "ST_ORDER_DECK_CONTEXT", pageName: "ST Singto Store" });
   });
 
   it("allows selection only for inbound customer messages", () => {

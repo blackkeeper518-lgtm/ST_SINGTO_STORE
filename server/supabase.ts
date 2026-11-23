@@ -72,14 +72,14 @@ const PROJECT_TABLES: Record<SupabaseProject, ReadonlySet<string>> = {
   chat: new Set([
     CHAT_CUSTOMER_TABLE, CHAT_PAGE_TABLE, CHAT_PAGE_TOKEN_TABLE, "line_channels", "line_messages",
     "delivery_pre_send_checks", "delivery_red_zone_provinces", "delivery_telegram_urgent_queue",
-    "🌓VAGABOND_xXx_DISMISS", "🏴‍☠️SIRIUS_xXx_CRASH", "thailand_address_master",
+    "🌓VAGABOND_xXx_DISMISS", "🏴‍☠️SIRIUS_xXx_CRASH",
   ]),
 };
 const STAFF_READ_COLUMNS: Record<string, ReadonlySet<string>> = {
   "main:🛒product_master": new Set(["emoji", "master_sku", "th_name", "name_standard", "brand", "variant", "unit_price", "alias", "status"]),
   "vault:🛒product_master": new Set(["emoji", "master_sku", "th_name", "name_standard", "brand", "variant", "unit_price", "alias", "status"]),
   "tracking:thailand_address_master": new Set(["district", "amphoe", "province", "zipcode"]),
-  "chat:thailand_address_master": new Set(["district", "amphoe", "province", "zipcode"]),
+  "vault:thailand_address_master": new Set(["district", "amphoe", "province", "zipcode"]),
   "vault:sales_script_cards": new Set(["id", "sku", "title", "subtitle", "script_text", "ai_context", "ai_instruction", "blocks_json", "status", "version", "updated_at"]),
 };
 export function canStaffExecuteProjectQuery(input: { project: SupabaseProject; table: string; method: string; params?: Record<string, string> }) {
@@ -250,6 +250,7 @@ const PROJECT_CONNECTION_CHECKS: Partial<Record<SupabaseProject, Array<{ table: 
   ],
   vault: [
     { table: "🛒product_master", label: "Product Catalog" },
+    { table: "thailand_address_master", label: "Thai Address Master" },
     { table: "sales_script_cards", label: "Sales Script Cards" },
     { table: "app_themes", label: "Themes" },
     { table: "app_chat_frames", label: "Chat Frames" },

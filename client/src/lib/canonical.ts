@@ -738,11 +738,9 @@ function normalizeChatReadRows(sourceRows: any[]) {
     // Expand that snapshot into the two original bubbles instead of dropping the history.
     if (row._source_table === "Pg_Chat⭐BINARY_xXx_STAR" && !hasPerMessageText) {
       const pageLatest = asText(row.page_latest_message).trim();
-      const customerLatest = asText(row.customer_latest_message).trim();
-      if (pageLatest && customerLatest) {
+      if (pageLatest) {
         return [
           normalizeOne(row, "page", pageLatest, row.page_message_time_th || row.time_th),
-          normalizeOne(row, "customer", customerLatest, row.customer_message_time_th || row.time_th),
         ].sort((a, b) => (chatDateMs(a._occurred) ?? 0) - (chatDateMs(b._occurred) ?? 0));
       }
     }
@@ -753,7 +751,7 @@ function normalizeChatReadRows(sourceRows: any[]) {
       ? row.message_text || row.customer_message_text || row.page_message_text
       : isPage
         ? row.page_message_text || row.message_text || row.page_latest_message
-        : row.customer_message_text || row.message_text || row.customer_latest_message;
+        : row.customer_message_text || row.message_text;
     if (!asText(text).trim() && !hasChatAttachment(row)) return [];
     return [normalizeOne(row, speaker, text)];
   }).sort((a, b) => {
@@ -1055,8 +1053,8 @@ export async function readParcelByTrackingNumber(trackingNumber: string) {
 }
 export type PostalMasterMatch = { district: string | null; amphoe: string | null; province: string | null; zipcode: string | null };
 export async function searchThailandPostalMaster(raw: string): Promise<PostalMasterMatch[]> {
-  const api = getSupabase("chat");
-  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase โปรเจกต์ 4 ฝั่ง Server" });
+  const api = getSupabase("vault");
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ROOM 04 · PRIVATE VAULT ฝั่ง Server" });
   const input = String(raw ?? "").normalize("NFC").trim().slice(0, 160);
   if (!input) return [];
   const postalCode = input.match(/(?:^|\D)(\d{5})(?!\d)/)?.[1] ?? "";
