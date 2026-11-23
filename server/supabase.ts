@@ -77,6 +77,7 @@ const PROJECT_TABLES: Record<SupabaseProject, ReadonlySet<string>> = {
 };
 const STAFF_READ_COLUMNS: Record<string, ReadonlySet<string>> = {
   "main:🛒product_master": new Set(["emoji", "master_sku", "th_name", "name_standard", "brand", "variant", "unit_price", "alias", "status"]),
+  "vault:🛒product_master": new Set(["emoji", "master_sku", "th_name", "name_standard", "brand", "variant", "unit_price", "alias", "status"]),
   "tracking:thailand_address_master": new Set(["district", "amphoe", "province", "zipcode"]),
   "vault:sales_script_cards": new Set(["id", "sku", "title", "subtitle", "script_text", "ai_context", "ai_instruction", "blocks_json", "status", "version", "updated_at"]),
 };
@@ -247,6 +248,7 @@ const PROJECT_CONNECTION_CHECKS: Partial<Record<SupabaseProject, Array<{ table: 
     { table: "📓DEAD_xXx_NOTE", label: "Tracking History" },
   ],
   vault: [
+    { table: "🛒product_master", label: "Product Catalog" },
     { table: "sales_script_cards", label: "Sales Script Cards" },
     { table: "app_themes", label: "Themes" },
     { table: "app_chat_frames", label: "Chat Frames" },

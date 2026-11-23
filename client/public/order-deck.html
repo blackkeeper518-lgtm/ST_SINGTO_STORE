@@ -505,6 +505,8 @@ body.visual-theme .parcel-panel .postal-state.loading:before{color:var(--visual-
   <p class="hint">ภาพของ SKU นี้จะถูกอัปโหลดเข้า Google Drive แล้วเติมลิงก์ในแถว SKU อัตโนมัติ</p>
 </div><div class="modal-foot" style="justify-content:space-between"><button class="btn small" id="deleteProduct" style="border-color:rgba(255,102,117,.28);color:#ff9aa5;background:rgba(255,102,117,.06)">ลบสินค้า</button><div style="display:flex;gap:8px"><button class="btn quiet" id="pasteProductImage">วางจากคลิปบอร์ด</button><button class="btn quiet" id="cancelProduct">ปิด</button><button class="btn primary" id="saveProduct">บันทึกเป็นการ์ด</button></div></div></div></div></div><div class="modal" id="scriptModal"><div class="modal-card"><div class="panel-head"><span class="eyebrow" id="modalTitle">EDIT CUSTOMER SCRIPT</span><span class="badge">PRIVATE PAGE</span></div><div class="body"><input id="scriptName" type="text" placeholder="ชื่อปุ่มสคริปต์"><textarea id="scriptText" placeholder="ข้อความที่ต้องการให้คัดลอกเมื่อกดปุ่ม"></textarea><div class="modal-foot" style="justify-content:space-between"><button class="btn small" id="deleteScript" style="border-color:rgba(255,102,117,.28);color:#ff9aa5;background:rgba(255,102,117,.06)">ลบสคริปต์นี้</button><div style="display:flex;gap:8px"><button class="btn quiet" id="cancelScript">ยกเลิก</button><button class="btn primary" id="saveScript">บันทึกสคริปต์นี้</button></div></div></div></div></div>
 <script>
+function normalizeProductText(value){return String(value||'').normalize('NFC').toLocaleLowerCase('th-TH').replace(/[\u200B-\u200F\uFEFF]/g,'').replace(/[^\p{L}\p{M}\p{N}]/gu,'')}
+let productCatalog=[];
 function updateClock(){const now=new Date(),time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(now),date=new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(now);document.getElementById('clockTime').textContent=time;document.getElementById('clockDate').textContent=date}updateClock();setInterval(updateClock,1000);
 const defaults=[{id:'s1',name:'สคริปต์เจ้าของร้านเครียด',tag:'COLD',content:'สวัสดีค่ะ เข้าใจเลยนะคะว่าช่วงนี้เจ้าของร้านมีหลายเรื่องให้จัดการ\nถ้าสะดวก เล่าให้ฟังได้ไหมคะว่าตอนนี้เรื่องไหนอยากแก้ก่อนที่สุด?'},{id:'s2',name:'สคริปต์แม่ค้าออนไลน์ท้อ',tag:'WARM',content:'เข้าใจเลยค่ะ ทำร้านออนไลน์เหนื่อยจริง ๆ โดยเฉพาะเวลาตั้งใจทำคอนเทนต์แล้วผลยังไม่เป็นอย่างหวัง\nถ้าสะดวก ส่งรายละเอียดร้านหรือปัญหาที่เจอมาได้เลยนะคะ เดี๋ยวช่วยดูแนวทางให้ค่ะ'},{id:'s3',name:'สคริปต์โค้ชขายไม่ออก',tag:'HOT',content:'ขอเข้าใจสถานการณ์ก่อนนะคะ ตอนนี้ลูกค้าส่วนใหญ่ติดตรงไหนคะ—ยังไม่ทัก, ทักแล้วไม่ซื้อ หรือซื้อครั้งเดียวแล้วหาย?\nจะได้แนะนำวิธีที่ตรงกับปัญหาจริงค่ะ'},{id:'s4',name:'สคริปต์ยิงแอดไม่เข้าเป้า',tag:'DARK',content:'ถ้าแอดยังไม่เข้าเป้า อย่าเพิ่งเพิ่มงบค่ะ ลองเช็กกลุ่มเป้าหมาย ครีเอทีฟ และหน้าปิดการขายก่อน\nส่งผลลัพธ์แคมเปญคร่าว ๆ มาได้เลยนะคะ จะช่วยไล่ดูจุดที่ควรปรับให้ค่ะ'}];
 const read=(k,d)=>{try{const x=localStorage.getItem(k);return x?JSON.parse(x):d}catch{return d}};let scripts=read('drak-scripts-v2',defaults),files=read('drak-files-v2',[]),editingId=null,currentFile=null;const $=id=>document.getElementById(id),status=m=>{$('status').textContent=m;$('status').classList.add('show');clearTimeout(status.t);status.t=setTimeout(()=>$('status').classList.remove('show'),2000)};
@@ -533,6 +535,7 @@ let images=[];const imageDbPromise=new Promise((resolve,reject)=>{if(!('indexedD
     lastProductIndexSignature=signature;
     window.parent.postMessage({type:'ST_ORDER_DECK_PRODUCT_INDEX',products},window.location.origin);
   }
+  window.ST_ORDER_DECK_NOTIFY_PRODUCT_INDEX=notifyParentProductIndex;
   function receiveParentProductRequest(event){
     if(event.source!==parent||event.origin!==location.origin)return;
     const message=event.data||{};
@@ -854,7 +857,6 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
   const pageOptions=['เจ๊บี 🅱🅱','💬ร้าน:เจ๊ B','🛒ร้าน:เจ๊บี','🍇BBสโตร์.','🎀BBεїзเบอร์หนึ่งสโตร์','🎶BB ↠ STORE','💗Bb store'];
   const carrierOptions=['📮 ไปรษณีย์ไทย','🟠 KERRY EXPRESS','🔴 J&T EXPRESS','⚡️FLASH EXPRESS'];
   const catalogState=$('orderCatalogStatus'),productSearch=$('orderProductSearch'),productResults=$('orderProductResults'),cartRoot=$('orderCart'),multiplierRoot=$('orderMultipliers');
-  let productCatalog=[];
   const selectedProducts=[];
   function buildChoices(containerId,groupName,options,field){
     const root=$(containerId);if(!root)return;
@@ -897,7 +899,6 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
   window.addEventListener('message',receiveChatContext);
   function closeChoiceMenus(){for(const [menuId,toggleId] of [['orderPageChoices','orderPageToggle'],['orderCarrierChoices','orderCarrierToggle']]){$(menuId).hidden=true;$(toggleId).setAttribute('aria-expanded','false');}}
   function toggleChoiceMenu(menuId,toggleId){const menu=$(menuId),shouldOpen=menu.hidden;closeChoiceMenus();if(shouldOpen){menu.hidden=false;$(toggleId).setAttribute('aria-expanded','true');}}
-  const normalizeProductText=value=>String(value||'').normalize('NFC').toLocaleLowerCase('th-TH').replace(/[\u200B-\u200F\uFEFF]/g,'').replace(/[^\p{L}\p{N}]/gu,'');
   function parseProductSearch(value){
     let text=String(value||'').trim().replace(/^\s*[mมค]\s*=\s*/i,'');
     let qty=1,explicitQty=false;const match=text.match(/(?:[x×*]\s*|\s+)(\d+)\s*(?:คอต\.?|คอท\.?|ชิ้น|แพ็ค|แพ็ก|กล่อง)?\s*$/i);
@@ -968,8 +969,8 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
       productCatalog=rows.filter(product=>product.status==='ACTIVE'&&product.master_sku&&Number.isFinite(Number(product.unit_price)));
       catalogState.textContent=`LIVE · ${productCatalog.length} สินค้า ACTIVE · อ่านอย่างเดียว`;
       renderProductResults();
-      notifyParentProductIndex();
-    }catch(error){console.error('PRODUCT CATALOG LOAD FAILED',error);catalogState.textContent=`เชื่อม catalog ไม่สำเร็จ · ${error?.message||'ตรวจ Server ORDER/MAIN และคอลัมน์ product_master'}`;productResults.replaceChildren();}
+      window.ST_ORDER_DECK_NOTIFY_PRODUCT_INDEX?.();
+    }catch(error){console.error('PRODUCT CATALOG LOAD FAILED',error);catalogState.textContent=`เชื่อม catalog ไม่สำเร็จ · ${error?.message||'ตรวจ Server ROOM 04/VAULT และคอลัมน์ 🛒product_master'}`;productResults.replaceChildren();}
   }
   function bangkokParts(date=new Date()){
     return Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date).map(part=>[part.type,part.value]));
