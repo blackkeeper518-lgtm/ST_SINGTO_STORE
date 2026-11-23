@@ -235,7 +235,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: DashboardLayoutCo
     writeChatNotificationState(next, undefined);
     setChatNotificationState(next);
     setNotificationsOpen(false);
-    setLocation(`/chats?page_id=${encodeURIComponent(item.pageId)}&thread_id=${encodeURIComponent(item.threadId)}`);
+    setLocation(`/mobile-inbox?page=${encodeURIComponent(item.pageId)}&thread=${encodeURIComponent(item.threadId)}`);
   };
   const toggleSound = () => {
     const next = !soundEnabled;
