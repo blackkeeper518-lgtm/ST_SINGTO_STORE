@@ -2370,3 +2370,32 @@ body { @apply bg-background text-foreground; font-family:'Space Grotesk',sans-se
 .room-list-card .room-card-signal--order { border-color: rgba(97,255,180,.28); background: rgba(97,255,180,.08); color: #caffdf; }
 .room-list-card .room-card-meta { min-width: 0; align-items: center; }
 @media (prefers-reduced-motion: reduce) { .room-list-card:hover { transform: none; } }
+
+/* ST GLOBAL THEME PASS · Daily Order Summary */
+.global-theme-runtime .daily-order-summary-room > header {
+  border-color: color-mix(in srgb, var(--global-primary) 42%, transparent) !important;
+  background: radial-gradient(ellipse at top left, color-mix(in srgb, var(--global-primary) 24%, transparent), transparent 52%), linear-gradient(120deg, color-mix(in srgb, var(--global-surface) 92%, var(--global-primary)), color-mix(in srgb, var(--global-bg) 96%, var(--global-accent))) !important;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--global-primary) 16%, transparent) !important;
+}
+.global-theme-runtime .daily-order-summary-room > section,
+.global-theme-runtime .daily-order-summary-room [data-slot="card"],
+.global-theme-runtime .daily-order-summary-room article {
+  border-color: color-mix(in srgb, var(--global-primary) 30%, transparent) !important;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--global-surface) 94%, var(--global-primary)), color-mix(in srgb, var(--global-bg) 94%, var(--global-accent))) !important;
+  color: var(--global-text) !important;
+}
+.global-theme-runtime .daily-order-summary-room article:hover {
+  border-color: color-mix(in srgb, var(--global-accent) 72%, transparent) !important;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--global-surface) 88%, var(--global-primary)), color-mix(in srgb, var(--global-accent) 12%, var(--global-bg))) !important;
+}
+.global-theme-runtime .daily-order-summary-room input,
+.global-theme-runtime .daily-order-summary-room select,
+.global-theme-runtime .daily-order-summary-room button {
+  border-color: color-mix(in srgb, var(--global-primary) 38%, transparent) !important;
+}
+.global-theme-runtime .daily-order-summary-room .text-cyan-100,
+.global-theme-runtime .daily-order-summary-room .text-cyan-200,
+.global-theme-runtime .daily-order-summary-room .text-fuchsia-100,
+.global-theme-runtime .daily-order-summary-room .text-violet-100 {
+  color: color-mix(in srgb, var(--global-accent) 72%, var(--global-text)) !important;
+}
