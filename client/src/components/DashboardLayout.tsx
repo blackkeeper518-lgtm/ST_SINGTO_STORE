@@ -16,9 +16,11 @@ import { THEME_LAB_EVENT, prepareThemeCss, readThemeLab, themeRoomFromPath } fro
 import { useGlobalThemeRuntime } from "@/contexts/GlobalThemeRuntime";
 
 const menuItems = [
+  { icon: CalendarDays, label: "สรุปออเดอร์รายวัน", path: "/daily-order-summary" },
+  { icon: LayoutDashboard, label: "Order Control", path: "/orders" },
+  { icon: MessageCircle, label: "แอปแชท Mobile Inbox", path: "/mobile-inbox" },
   { icon: MessageCircle, label: "รวมแชทเพจ", path: "/chats" },
   { icon: MessageCircle, label: "LINE OA · ห้องตอบแชท", path: "/line-chat" },
-  { icon: LayoutDashboard, label: "Order Control", path: "/orders" },
   { icon: Truck, label: "แมปเลขพัสดุ", path: "/parcel-mapping" },
   { icon: Database, label: "คู่มือระบบ · System Manual", path: "/system-manual" },
   { icon: Send, label: "PIONEER · คิวพัก / ดักสองชั้น", path: "/telegram-delivery" },
@@ -27,7 +29,6 @@ const menuItems = [
   { icon: Archive, label: "🌓 VAGABOND · ไล่เคสจากแชท", path: "/vagabond" },
   { icon: Boxes, label: "คลังสินค้าจริง / สต๊อกกลาง", path: "/stock-room" },
   { icon: WandSparkles, label: "PRIVATE VAULT · ภาพ / สคริปต์", path: "/script-atelier" },
-  { icon: CalendarDays, label: "GENESIS · สรุปรายวัน", path: "/daily-order-summary" },
   { icon: CalendarDays, label: "สรุปออเดอร์รายวัน · Flash", path: "/daily-chat-summary" },
   { icon: Archive, label: "GENESIS · Log สุดท้าย", path: "/order-history" },
   { icon: Boxes, label: "แยก 1/2/3 คอต", path: "/order-buckets" },
