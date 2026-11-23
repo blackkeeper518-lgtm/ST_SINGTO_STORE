@@ -72,13 +72,14 @@ const PROJECT_TABLES: Record<SupabaseProject, ReadonlySet<string>> = {
   chat: new Set([
     CHAT_CUSTOMER_TABLE, CHAT_PAGE_TABLE, CHAT_PAGE_TOKEN_TABLE, "line_channels", "line_messages",
     "delivery_pre_send_checks", "delivery_red_zone_provinces", "delivery_telegram_urgent_queue",
-    "🌓VAGABOND_xXx_DISMISS", "🏴‍☠️SIRIUS_xXx_CRASH",
+    "🌓VAGABOND_xXx_DISMISS", "🏴‍☠️SIRIUS_xXx_CRASH", "thailand_address_master",
   ]),
 };
 const STAFF_READ_COLUMNS: Record<string, ReadonlySet<string>> = {
   "main:🛒product_master": new Set(["emoji", "master_sku", "th_name", "name_standard", "brand", "variant", "unit_price", "alias", "status"]),
   "vault:🛒product_master": new Set(["emoji", "master_sku", "th_name", "name_standard", "brand", "variant", "unit_price", "alias", "status"]),
   "tracking:thailand_address_master": new Set(["district", "amphoe", "province", "zipcode"]),
+  "chat:thailand_address_master": new Set(["district", "amphoe", "province", "zipcode"]),
   "vault:sales_script_cards": new Set(["id", "sku", "title", "subtitle", "script_text", "ai_context", "ai_instruction", "blocks_json", "status", "version", "updated_at"]),
 };
 export function canStaffExecuteProjectQuery(input: { project: SupabaseProject; table: string; method: string; params?: Record<string, string> }) {

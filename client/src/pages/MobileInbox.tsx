@@ -462,16 +462,25 @@ export default function MobileInbox() {
   };
   const messages = [...(messagesQuery.data ?? []), ...optimisticMessages].filter(message => messageText(message).trim());
   const selectedOrderMessageText = getSelectedOrderMessageText(selectedOrderMessage, selected?.key);
-  const openOrderDeck = () => {
+  const openOrderDeck = async () => {
     if (!selected) return;
-    const latestCustomerMessage = getLatestBBChatCustomerMessage(messagesQuery.data ?? []);
+    setNotice("กำลังดึงข้อความลูกค้าล่าสุด…");
+    let latestMessages = messagesQuery.data ?? [];
+    try {
+      const refreshed = await messagesQuery.refetch();
+      latestMessages = refreshed.data ?? latestMessages;
+    } catch (error) {
+      setNotice(`ดึงข้อความล่าสุดไม่สำเร็จ · ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
+    const latestCustomerMessage = getLatestBBChatCustomerMessage(latestMessages);
     const requestId = ++orderDeckMessageRequestIdRef.current;
     if (isImportableLatestCustomerMessage(latestCustomerMessage)) {
       const text = latestCustomerMessage.customer_message_text.trim();
       const id = String(latestCustomerMessage.id ?? latestCustomerMessage.messageId ?? `${latestCustomerMessage.occurredAt ?? ""}:${text}`);
       setSelectedOrderMessage({ id, threadKey: selected.key, text });
       setOrderDeckMessageRequest({ id: requestId });
-      setNotice("");
+      setNotice("ดึงข้อความล่าสุด ณ เวลาที่กดแล้ว");
     } else {
       setSelectedOrderMessage(null);
       setOrderDeckMessageRequest(null);
@@ -572,7 +581,7 @@ export default function MobileInbox() {
       {chatConfiguredQuery.isLoading || chatConfiguredQuery.isFetching ? <div className="mobile-inbox-empty"><LoaderCircle className="animate-spin" /><p>กำลังโหลดข้อมูลแชท…</p><small>รอสักครู่ ระบบกำลังเชื่อมต่อจาก Server</small></div> : !hasConfig ? <div className="mobile-inbox-empty"><MessageCircle /><p>ยังไม่พบการเชื่อมต่อ Chat จาก Server</p><button type="button" onClick={() => setLocation("/secret-gallery")}>ตรวจการเชื่อมต่อ</button></div> : threadsQuery.isLoading ? <div className="mobile-inbox-empty"><LoaderCircle className="animate-spin" /><p>กำลังโหลดข้อความ…</p></div> : filteredThreads.length === 0 ? <div className="mobile-inbox-empty"><MessageCircle /><p>{filter === "unread" ? "ไม่มีห้องที่ยังไม่อ่าน" : "ไม่พบห้องแชท"}</p></div> : <div className="mobile-inbox-threads">{filteredThreads.map(thread => <button type="button" key={thread.key} onClick={() => selectRoom(thread)} className={`mobile-inbox-thread ${selected?.key === thread.key ? "is-selected" : ""}`}><span className="mobile-inbox-avatar">{profileAvatar(thread)}</span><span className="mobile-inbox-thread-body"><span className="mobile-inbox-thread-top"><strong>{thread.customerName || ""}</strong><time>{timeLabel(thread.latestAt)}</time></span><span className="mobile-inbox-thread-preview">{thread.preview || "ยังไม่มีข้อความ"}</span><span className="mobile-inbox-thread-tags"><span className="mobile-inbox-platform-badge" aria-label="Facebook"><Facebook /> Facebook</span><span>{thread.pageName || "ไม่ระบุเพจ"}</span>{unreadThreadKeys.has(thread.key) ? <b>ยังไม่อ่าน</b> : null}{thread.orderCount > 0 ? <b>ออเดอร์</b> : null}</span></span></button>)}</div>}
     </section>
     <nav className="mobile-inbox-bottom-nav"><button type="button" className="is-active" onClick={returnToInbox}><MessagesSquare /><span>ข้อความ</span></button><button type="button" onClick={() => { returnToInbox(); requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".mobile-inbox-search input")?.focus()); }}><Search /><span>ค้นหา</span></button><button type="button" onClick={openDrawer}><Menu /><span>เมนู</span></button></nav>
-    {openRoom && selected ? <div className="mobile-inbox-conversation"><div className="mobile-inbox-conversation-shell"><header className="mobile-inbox-conversation-header"><button type="button" aria-label="กลับไปหน้ารวมแชท" onClick={closeRoom}><ArrowLeft /></button><span className="mobile-inbox-avatar">{profileAvatar(selected)}</span><div className="min-w-0 flex-1"><strong className="block truncate">{selected.customerName || ""}</strong><small>{selected.pageName || "ไม่ระบุเพจ"}</small></div><button type="button" onClick={openOrderDeck} disabled={messagesQuery.isLoading} className="mobile-inbox-order-summary-button" aria-label="ดึงข้อความลูกค้าล่าสุดแล้วเปิดสรุปบิล" title="ดึงข้อความลูกค้าล่าสุดจาก 🌌ST_CHAT แล้วเปิดสรุปบิล"><Clipboard /><span>🧾สรุปบิล</span></button></header><div ref={timelineRef} onScroll={event => { const node = event.currentTarget; stickTimelineToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 48; }} className="mobile-inbox-timeline">{messages.length ? messages.map(message => { const outgoing = message.direction === "outbound" || message.senderType === "page"; const text = messageText(message); const images = imageUrls(message.attachmentsJson); const mediaOnly = images.length > 0 && (!text.trim() || /^\[รูปภาพ\]$|^ส่งรูปภาพ$/i.test(text.trim())); const roomFrame = cyberFrameRooms[selected.key] || cyberFrame; return (
+    {openRoom && selected ? <div className="mobile-inbox-conversation"><div className="mobile-inbox-conversation-shell"><header className="mobile-inbox-conversation-header"><button type="button" aria-label="กลับไปหน้ารวมแชท" onClick={closeRoom}><ArrowLeft /></button><span className="mobile-inbox-avatar">{profileAvatar(selected)}</span><div className="min-w-0 flex-1"><strong className="block truncate">{selected.customerName || ""}</strong><small>{selected.pageName || "ไม่ระบุเพจ"}</small></div><button type="button" onClick={openOrderDeck} disabled={messagesQuery.isLoading || messagesQuery.isFetching} className="mobile-inbox-order-summary-button" aria-label="ดึงข้อความลูกค้าล่าสุด ณ เวลากดแล้วเปิดสรุปบิล" title="กดเพื่อดึงข้อความลูกค้าล่าสุดจาก 🌌ST_CHAT แล้วเปิดสรุปบิล"><Clipboard /><span>{messagesQuery.isFetching ? "กำลังดึง…" : "🧾สรุปบิล"}</span></button></header><div ref={timelineRef} onScroll={event => { const node = event.currentTarget; stickTimelineToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 48; }} className="mobile-inbox-timeline">{messages.length ? messages.map(message => { const outgoing = message.direction === "outbound" || message.senderType === "page"; const text = messageText(message); const images = imageUrls(message.attachmentsJson); const mediaOnly = images.length > 0 && (!text.trim() || /^\[รูปภาพ\]$|^ส่งรูปภาพ$/i.test(text.trim())); const roomFrame = cyberFrameRooms[selected.key] || cyberFrame; return (
               <div key={message.id} className={`mobile-inbox-message-row ${outgoing ? "is-outgoing" : ""}`}>
                 <div className={`mobile-inbox-message chat-bubble-frame ${roomFrame ? `cyber-frame-card cyber-frame-${roomFrame}` : ""} ${mediaOnly ? "is-media-only" : ""}`}>
                   {!mediaOnly && text ? <p>{text}</p> : null}

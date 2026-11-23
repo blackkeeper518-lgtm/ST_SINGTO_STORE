@@ -1055,8 +1055,8 @@ export async function readParcelByTrackingNumber(trackingNumber: string) {
 }
 export type PostalMasterMatch = { district: string | null; amphoe: string | null; province: string | null; zipcode: string | null };
 export async function searchThailandPostalMaster(raw: string): Promise<PostalMasterMatch[]> {
-  const api = getSupabase("tracking");
-  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบ TRACKING/PARCEL ที่ /secret-gallery" });
+  const api = getSupabase("chat");
+  if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase โปรเจกต์ 4 ฝั่ง Server" });
   const input = String(raw ?? "").normalize("NFC").trim().slice(0, 160);
   if (!input) return [];
   const postalCode = input.match(/(?:^|\D)(\d{5})(?!\d)/)?.[1] ?? "";

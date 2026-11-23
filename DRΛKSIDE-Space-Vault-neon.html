@@ -609,7 +609,7 @@ $('sheetEndpoint')?.addEventListener('change',()=>localStorage.setItem('drak-she
 const importDrop=$('productImportDrop');importDrop.setAttribute('tabindex','0');importDrop.setAttribute('role','button');importDrop.setAttribute('aria-label','เลือกหรือลากภาพสินค้าเพื่อเพิ่มในคลัง');importDrop.addEventListener('click',e=>{if(!e.target.closest('button,input'))$('productImportFileInput').click()});importDrop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('productImportFileInput').click()}});$('productImportFileInput').addEventListener('change',e=>{addImageFiles(e.target.files);e.target.value=''});importDrop.addEventListener('dragover',e=>{e.preventDefault();importDrop.classList.add('dragover')});importDrop.addEventListener('dragleave',()=>importDrop.classList.remove('dragover'));importDrop.addEventListener('drop',e=>{e.preventDefault();importDrop.classList.remove('dragover');addImageFiles(e.dataTransfer.files)});
 const productDrop=$('productImageDrop');productDrop.addEventListener('dragover',e=>{e.preventDefault();productDrop.classList.add('dragover')});productDrop.addEventListener('dragleave',()=>productDrop.classList.remove('dragover'));productDrop.addEventListener('drop',e=>{e.preventDefault();productDrop.classList.remove('dragover');addImageFiles(e.dataTransfer.files,editingProduct)});window.addEventListener('paste',e=>{if(!$('productModal').classList.contains('open'))return;const fs=Array.from(e.clipboardData?.items||[]).filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean);if(fs.length){e.preventDefault();addImageFiles(fs,editingProduct)}});$('pasteProductImage').onclick=()=>{if(!navigator.clipboard?.read){status('คัดลอกรูปก่อน แล้วกด Ctrl+V ในกล่องแก้ไข');return}navigator.clipboard.read().then(async items=>{const fs=[];for(const item of items){const type=item.types.find(t=>t.startsWith('image/'));if(type){const blob=await item.getType(type);fs.push(new File([blob],`clipboard-${Date.now()}.${type.split('/')[1]||'png'}`,{type}))}}if(fs.length)addImageFiles(fs,editingProduct);else status('ไม่พบรูปในคลิปบอร์ด')}).catch(()=>status('คัดลอกรูปแล้วกด Ctrl+V ในกล่องนี้'))};renderImages();loadImages();
 renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Markdown หรือข้อความได้ที่นี่\n';highlight();
-/* DARKSIDE ADDRESS RADAR · server-side TRACKING/PARCEL only */
+  /* DARKSIDE ADDRESS RADAR · server-side PROJECT 4 only */
 (function(){
   const input=document.getElementById('postalInput');
   const results=document.getElementById('postalResults');
@@ -760,6 +760,7 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
   searchButton.addEventListener('click',runSearch);
   input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();runSearch()}});
   input.addEventListener('paste',()=>setTimeout(runSearch,80));
+  window.DARKSIDE_RUN_POSTAL_SEARCH=runSearch;
   clearButton?.addEventListener('click',()=>{activeRequest++;input.value='';state.className='postal-state';state.textContent='RADAR READY · รอที่อยู่หรือชื่อจังหวัด';results.innerHTML='<div class="postal-empty"><strong>NO SCAN YET</strong><br>วางที่อยู่จากหน้าแชท แล้วกดสแกน<br>ระบบจะแสดงรหัสและพื้นที่ที่จับคู่ได้</div>';input.focus()});
 })();
 
@@ -864,7 +865,7 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
   floatingCopyButton.id='orderCopyFloat';floatingCopyButton.classList.add('order-copy-float');
   document.body.append(floatingCopyButton);
   floatingCopyButton.addEventListener('click',()=>copyButton.click());
-  const pageOptions=['เจ๊บี 🅱🅱','💬ร้าน:เจ๊ B','🛒ร้าน:เจ๊บี','🍇BBสโตร์.','🎀BBεїзเบอร์หนึ่งสโตร์','🎶BB ↠ STORE','💗Bb store'];
+  let pageOptions=[];
   const carrierOptions=['📮 ไปรษณีย์ไทย','🟠 KERRY EXPRESS','🔴 J&T EXPRESS','⚡️FLASH EXPRESS'];
   const catalogState=$('orderCatalogStatus'),productSearch=$('orderProductSearch'),productResults=$('orderProductResults'),cartRoot=$('orderCart'),multiplierRoot=$('orderMultipliers');
   const selectedProducts=[];
@@ -896,8 +897,9 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
     if(!selectedCustomerMessage)return;
     const requestedPage=typeof message.pageName==='string'?message.pageName.trim().replace(/[\r\n]+/g,' '):'';
     if(requestedPage){
-      const matchedPage=pageOptions.find(value=>normalizeProductText(value)===normalizeProductText(requestedPage));
-      fields.page.value=matchedPage||requestedPage;
+      pageOptions=[requestedPage];
+      buildChoices('orderPageChoices','orderPageChoice',pageOptions,fields.page);
+      fields.page.value=requestedPage;
       syncChoices();
       refreshPreview();
     }
@@ -1041,7 +1043,7 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
       let line=lines[i];
       if(isDivider(line)||/สรุปรายการสั่งซื้อ|เวลาสั่งซื้อ\s*[:：]|เลขออเดอร์\s*[:：]|ชื่อเพจ\s*[:：]|Facebook\s*[:：]|ยอด\s*COD\s*[:：]?|รายการสินค้า\s*[:：]?|ขนส่ง\s*[:：]/i.test(line))continue;
       if(itemStart>=0&&i>=itemStart&&(carrierIndex<0||i<carrierIndex))continue;
-      line=line.replace(phoneRegex,' ').replace(/(?:ชื่อผู้รับ|ชื่อลูกค้า|ชื่อ|ผู้รับ|เบอร์โทรศัพท์|เบอร์โทร|เบอร์|ที่อยู่|Address)\s*[:：]?/gi,' ').replace(/[📱📍👤]/gu,' ').replace(/\s+/g,' ').trim();
+      line=line.replace(phoneRegex,' ').replace(/^(?:ส่งไปที่|ส่งที่|จัดส่งที่|ส่งของที่)\s*/iu,'').replace(/(?:ชื่อผู้รับ|ชื่อลูกค้า|ชื่อ|ผู้รับ|เบอร์โทรศัพท์|เบอร์โทร|เบอร์|ที่อยู่|Address)\s*[:：]?/gi,' ').replace(/[📱📍👤]/gu,' ').replace(/\s+/g,' ').trim();
       if(line)candidates.push(line);
     }
     let inlineName='';
@@ -1051,14 +1053,24 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
       if(!match||match.index<=0)continue;
       const possibleName=candidates[i].slice(0,match.index).replace(/[\s\-–—:|,]+$/,'').trim();
       const addressPart=candidates[i].slice(match.index).trim();
-      if(possibleName&&addressPart&&/\p{L}/u.test(possibleName)){inlineName=possibleName;candidates[i]=addressPart;break;}
+      if(possibleName&&addressPart&&/\p{L}/u.test(possibleName)&&!/^(?:ส่งไปที่|ส่งที่|จัดส่งที่|ส่งของที่)$/iu.test(possibleName)){inlineName=possibleName;candidates[i]=addressPart;break;}
+      if(addressPart&&/\p{L}/u.test(addressPart)){candidates[i]=addressPart;break;}
     }
     const addressPattern=/(หม[ูุ่่]+|ม\.|ตำบล|ต\.|อำเภอ|อ\.|จังหวัด|จ\.|แขวง|เขต|ซอย|ซ\.|ถนน|ถ\.|รหัสไปรษณีย์|\d{5}|^\d+\s*(?:\/\d+)?(?:\s|$))/i;
     const nameIndex=candidates.findIndex(line=>!addressPattern.test(line)&&!/^\d+$/.test(line));
     const name=inlineName||(nameIndex>=0?candidates[nameIndex]:'');
     const addressLines=candidates.filter((line,index)=>index!==nameIndex&&(addressPattern.test(line)||nameIndex>=0&&index>nameIndex));
-    const address=addressLines.join('\n');
-    return {number,when,page,cod,carrier,name,phone,address,items};
+    let address=addressLines.join('\n');
+    if(!inlineName&&address){
+      const recipientTail=address.match(/(?:จังหวัด|จ\.)\s*[\p{L}\p{M}.-]+?(?=(?:นาย|นางสาว|นาง|คุณ|เด็กชาย|เด็กหญิง)[\p{L}\p{M}]+)/iu);
+      if(recipientTail&&recipientTail.index!=null){
+        const tailStart=recipientTail.index+recipientTail[0].length;
+        const possibleRecipient=address.slice(tailStart).trim();
+        if(possibleRecipient){inlineName=possibleRecipient;address=address.slice(0,tailStart).trim();}
+      }
+    }
+    const resolvedName=inlineName||(nameIndex>=0?candidates[nameIndex]:'');
+    return {number,when,page,cod,carrier,name:resolvedName,phone,address,items};
   }
   function refreshPreview(){
     const header=['🍁[สรุปรายการสั่งซื้อ]','━━━━━━━━━━━━━━━━━━━━',fields.when.value.trim()?`⏰ เวลาสั่งซื้อ: ${fields.when.value.trim()}`:'',fields.number.value.trim()?`🆔 เลขออเดอร์: ${fields.number.value.trim()}`:'',fields.page.value.trim()?`📢 ชื่อเพจ: ${fields.page.value.trim()}`:'',fields.cod.value.trim()?`💰 ยอด COD: ${fields.cod.value.trim()} บาท`:'','━━━━━━━━━━━━━━━━━━━━'].filter(Boolean);
@@ -1178,7 +1190,13 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
     productSearch.value=firstItem;renderProductResults();
     hasParsedRaw=true;
     syncChoices();
-    refreshPreview();status('แยกข้อมูลแล้ว · ตรวจช่องที่อ่านไม่ชัวร์ก่อนคัดลอก');
+    refreshPreview();
+    const address=fields.address.value.trim();
+    if(address){
+      const postalInput=document.getElementById('postalInput');
+      if(postalInput){postalInput.value=address;window.DARKSIDE_SET_POSTAL_MODE?.('address');window.DARKSIDE_RUN_POSTAL_SEARCH?.();}
+      status('แยกข้อมูลแล้ว · กำลังตรวจที่อยู่กับฐาน ปณ. โปรเจกต์ 4');
+    }else status('แยกข้อมูลแล้ว · ยังไม่พบที่อยู่สำหรับตรวจ');
   }
   raw.addEventListener('input',()=>{clearTimeout(raw.parseTimer);billEmitted=false;hasParsedRaw=false;fields.number.value='';selectedProducts.length=0;selectedMultiplier=1;activeProduct=null;syncMultiplierButtons();productSearch.value='';productResults.replaceChildren();renderCart();raw.classList.remove('order-bill-emitted');raw.closest('.order-box').classList.remove('bill-emitted');raw.style.height='';copyButton.textContent=floatingCopyButton.textContent='🧾 สรุปบิล · คัดลอก';raw.parseTimer=setTimeout(applyParse,250)});
   Object.values(fields).forEach(field=>field.addEventListener('input',()=>{syncChoices();refreshPreview();}));
