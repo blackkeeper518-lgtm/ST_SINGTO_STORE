@@ -471,7 +471,6 @@ export default function MobileInbox() {
       latestMessages = refreshed.data ?? latestMessages;
     } catch (error) {
       setNotice(`ดึงข้อความล่าสุดไม่สำเร็จ · ${error instanceof Error ? error.message : String(error)}`);
-      return;
     }
     const latestCustomerMessage = getLatestBBChatCustomerMessage(latestMessages);
     const requestId = ++orderDeckMessageRequestIdRef.current;
@@ -484,7 +483,7 @@ export default function MobileInbox() {
     } else {
       setSelectedOrderMessage(null);
       setOrderDeckMessageRequest(null);
-      setNotice("ข้อความลูกค้าล่าสุดไม่มีข้อความตัวอักษรที่ใช้ทำบิลได้ · ระบบไม่ดึงข้อความเก่ามาแทน");
+      setNotice("เปิด Order Deck แล้ว · ยังไม่มีข้อความตัวอักษรล่าสุดที่นำเข้าได้ แต่เลือกสินค้าและภาพได้ทันที");
     }
     orderDeckFocusReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSummaryOpen(false);
