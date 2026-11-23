@@ -312,6 +312,9 @@ export async function readCanonicalOrders(search = "", since: string | null = nu
   // This keeps order control and notification polling compatible with schema pruning.
   const ordersResult = await api.from("🗝️HERMES_ARCHIVE")
     .select("*")
+    // n8n derives this ISO key only from order_time_display; sort before the cap,
+    // while the browser still applies the cutoff and final order using order_time_display.
+    .order("order_time_bkk_iso", { ascending: false, nullsFirst: false })
     .limit(ORDER_OPERATIONAL_LIMIT);
   if (ordersResult.error) fail(ordersResult.error);
 
