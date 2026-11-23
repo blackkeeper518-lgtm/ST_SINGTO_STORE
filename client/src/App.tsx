@@ -12,6 +12,7 @@ import StockRoom from "./pages/StockRoom";
 import MappingDashboard from "./pages/MappingDashboard";
 import OrderBuckets from "./pages/OrderBuckets";
 import DailyChatSummary from "./pages/DailyChatSummary";
+import DailyOrderSummary from "./pages/DailyOrderSummary";
 import OrderHistory from "./pages/OrderHistory";
 import SystemManual from "./pages/SystemManual";
 import TelegramDeliveryRoom from "@/lib/TelegramDeliveryRoom";
@@ -64,6 +65,7 @@ function Router() {
     <Route path="/mapping-dashboard"><Shell><MappingDashboard /></Shell></Route>
     <Route path="/order-buckets"><Shell><OrderBuckets /></Shell></Route>
     <Route path="/daily-chat-summary"><Shell><DailyChatSummary /></Shell></Route>
+    <Route path="/daily-order-summary"><Shell><DailyOrderSummary /></Shell></Route>
     <Route path="/order-history"><Shell><OrderHistory /></Shell></Route>
     <Route path="/"><HomeRoute /></Route>
     <Route path="/404" component={NotFound} />

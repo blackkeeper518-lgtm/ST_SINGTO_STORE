@@ -27,6 +27,7 @@ const menuItems = [
   { icon: Archive, label: "🌓 VAGABOND · ไล่เคสจากแชท", path: "/vagabond" },
   { icon: Boxes, label: "คลังสินค้าจริง / สต๊อกกลาง", path: "/stock-room" },
   { icon: WandSparkles, label: "PRIVATE VAULT · ภาพ / สคริปต์", path: "/script-atelier" },
+  { icon: CalendarDays, label: "GENESIS · สรุปรายวัน", path: "/daily-order-summary" },
   { icon: CalendarDays, label: "สรุปออเดอร์รายวัน · Flash", path: "/daily-chat-summary" },
   { icon: Archive, label: "GENESIS · Log สุดท้าย", path: "/order-history" },
   { icon: Boxes, label: "แยก 1/2/3 คอต", path: "/order-buckets" },
