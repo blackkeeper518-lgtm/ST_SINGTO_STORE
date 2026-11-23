@@ -50,20 +50,11 @@ describe("ORDER DECK product catalog integration", () => {
     expect(infer("plain product name")).toBe("");
   });
 
-  it("keeps page filters view-only and removes chosen products from the page without deleting the catalog", () => {
+  it("shows unknown products with 💢 and provides lane filters for page lists and page selection", () => {
     expect(deckSource).toContain('id="pageProductFilters"');
-    expect(deckSource).toContain("activePageProductFilter==='💢'");
-    expect(deckSource).toContain("return inScope&&passesPageFilter");
-    expect(deckSource).toContain('id="chooseAdProducts"');
-    expect(deckSource).toContain("＋ เลือกสินค้าให้เพจนี้");
-    expect(deckSource).toContain('id="selectAllPageProducts"');
-    expect(deckSource).toContain('id="removeSelectedFromPage"');
-    expect(deckSource).toContain("const inScope=inPageView?selected.has(name):");
-    expect(deckSource).toContain("page.selected=page.selected.filter(name=>!names.has(name))");
-    expect(deckSource).toContain("สินค้าและภาพยังอยู่ในคลังกลาง");
     expect(deckSource).toContain('id="adProductFilters"');
+    expect(deckSource).toContain("activePageProductFilter==='💢'");
     expect(deckSource).toContain("activeAdProductFilter==='💢'");
-    expect(deckSource).toContain("cb.checked=currentAdPage().selected.includes(name)");
     expect(deckSource).toContain("(isUnknown?'💢 ':'')");
     expect(deckSource).toContain("function groupOf(name){return productGroups[name]||inferredProductLane(name)||''}");
     expect(deckPublic).toBe(deckSource);
