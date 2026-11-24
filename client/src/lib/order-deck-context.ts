@@ -53,12 +53,14 @@ export function isImportableLatestCustomerMessage(message: unknown): message is 
 export function buildOrderDeckContextMessage(
   input: OrderDeckContextInput,
   importSelectedCustomerMessage = false,
+  clearSelectedCustomerMessage = false,
 ) {
   const pageName = input.pageName.trim();
   const selectedCustomerMessage = String(input.selectedCustomerMessage ?? "")
     .trim()
     .slice(0, 2400);
 
+  if (clearSelectedCustomerMessage) return { type: "ST_ORDER_DECK_CONTEXT" as const, pageName, clearSelectedCustomerMessage: true as const };
   if (!importSelectedCustomerMessage || !selectedCustomerMessage) return { type: "ST_ORDER_DECK_CONTEXT" as const, pageName };
 
   return {

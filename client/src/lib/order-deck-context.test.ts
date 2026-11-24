@@ -11,6 +11,14 @@ describe("Order Deck chat context", () => {
     expect(message).toEqual({ type: "ST_ORDER_DECK_CONTEXT", pageName: "ST Singto Store" });
   });
 
+  it("sends an explicit clear request when the latest customer row is not importable", () => {
+    expect(buildOrderDeckContextMessage({ pageName: "ST Singto Store" }, false, true)).toEqual({
+      type: "ST_ORDER_DECK_CONTEXT",
+      pageName: "ST Singto Store",
+      clearSelectedCustomerMessage: true,
+    });
+  });
+
   it("sends the page name and only the one customer message after explicit import", () => {
     const message = buildOrderDeckContextMessage({
       pageName: " ST Singto Store ",

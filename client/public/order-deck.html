@@ -967,6 +967,7 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
       syncChoices();
       refreshPreview();
     }
+    if(message.clearSelectedCustomerMessage===true){raw.readOnly=false;raw.value='';raw.dispatchEvent(new Event('input',{bubbles:true}));return;}
     if(message.importSelectedCustomerMessage!==true)return;
     const selectedCustomerMessage=typeof message.selectedCustomerMessage==='string'
       ?message.selectedCustomerMessage.trim().slice(0,2400)

@@ -12,7 +12,7 @@ type OrderDeckFrameProps = {
   customerPhone: string;
   selectedCustomerMessage: string;
   messageMode?: "manual" | "latest";
-  messageRequest?: { id: number } | null;
+  messageRequest?: { id: number; clearMessage?: boolean } | null;
   onMessageRequestHandled?: (id: number) => void;
   onProductImagesSelected?: (imageUrls: string[], productName?: string) => void | Promise<void>;
   onProductSelected?: (payload: { product: string; textVariants: string[]; productInfo: Record<string, unknown>; imageUrls: string[] }) => void | Promise<void>;
@@ -31,14 +31,14 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
   const { theme } = useGlobalThemeRuntime();
   currentProps.current = props;
 
-  const sendContext = useCallback((importSelectedCustomerMessage = false) => {
+  const sendContext = useCallback((importSelectedCustomerMessage = false, clearSelectedCustomerMessage = false) => {
     const target = frameRef.current?.contentWindow;
     if (!target || typeof window === "undefined") return;
     target.postMessage(
       buildOrderDeckContextMessage({
         pageName: currentProps.current.pageName,
         selectedCustomerMessage: currentProps.current.selectedCustomerMessage,
-      }, importSelectedCustomerMessage),
+      }, importSelectedCustomerMessage, clearSelectedCustomerMessage),
       window.location.origin,
     );
   }, []);
@@ -131,7 +131,7 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
     const request = props.messageRequest;
     if (!frameReady || !request || handledMessageRequestId.current === request.id) return;
     handledMessageRequestId.current = request.id;
-    sendContext(true);
+    sendContext(request.clearMessage !== true, request.clearMessage === true);
     currentProps.current.onMessageRequestHandled?.(request.id);
   }, [frameReady, props.messageRequest, sendContext]);
 
@@ -212,6 +212,6 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
       onLoad={() => { setFrameReady(true); sendContext(false); sendSharedRuntime(); requestProductIndex(); }}
       className="min-h-0 w-full flex-1 rounded-lg border border-violet-300/15 bg-[#0b0b15]"
     />
-    <p className="shrink-0 text-[9px] leading-4 text-cyan-100/40">{props.messageMode === "latest" ? "ปุ่ม “ดึงล่าสุด · บิล” จะนำข้อความลูกค้าล่าสุดที่ใช้ได้เข้าร่างเมื่อกดเท่านั้น · ข้อความภาพ/สติ๊กเกอร์จะไม่ใช้ข้อความเก่าทดแทน · ไม่ส่งแชทอัตโนมัติ" : "เปิดแผงไม่ดึงข้อมูล · เลือกข้อความในแชท แล้วกด “ดึงข้อมูลลูกค้า” เพื่อเติมชื่อเพจและแทนที่ข้อความเดิมด้วยข้อความนั้นเพียงอันเดียว · ไม่ส่งแชทอัตโนมัติ"}</p>
+    <p className="shrink-0 text-[9px] leading-4 text-cyan-100/40">{props.messageMode === "latest" ? "เมื่อเปิด Deck ระบบดึงข้อความลูกค้าล่าสุดที่ใช้สรุปได้เข้าร่างทันที · จะไม่ใช้ข้อความเก่าทดแทนเมื่อข้อความล่าสุดเป็นภาพ/สติ๊กเกอร์ · ไม่ส่งแชทอัตโนมัติ" : "เปิดแผงไม่ดึงข้อมูล · เลือกข้อความในแชท แล้วกด “ดึงข้อมูลลูกค้า” เพื่อเติมชื่อเพจและแทนที่ข้อความเดิมด้วยข้อความนั้นเพียงอันเดียว · ไม่ส่งแชทอัตโนมัติ"}</p>
   </section>;
 }
