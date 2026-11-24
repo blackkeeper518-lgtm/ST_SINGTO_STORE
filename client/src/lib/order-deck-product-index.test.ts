@@ -5,6 +5,8 @@ import { isUsableDeckProductImageUrl, selectFeaturedDeckImageProducts } from "./
 
 const root = process.cwd();
 const chatHub = readFileSync(resolve(root, "client/src/pages/ChatHub.tsx"), "utf8");
+const mobileInbox = readFileSync(resolve(root, "client/src/pages/MobileInbox.tsx"), "utf8");
+const mobileDock = readFileSync(resolve(root, "client/src/components/chat/MobileInboxProductDock.tsx"), "utf8");
 const deckSource = readFileSync(resolve(root, "client/public/order-deck.html"), "utf8");
 const deckFrame = readFileSync(resolve(root, "client/src/components/chat/OrderDeckFrame.tsx"), "utf8");
 
@@ -78,6 +80,19 @@ describe("Order Deck floating product shortcuts", () => {
   it("renders an actionable setup hint after the delayed reveal when no pinned image can appear", () => {
     expect(chatHub).toContain("productFloatVisible && !productFloatDismissed && !featuredImageProducts.length");
     expect(chatHub).toContain("ตั้งไฮไลท์สินค้า");
+  });
+
+  it("mounts the pinned-image dock and Deck bridge in Mobile Inbox before opening the Deck", () => {
+    expect(mobileInbox).toContain('openRoom && selected ? <div className="mobile-inbox-deck-bridge"');
+    expect(mobileInbox).toContain("onProductIndexReady={setDeckImageProducts}");
+    expect(mobileInbox).toContain("productImagesRequest={productImagesRequest}");
+    expect(mobileInbox).toContain("onProductImagesSelected={receiveProductImages}");
+    expect(mobileInbox).toContain("<MobileInboxProductDock products={featuredImageProducts}");
+    expect(mobileInbox).toContain("onSelect={requestProductImagesFromDeck}");
+    expect(mobileInbox).toContain("window.setTimeout(() => setProductDockVisible(true), 3000)");
+    expect(mobileInbox).toContain("if (replyImages.length > 0) setProductDockDismissed(true);");
+    expect(mobileDock).toContain("📌 สินค้าไฮไลท์");
+    expect(mobileDock).toContain("onClick={() => onSelect(item.product)}");
   });
 
   it("clears the Deck draft instead of retaining a previous room's message when no latest text can be imported", () => {
