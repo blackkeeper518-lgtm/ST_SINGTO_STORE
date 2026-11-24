@@ -368,6 +368,20 @@ describe("ChatHub read contract v5", () => {
     expect(message.attachmentsJson).toContain("https://cdn.example.test/photo.jpg");
   });
 
+  it("falls back to generic text fields while keeping the source-table speaker", () => {
+    const [message] = mapChatRowsToMessages([{
+      _source_table: CHAT_CUSTOMER_TABLE,
+      page_id: "page-1",
+      thread_id: "thread-1",
+      speaker: "page",
+      text: "ข้อความจากแถว legacy",
+      occurred_at: "2026-11-23T00:00:00.000Z",
+    }]);
+
+    expect(message.senderType).toBe("customer");
+    expect(message.text).toBe("ข้อความจากแถว legacy");
+  });
+
   it("preserves explicit system speakers so they cannot be selected as customer messages", () => {
     const [message] = mapChatRowsToMessages([{
       _source_table: CHAT_CUSTOMER_TABLE,
@@ -381,9 +395,10 @@ describe("ChatHub read contract v5", () => {
     expect(message.direction).toBe("inbound");
   });
 
-  it("keeps only the page field when a legacy summary row has no current customer text", () => {
+  it("expands both customer and page fields from a legacy summary row", () => {
     const messages = mapChatRowsToMessages([{
       _source_table: CHAT_PAGE_TABLE,
+      id: 103,
       page_id: "page-1",
       thread_id: "thread-1",
       message_text: null,
@@ -394,12 +409,14 @@ describe("ChatHub read contract v5", () => {
       time_th: "14/11/2569 10:00:00",
     }]);
 
-    expect(messages).toHaveLength(1);
+    expect(messages).toHaveLength(2);
     expect(messages.map(message => [message.senderType, message.text])).toEqual([
       ["page", "รับโปรลับในแชทนะเจ้าค่ะ"],
+      ["customer", "🔥ร้อนๆมีป่าว"],
     ]);
     expect(messages.map(message => message.timeTh)).toEqual([
       "14/11/2569 11:17:37",
+      "14/11/2569 11:17:38",
     ]);
   });
 

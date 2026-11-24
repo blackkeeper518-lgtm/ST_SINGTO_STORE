@@ -733,25 +733,35 @@ function normalizeChatReadRows(sourceRows: any[]) {
   };
 
   return sourceRowsDeduped.flatMap(row => {
-    const hasPerMessageText = [row.message_text, row.customer_message_text, row.page_message_text].some(value => asText(value).trim());
-    // Some legacy workflows write both latest-side fields into one Pg snapshot row.
-    // Expand that snapshot into the two original bubbles instead of dropping the history.
+    const hasPerMessageText = [row.message_text, row.customer_message_text, row.page_message_text, row.text, row.message]
+      .some(value => asText(value).trim());
+    // Legacy n8n snapshots can contain only the last message from either or both sides.
+    // Expand each populated side so a customer message is not lost when the Pg row is read.
     if (row._source_table === "Pg_Chat⭐BINARY_xXx_STAR" && !hasPerMessageText) {
+      const customerLatest = asText(row.customer_latest_message).trim();
       const pageLatest = asText(row.page_latest_message).trim();
-      if (pageLatest) {
-        return [
-          normalizeOne(row, "page", pageLatest, row.page_message_time_th || row.time_th),
-        ].sort((a, b) => (chatDateMs(a._occurred) ?? 0) - (chatDateMs(b._occurred) ?? 0));
+      if (customerLatest || pageLatest) {
+        const snapshotId = `${String(row._source_table ?? "chat")}:${String(row.id ?? row.message_row_id ?? row.message_id ?? row.dedupe_key ?? row.thread_id ?? "chat")}`;
+        const bubbles = [];
+        if (customerLatest) bubbles.push({
+          ...normalizeOne(row, "customer", customerLatest, row.customer_message_time_th || row.occurred_at || row.time),
+          _bubble_id: `${snapshotId}:customer_latest`,
+        });
+        if (pageLatest) bubbles.push({
+          ...normalizeOne(row, "page", pageLatest, row.page_message_time_th || row.occurred_at || row.time),
+          _bubble_id: `${snapshotId}:page_latest`,
+        });
+        return bubbles;
       }
     }
 
     const speaker = speakerFor(row);
     const isPage = speaker === "page";
     const text = speaker === "system"
-      ? row.message_text || row.customer_message_text || row.page_message_text
+      ? row.message_text || row.customer_message_text || row.page_message_text || row.text || row.message
       : isPage
-        ? row.page_message_text || row.message_text || row.page_latest_message
-        : row.customer_message_text || row.message_text;
+        ? row.page_message_text || row.message_text || row.page_latest_message || row.text || row.message
+        : row.customer_message_text || row.message_text || row.text || row.message;
     if (!asText(text).trim() && !hasChatAttachment(row)) return [];
     return [normalizeOne(row, speaker, text)];
   }).sort((a, b) => {
