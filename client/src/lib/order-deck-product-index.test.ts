@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { isUsableDeckProductImageUrl, selectFeaturedDeckImageProducts } from "./order-deck-product-index";
+import { buildDeckProductIndexFromLocalData, isUsableDeckProductImageUrl, selectFeaturedDeckImageProducts } from "./order-deck-product-index";
 
 const root = process.cwd();
 const chatHub = readFileSync(resolve(root, "client/src/pages/ChatHub.tsx"), "utf8");
@@ -38,6 +38,26 @@ describe("Order Deck floating product shortcuts", () => {
     ]).map(item => item.product)).toEqual(["pinned-local"]);
   });
 
+  it("builds the dock index directly from Deck local settings and its IndexedDB image records", () => {
+    const products = buildDeckProductIndexFromLocalData({
+      pageName: "ST Singto",
+      activePageId: "page-b",
+      pages: [
+        { id: "page-a", name: "BB", selected: ["BB-only"] },
+        { id: "page-b", name: "ST Singto", selected: ["PINNED"] },
+      ],
+      productNames: ["PINNED", "UNPINNED"],
+      productInfo: { PINNED: { name: "สินค้าแนะนำ", blocks: [{ title: "SKU", content: "PIN-01" }] } },
+      images: [
+        { product: "PINNED", src: "data:image/webp;base64,dGVzdA==", createdAt: "2026-11-24T00:00:00Z" },
+        { product: "UNPINNED", src: "https://cdn.example/unpinned.jpg", createdAt: "2026-11-24T00:00:00Z" },
+      ],
+    });
+
+    expect(selectFeaturedDeckImageProducts(products).map(item => item.product)).toEqual(["PINNED"]);
+    expect(products[0].terms).toContain("PIN-01");
+  });
+
   it("passes local images from pinned editor records through the Deck index and iframe bridge", () => {
     expect(deckSource).toContain("const embeddedPinnedImage=featured&&imageUrl.length<=8100000");
     expect(deckSource).toContain("const imageUrls=remoteImage||embeddedPinnedImage?[imageUrl]:[]");
@@ -48,8 +68,9 @@ describe("Order Deck floating product shortcuts", () => {
     expect(chatHub).toContain("productFloatVisible && !productFloatDismissed && featuredImageProducts.length");
     expect(chatHub).toContain("onClick={() => requestDeckProductImages(item.product, item.imageUrls)}");
     expect(chatHub).toContain("if (replyImages.length > 0) setProductFloatDismissed(true);");
-    expect(chatHub).toContain("if (!selectedRoomKey) return;");
+    expect(chatHub).toContain("if (!selectedRoomKey) { setDeckImageProducts([]); return; }");
     expect(chatHub).toContain("window.setTimeout(() => setProductFloatVisible(true), 3000)");
+    expect(chatHub).toContain("loadDeckProductIndexForPage(selected?.pageName ?? \"\")");
     expect(chatHub).toContain("absolute bottom-[112px] right-3 z-30 w-[min(420px,calc(100%-1.5rem))]");
   });
 

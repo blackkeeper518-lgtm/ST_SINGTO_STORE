@@ -9,7 +9,7 @@ import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { buildMetaConversationUrl } from "@/lib/meta-inbox";
 import { metaTransientSendNotice } from "@/lib/meta-send-notice";
 import { getImportableLatestCustomerMessage, getSelectedOrderMessageText, isSelectableCustomerMessage } from "@/lib/order-deck-context";
-import { selectFeaturedDeckImageProducts } from "@/lib/order-deck-product-index";
+import { loadDeckProductIndexForPage, selectFeaturedDeckImageProducts } from "@/lib/order-deck-product-index";
 import { CYBER_FRAME_EVENT, CYBER_FRAME_OPTIONS, readCyberFrame, readCyberFrameRooms, saveCyberFrameRoom } from "@/lib/cyber-frame";
 import { trpc } from "@/lib/trpc";
 import "@/styles/cyber-frames.css";
@@ -202,11 +202,14 @@ export default function ChatHub() {
   useEffect(() => {
     setProductFloatVisible(false);
     setProductFloatDismissed(false);
-    setDeckImageProducts([]);
-    if (!selectedRoomKey) return;
+    if (!selectedRoomKey) { setDeckImageProducts([]); return; }
+    let cancelled = false;
+    void loadDeckProductIndexForPage(selected?.pageName ?? "").then(products => {
+      if (!cancelled) setDeckImageProducts(products);
+    });
     const timer = window.setTimeout(() => setProductFloatVisible(true), 3000);
-    return () => window.clearTimeout(timer);
-  }, [selectedRoomKey]);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [selectedRoomKey, selectedPageId, selected?.pageName]);
   useEffect(() => {
     setOptimisticMessages([]);
     optimisticMessageIdRef.current = null;
