@@ -47,12 +47,10 @@ export function buildDeckProductIndexFromLocalData(input: {
   productInfo: Record<string, unknown>;
   images: DeckImageRecord[];
 }): DeckImageProduct[] {
-  const pageNameKey = input.pageName.trim().toLocaleLowerCase("th-TH");
-  const activePage = input.pages.find(page => page.id === input.activePageId) ?? input.pages[0];
-  const matchingPage = input.pages.find(page => String(page.name ?? "").trim().toLocaleLowerCase("th-TH") === pageNameKey) ?? activePage;
-  const pinnedNames = new Set(Array.isArray(matchingPage?.selected)
-    ? matchingPage.selected.filter((name): name is string => typeof name === "string")
-    : []);
+  // Chat shortcuts use the union of all Deck highlight sets; room/page naming is not a gate.
+  const pinnedNames = new Set(input.pages.flatMap(page => Array.isArray(page.selected)
+    ? page.selected.filter((name): name is string => typeof name === "string")
+    : []));
 
   return [...new Set(input.productNames.filter(name => typeof name === "string" && name.trim()).slice(0, 500))].map(product => {
     const info = input.productInfo[product] && typeof input.productInfo[product] === "object"

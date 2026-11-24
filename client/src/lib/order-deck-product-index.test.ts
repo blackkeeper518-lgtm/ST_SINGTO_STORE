@@ -40,21 +40,22 @@ describe("Order Deck floating product shortcuts", () => {
 
   it("builds the dock index directly from Deck local settings and its IndexedDB image records", () => {
     const products = buildDeckProductIndexFromLocalData({
-      pageName: "ST Singto",
+      pageName: "room name does not need to match a Deck set",
       activePageId: "page-b",
       pages: [
         { id: "page-a", name: "BB", selected: ["BB-only"] },
         { id: "page-b", name: "ST Singto", selected: ["PINNED"] },
       ],
-      productNames: ["PINNED", "UNPINNED"],
+      productNames: ["PINNED", "UNPINNED", "BB-only"],
       productInfo: { PINNED: { name: "สินค้าแนะนำ", blocks: [{ title: "SKU", content: "PIN-01" }] } },
       images: [
         { product: "PINNED", src: "data:image/webp;base64,dGVzdA==", createdAt: "2026-11-24T00:00:00Z" },
         { product: "UNPINNED", src: "https://cdn.example/unpinned.jpg", createdAt: "2026-11-24T00:00:00Z" },
+        { product: "BB-only", src: "https://cdn.example/other-set.jpg", createdAt: "2026-11-24T00:00:00Z" },
       ],
     });
 
-    expect(selectFeaturedDeckImageProducts(products).map(item => item.product)).toEqual(["PINNED"]);
+    expect(selectFeaturedDeckImageProducts(products).map(item => item.product)).toEqual(["PINNED", "BB-only"]);
     expect(products[0].terms).toContain("PIN-01");
   });
 
@@ -71,7 +72,9 @@ describe("Order Deck floating product shortcuts", () => {
     expect(chatHub).toContain("if (!selectedRoomKey) { setDeckImageProducts([]); return; }");
     expect(chatHub).toContain("window.setTimeout(() => setProductFloatVisible(true), 3000)");
     expect(chatHub).toContain("loadDeckProductIndexForPage(selected?.pageName ?? \"\")");
-    expect(chatHub).toContain("absolute bottom-[112px] right-3 z-30 w-[min(420px,calc(100%-1.5rem))]");
+    expect(chatHub).toContain("flex-col-reverse");
+    expect(deckSource).toContain('id="chooseAdProducts">📌 ไฮไลท์สินค้า</button>');
+    expect(chatHub).toContain("absolute bottom-[112px] right-3 z-30 w-[min(300px,calc(100%-1.5rem))]");
   });
 
   it("hands the cached latest customer text into the Deck immediately and checks the server in the background", () => {
@@ -86,7 +89,7 @@ describe("Order Deck floating product shortcuts", () => {
 
   it("renders an actionable setup hint after the delayed reveal when no pinned image can appear", () => {
     expect(chatHub).toContain("productFloatVisible && !productFloatDismissed && !featuredImageProducts.length");
-    expect(chatHub).toContain("ตั้งค่าสินค้ารูปแนะนำ");
+    expect(chatHub).toContain("ตั้งไฮไลท์สินค้า");
   });
 
   it("clears the Deck draft instead of retaining a previous room's message when no latest text can be imported", () => {
