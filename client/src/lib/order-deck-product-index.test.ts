@@ -91,8 +91,13 @@ describe("Order Deck floating product shortcuts", () => {
     expect(mobileInbox).toContain("onSelect={requestProductImagesFromDeck}");
     expect(mobileInbox).toContain("window.setTimeout(() => setProductDockVisible(true), 3000)");
     expect(mobileInbox).toContain("if (replyImages.length > 0) setProductDockDismissed(true);");
+    expect(mobileInbox).toContain("else if (replyText.trim()) setProductDockCollapsed(true);");
+    expect(mobileInbox).toContain("collapsed={productDockCollapsed}");
+    expect(mobileInbox).toContain("onToggleCollapsed={() => setProductDockCollapsed(value => !value)}");
     expect(mobileDock).toContain("📌 สินค้าไฮไลท์");
+    expect(mobileDock).toContain("className=\"mobile-inbox-product-dock__reopen\"");
     expect(mobileDock).toContain("onClick={() => onSelect(item.product)}");
+    expect(mobileDock).toContain("onClick={onToggleCollapsed}");
   });
 
   it("clears the Deck draft instead of retaining a previous room's message when no latest text can be imported", () => {
