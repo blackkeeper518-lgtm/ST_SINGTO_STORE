@@ -5,7 +5,7 @@ import { selectFeaturedDeckImageProducts } from "./order-deck-product-index";
 
 const root = process.cwd();
 const chatHub = readFileSync(resolve(root, "client/src/pages/ChatHub.tsx"), "utf8");
-const deckSource = readFileSync(resolve(root, "DRΛKSIDE-Space-Vault-neon.html"), "utf8");
+const deckSource = readFileSync(resolve(root, "client/public/order-deck.html"), "utf8");
 
 describe("Order Deck floating product shortcuts", () => {
   it("shows only page-featured products with usable HTTPS images and caps the ribbon at eight", () => {
@@ -26,10 +26,17 @@ describe("Order Deck floating product shortcuts", () => {
     );
   });
 
-  it("refreshes the active room when the Deck opens and asks the iframe to import the latest customer text", () => {
+  it("keeps the pinned product shortcuts on the chat and hides them after an image send succeeds", () => {
+    expect(chatHub).toContain("productFloatVisible && !productFloatDismissed && featuredImageProducts.length");
+    expect(chatHub).toContain("onClick={() => requestDeckProductImages(item.product, item.imageUrls)}");
+    expect(chatHub).toContain("if (replyImages.length > 0) setProductFloatDismissed(true);");
+  });
+
+  it("hands the cached latest customer text into the Deck immediately and checks the server in the background", () => {
     expect(chatHub).toContain("const refreshed = await messagesQuery.refetch();");
-    expect(chatHub).toContain("getLatestBBChatCustomerMessage(latestMessages ?? [])");
-    expect(chatHub).toContain("setOrderDeckMessageRequest({ id: requestId");
+    expect(chatHub).toContain("getImportableLatestCustomerMessage(messagesQuery.data ?? [])");
+    expect(chatHub).toContain("stageDeckMessage(cachedLatest);");
+    expect(chatHub).toContain("if (!cachedLatest || freshLatest.id !== cachedLatest.id || freshLatest.text !== cachedLatest.text) stageDeckMessage(freshLatest);");
     expect(chatHub).toContain("orderDeckRequestRoomKeyRef.current !== requestRoomKey");
     expect(chatHub).toContain('messageMode="latest"');
     expect(chatHub).toContain("onMessageRequestHandled=");

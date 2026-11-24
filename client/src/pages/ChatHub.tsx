@@ -291,6 +291,7 @@ export default function ChatHub() {
       if (result.message_id) {
         setOptimisticMessages(current => current.map(message => message.id === optimisticMessageIdRef.current ? { ...message, messageId: result.message_id } : message));
       }
+      if (replyImages.length > 0) setProductFloatDismissed(true);
       setReplyText("");
       setReplyImages([]);
       setEmojiPickerOpen(false);
