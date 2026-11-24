@@ -19,7 +19,7 @@
       ? window.crypto.randomUUID()
       : "req-" + Date.now() + "-" + Math.random().toString(36).slice(2);
     return new Promise(function (resolve, reject) {
-      var timer = setTimeout(function () { pending.delete(requestId); reject(new Error("Server request timed out")); }, 30000);
+      var timer = setTimeout(function () { pending.delete(requestId); reject(new Error("Server request timed out")); }, 60000);
       pending.set(requestId, { resolve: resolve, reject: reject, timer: timer });
       window.parent.postMessage({ type: "ST_ORDER_DECK_SERVER_REQUEST", requestId: requestId, operation: String(operation), input: input || {} }, window.location.origin);
     });
