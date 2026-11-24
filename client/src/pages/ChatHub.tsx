@@ -87,7 +87,9 @@ export default function ChatHub() {
   const [statusFilter, setStatusFilter] = useState<"all" | "ordered" | "tracking_over_24h">("all");
   const [replyText, setReplyText] = useState("");
   const [replyImages, setReplyImages] = useState<Array<{ url: string; sendUrl: string; name: string }>>([]);
-  const [deckImageProducts, setDeckImageProducts] = useState<Array<{ product: string; terms: string[] }>>([]);
+  const [deckImageProducts, setDeckImageProducts] = useState<Array<{ product: string; terms: string[]; imageUrls: string[]; featured: boolean }>>([]);
+  const [productFloatVisible, setProductFloatVisible] = useState(false);
+  const [productFloatDismissed, setProductFloatDismissed] = useState(false);
   const [productImagesRequest, setProductImagesRequest] = useState<{ id: number; product: string } | null>(null);
   const productImagesRequestId = useRef(0);
   const [imageUploading, setImageUploading] = useState(false);
@@ -190,6 +192,14 @@ export default function ChatHub() {
     select: mapChatRowsToMessages,
   });
   const selectedOrderMessageText = getSelectedOrderMessageText(selectedOrderMessage, selected?.key);
+  useEffect(() => {
+    setProductFloatVisible(false);
+    setProductFloatDismissed(false);
+    setDeckImageProducts([]);
+    if (!selectedPageId || !selectedThreadId) return;
+    const timer = window.setTimeout(() => setProductFloatVisible(true), 3000);
+    return () => window.clearTimeout(timer);
+  }, [selectedPageId, selectedThreadId]);
   useEffect(() => {
     setOptimisticMessages([]);
     optimisticMessageIdRef.current = null;
@@ -525,13 +535,12 @@ export default function ChatHub() {
       const terms = [...new Set([entry.product, ...entry.terms].map(normalize).filter(term => term.length >= 2))];
       const score = terms.reduce((best, term) => Math.max(best, whole.includes(term) ? 100 + Math.min(term.length, 30) : lastToken.length >= 2 && term.includes(lastToken) ? 50 + Math.min(lastToken.length, 30) : 0), 0);
       return { ...entry, score };
-    }).filter(entry => entry.score > 0).sort((a, b) => b.score - a.score || a.product.localeCompare(b.product, "th")).slice(0, 4);
+    }).filter(entry => entry.score > 0 && entry.imageUrls.length > 0).sort((a, b) => b.score - a.score || a.product.localeCompare(b.product, "th")).slice(0, 4);
   }, [deckImageProducts, replyText]);
-  const requestDeckProductImages = (product: string) => {
-    productImagesRequestId.current += 1;
-    setProductImagesRequest({ id: productImagesRequestId.current, product });
-    setOrderDeckOpen(true);
-    setReplyNotice(`กำลังเพิ่มภาพ ${product} ลงช่องรอส่ง…`);
+  const featuredImageProducts = useMemo(() => deckImageProducts.filter(item => item.featured && item.imageUrls.length).slice(0, 8), [deckImageProducts]);
+  const requestDeckProductImages = (product: string, imageUrls: string[]) => {
+    if (!imageUrls.length) { setReplyNotice(`ยังไม่มีภาพของ ${product} ในคลังรูปสินค้า`); return; }
+    void handleDeckProductImagesSelected(imageUrls, product);
   };
   const copySummary = async () => {
     if (!replyText.trim()) return;
@@ -550,7 +559,7 @@ export default function ChatHub() {
   const composer = <div className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden border-t border-cyan-300/20 pt-2">
     <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={event => { handleImageUpload(Array.from(event.target.files ?? [])); event.currentTarget.value = ""; }} />
     {emojiPickerOpen ? <div role="group" aria-label="เลือกอีโมจิ" className="mb-2 flex flex-wrap gap-1 rounded-xl border border-cyan-300/15 bg-[#0a111b] p-2">{["😊", "😂", "😍", "🥰", "👍", "🙏", "❤️", "🎉", "📦", "✨"].map(emoji => <button key={emoji} type="button" onClick={() => { addEmoji(emoji); setEmojiPickerOpen(false); }} className="flex h-9 w-9 items-center justify-center rounded-lg text-xl hover:bg-cyan-300/10" aria-label={`เพิ่มอีโมจิ ${emoji}`}>{emoji}</button>)}</div> : null}
-    {productSuggestions.length ? <div role="list" aria-label="สินค้าจาก Order Deck ที่ตรงกับข้อความ" className="mb-1 flex max-w-full flex-wrap justify-start gap-1.5">{productSuggestions.map(item => <button key={item.product} type="button" role="listitem" onClick={() => requestDeckProductImages(item.product)} disabled={imageUploading || sendReply.isPending || replyImages.length >= 4} className="flex max-w-[220px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-[#0b1924]/95 px-2.5 py-1.5 text-left shadow-[0_0_16px_rgba(34,211,238,.12)] transition hover:border-cyan-200/60 hover:bg-cyan-300/10 disabled:opacity-40" title={`เพิ่มภาพ ${item.product} ลงช่องรอส่ง`}><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-emerald-300/20 bg-emerald-300/[0.07] text-[10px] text-emerald-200">IMG</span><span className="min-w-0"><span className="block truncate text-[11px] font-semibold text-cyan-50">{item.product}</span><span className="block text-[9px] text-cyan-100/55">แตะเพื่อเตรียมภาพ · ยังไม่ส่ง</span></span></button>)}</div> : null}
+    {productSuggestions.length ? <div role="list" aria-label="ปุ่มส่งรูปสินค้าที่ตรงกับข้อความ" className="mb-1 flex max-w-full flex-wrap justify-start gap-1.5">{productSuggestions.map(item => <button key={item.product} type="button" role="listitem" onClick={() => requestDeckProductImages(item.product, item.imageUrls)} disabled={imageUploading || sendReply.isPending || replyImages.length >= 4} className="flex max-w-[220px] items-center gap-2 rounded-xl border border-cyan-300/25 bg-[#0b1924]/95 px-2.5 py-1.5 text-left shadow-[0_0_16px_rgba(34,211,238,.12)] transition hover:border-cyan-200/60 hover:bg-cyan-300/10 disabled:opacity-40" title={`เพิ่มภาพ ${item.product} ลงช่องรอส่ง`}>{item.imageUrls[0] ? <img src={item.imageUrls[0]} alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" /> : <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-emerald-300/20 bg-emerald-300/[0.07] text-[10px] text-emerald-200">IMG</span>}<span className="min-w-0"><span className="block truncate text-[11px] font-semibold text-cyan-50">{item.product}</span><span className="block text-[9px] text-cyan-100/55">แตะเพื่อเตรียมรูป · ยังไม่ส่ง</span></span></button>)}</div> : null}
     <div className="flex min-w-0 items-end gap-1.5 rounded-xl border border-cyan-300/20 bg-[#0a111b] p-1.5 sm:gap-2 sm:p-2">
       <Button type="button" aria-label="แนบรูปภาพ" title={imageUploading ? "กำลังอัปโหลด…" : "แนบรูปภาพ"} variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={imageUploading || sendReply.isPending || replyImages.length >= 4} className="h-10 w-10 shrink-0 rounded-lg p-0 text-cyan-100/75 hover:bg-cyan-300/10 hover:text-cyan-100"><Paperclip className="h-5 w-5" /></Button>
       <Textarea ref={replyTextareaRef} value={replyText} onChange={event => setReplyText(event.target.value)} placeholder={selectedCustomerId ? "พิมพ์ข้อความ…" : "ไม่พบ Customer PSID ของห้องนี้"} disabled={!selectedCustomerId} className="field-sizing-fixed h-20 max-h-[136px] min-h-20 min-w-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-2 py-2 text-sm leading-6 text-white placeholder:text-cyan-100/35 focus-visible:ring-0 focus-visible:ring-offset-0" onPaste={handleComposerPaste} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); sendCurrentReply(); } }} />
@@ -559,7 +568,7 @@ export default function ChatHub() {
     </div>
   </div>;
 
-  const conversation = selected ? <div className="chat-cosmos-conversation flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+  const conversation = selected ? <div className="chat-cosmos-conversation relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-300/15 bg-gradient-to-r from-cyan-400/[0.035] via-transparent to-fuchsia-500/[0.06] px-4 py-3 sm:px-5"><div className="flex min-w-0 items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 via-violet-500/20 to-fuchsia-500/25 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,.12)]"><CircleUserRound className="h-5 w-5" /></div><div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-1.5"><span className={`chat-room-code-label ${isOrderRoom(selected) ? "cod-room-header" : ""} ${hasTimeSlotLabel(selected) ? "time-slot-room-sign" : ""} rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold`} title={selected.timeSlotLabel || undefined}>ROOM · {selected.pageId ? selected.pageId.slice(-4) : "ST"}{isOrderRoom(selected) ? " ⚡" : ""}{hasTimeSlotLabel(selected) ? " 🔥" : ""}</span></div><h2 className="chat-customer-name-label truncate text-sm font-semibold">{selected.customerName || ""}</h2><div className="mt-1 flex items-center gap-2 text-xs text-cyan-100/55"><span className="truncate">{selected.pageName}</span><span>·</span><span>{timeLabel(selected.latestAt)}</span></div></div></div><div className="flex max-w-full flex-wrap items-center justify-end gap-2"><Badge className="hidden border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 sm:inline-flex">● ONLINE</Badge>{selectedMetaInboxUrl ? <a href={selectedMetaInboxUrl} target="_blank" rel="noopener noreferrer" title="เปิดบทสนทนานี้ใน Meta Business Suite" className="chat-tool-action chat-tool-action--primary inline-flex h-8 items-center gap-1.5 px-2.5"><ExternalLink className="h-3.5 w-3.5" />แชทจริง</a> : <span title="ห้องนี้ยังไม่มี page_id/thread_id ที่ใช้เปิด Meta ได้" className="inline-flex h-8 items-center rounded-lg border border-amber-300/20 bg-amber-300/[0.06] px-2 text-[10px] text-amber-200/60">ไม่มีลิงก์ Meta</span>}<div className="chat-conversation-actions"><Button size="sm" variant="outline" onClick={confirmSelectedOrder} disabled={selectedConfirmed || confirmOrder.isPending} className="chat-tool-action h-8 px-3">{selectedConfirmed ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" />ยืนยันแล้ว</> : confirmOrder.isPending ? "กำลังบันทึก…" : "ยืนยันเป็นออเดอร์"}</Button><Button size="sm" variant="outline" onClick={() => setOrderDetailOpen(true)} className="chat-tool-action h-8 px-3" title="ดูออเดอร์ที่เชื่อมกับห้องนี้">ออเดอร์ ({selected.orderCount ?? linkedOrders.length ?? 0})</Button><Button size="sm" onClick={openOrderSummary} className="chat-tool-action h-8 px-3">สรุปออเดอร์</Button></div>{isMobile ? <button onClick={() => setMobileOpen(false)} className="rounded-xl p-2 text-fuchsia-100/55 hover:bg-fuchsia-500/10 hover:text-white" aria-label="ปิดห้องแชท"><X className="h-5 w-5" /></button> : null}</div></div>
     <div ref={chatTimelineRef} onScroll={handleTimelineScroll} className="chat-cosmos-timeline relative min-h-0 flex-1 flex flex-col justify-start gap-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_82%_8%,rgba(16,185,129,0.12),transparent_28%),radial-gradient(circle_at_12%_74%,rgba(168,85,247,0.11),transparent_30%),linear-gradient(135deg,#080c15,#0d0914_56%,#090b12)] p-4 sm:p-5 [-webkit-overflow-scrolling:touch]">
       {showNewMessages ? <button type="button" onClick={jumpToLatest} className="sticky bottom-3 left-1/2 z-20 mx-auto -mb-10 rounded-full border border-fuchsia-300/30 bg-gradient-to-r from-fuchsia-600 via-violet-600 to-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_24px_rgba(168,85,247,0.45)] transition hover:scale-105">ข้อความใหม่ · ลงล่างสุด</button> : null}
@@ -594,6 +603,7 @@ export default function ChatHub() {
         </div>;
       })}
     </div>
+    {productFloatVisible && !productFloatDismissed && featuredImageProducts.length ? <aside aria-label="รูปสินค้าที่แนะนำสำหรับเพจนี้" className="chat-product-float absolute bottom-[112px] left-3 right-3 z-30 motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:fade-in motion-safe:duration-500 sm:bottom-[126px] sm:left-5 sm:right-5"><div className="mx-auto max-w-4xl rounded-2xl border border-fuchsia-300/25 bg-[#100b18]/95 p-2.5 shadow-[0_0_28px_rgba(217,70,239,.18)] backdrop-blur-xl"><div className="mb-2 flex items-center justify-between gap-2"><div className="flex min-w-0 items-center gap-2"><Sparkles className="h-3.5 w-3.5 shrink-0 text-fuchsia-300"/><span className="truncate text-[10px] font-semibold tracking-wide text-fuchsia-100">รูปแนะนำ · {selected.pageName || "เพจนี้"}</span><span className="hidden text-[9px] text-fuchsia-100/40 sm:inline">แตะเพื่อเตรียมรูปในช่องส่ง</span></div><button type="button" onClick={() => setProductFloatDismissed(true)} aria-label="ซ่อนแถบรูปแนะนำ" className="rounded-md px-2 py-1 text-[10px] text-fuchsia-100/55 hover:bg-white/10 hover:text-white">ซ่อน ×</button></div><div className="flex gap-2 overflow-x-auto pb-0.5">{featuredImageProducts.map(item => <button key={item.product} type="button" onClick={() => requestDeckProductImages(item.product, item.imageUrls)} disabled={imageUploading || sendReply.isPending || replyImages.length >= 4} title={`เตรียมรูป ${item.product} · ยังไม่ส่ง`} className="group flex w-[82px] shrink-0 flex-col overflow-hidden rounded-xl border border-fuchsia-200/15 bg-black/25 text-left transition hover:-translate-y-0.5 hover:border-fuchsia-200/55 hover:shadow-[0_0_18px_rgba(217,70,239,.24)] disabled:opacity-40 sm:w-[96px]"><img src={item.imageUrls[0]} alt={item.product} loading="lazy" className="h-[72px] w-full bg-black/30 object-cover sm:h-[82px]"/><span className="w-full truncate px-2 py-1.5 text-[9px] font-medium text-fuchsia-50">{item.product}</span></button>)}</div></div></aside> : null}
     <div className={`chat-cosmos-composer mt-auto flex shrink-0 flex-col overflow-hidden border-t border-cyan-300/20 bg-gradient-to-b from-[#111326] to-[#090c14] p-3 shadow-[0_-8px_28px_rgba(34,211,238,.05)] sm:p-4 transition-[height] duration-300 ${composerOpen ? "chat-cosmos-composer--open" : "h-12 min-h-12"}`}><div className="mb-2 flex shrink-0 items-center justify-between gap-2 border-b border-fuchsia-500/10 pb-2">
       <div className="flex min-w-0 flex-1 items-center gap-1.5" aria-live="polite">
         {imageUploading ? <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[10px] text-cyan-200"><LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin" />กำลังอัปโหลดภาพ…</span> : replyImages.length ? <div className="flex min-w-0 max-w-[48vw] items-center gap-1.5 overflow-x-auto sm:max-w-[360px]">{replyImages.map((image, index) => <div key={image.url} className="relative shrink-0"><img src={image.url} alt={`ภาพแนบ ${index + 1}`} className="h-9 w-9 rounded-md border border-cyan-300/25 object-cover" /><button type="button" aria-label={`เอาภาพที่ ${index + 1} ออก`} onClick={() => setReplyImages(current => current.filter((_, imageIndex) => imageIndex !== index))} className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1 text-[9px] leading-4 text-white">×</button></div>)}<span className="text-[9px] text-emerald-300">{replyImages.length}/4</span></div> : <span className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-100/45">กล่องตอบแชท</span>}
@@ -664,7 +674,7 @@ export default function ChatHub() {
       </Card>
     </div>
     {selected ? <aside aria-label="DRΛKSIDE Order Deck" aria-hidden={!orderDeckOpen} className={`order-deck-drawer fixed inset-y-0 right-0 z-[55] h-dvh w-[min(480px,30vw)] min-w-[360px] overflow-hidden border-l border-violet-300/25 bg-[#080b14]/[0.98] shadow-[-18px_0_48px_rgba(0,0,0,.48),-2px_0_24px_rgba(168,85,247,.12)] backdrop-blur-xl transition-transform duration-300 ease-out ${orderDeckOpen ? "translate-x-0" : "pointer-events-none translate-x-full"}`}>
-      {orderDeckOpen ? <OrderDeckFrame
+      <OrderDeckFrame
         pageId={selectedPageId}
         pageName={selected.pageName ?? ""}
         threadId={selectedThreadId}
@@ -677,7 +687,7 @@ export default function ChatHub() {
         productImagesRequest={productImagesRequest}
         onSummaryReady={summary => { setReplyText(summary); setOrderDeckOpen(false); setReplyNotice("สรุปบิลอยู่ในช่องตอบกลับแล้ว · ตรวจสอบก่อนกดส่ง"); }}
         onClose={() => setOrderDeckOpen(false)}
-      /> : null}
+      />
     </aside> : null}
     {isMobile ? <nav className="chat-mobile-bottom-nav" aria-label="เมนู Inbox มือถือ"><button type="button" className="is-active" aria-label="ข้อความ" onClick={() => setMobileOpen(false)}><MessagesSquare className="h-5 w-5" /><span>ข้อความ</span></button><button type="button" aria-label="ค้นหา" onClick={() => document.querySelector<HTMLInputElement>('.chat-hub-mobile input[placeholder*="ค้นหา"]')?.focus()}><Search className="h-5 w-5" /><span>ค้นหา</span></button><button type="button" aria-label="เมนู" onClick={() => setLocation("/secret-gallery")}><PanelLeft className="h-5 w-5" /><span>เมนู</span></button></nav> : null}
     {isMobile && mobileOpen ? <div className="chat-mobile-conversation-overlay fixed inset-0 z-50 flex items-end bg-[#03050b]/85 backdrop-blur-md"><div className="flex h-[100dvh] max-h-[100dvh] w-full min-h-0 flex-col overflow-hidden border-cyan-300/25 bg-[#0b101a]/95 shadow-[0_0_36px_rgba(34,211,238,.12),0_0_56px_rgba(168,85,247,.12)] backdrop-blur-xl">{conversation}</div></div> : null}

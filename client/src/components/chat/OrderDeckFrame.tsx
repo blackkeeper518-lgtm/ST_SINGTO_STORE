@@ -16,7 +16,7 @@ type OrderDeckFrameProps = {
   onMessageRequestHandled?: (id: number) => void;
   onProductImagesSelected?: (imageUrls: string[], productName?: string) => void | Promise<void>;
   onProductSelected?: (payload: { product: string; textVariants: string[]; productInfo: Record<string, unknown>; imageUrls: string[] }) => void | Promise<void>;
-  onProductIndexReady?: (products: Array<{ product: string; terms: string[] }>) => void;
+  onProductIndexReady?: (products: Array<{ product: string; terms: string[]; imageUrls: string[]; featured: boolean }>) => void;
   productImagesRequest?: { id: number; product: string } | null;
   onSummaryReady?: (summary: string) => void;
   roomStatus?: string;
@@ -46,7 +46,7 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
   const requestProductIndex = useCallback(() => {
     const target = frameRef.current?.contentWindow;
     if (!target || typeof window === "undefined") return;
-    target.postMessage({ type: "ST_ORDER_DECK_REQUEST_PRODUCT_INDEX" }, window.location.origin);
+    target.postMessage({ type: "ST_ORDER_DECK_REQUEST_PRODUCT_INDEX", pageName: currentProps.current.pageName }, window.location.origin);
   }, []);
 
   const sendSharedRuntime = useCallback(() => {
@@ -138,7 +138,8 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
   useEffect(() => {
     sendContext(false);
     sendSharedRuntime();
-  }, [props.pageId, props.pageName, props.threadId, sendContext, sendSharedRuntime]);
+    requestProductIndex();
+  }, [props.pageId, props.pageName, props.threadId, sendContext, sendSharedRuntime, requestProductIndex]);
 
   useEffect(() => {
     const request = props.productImagesRequest;
@@ -151,8 +152,8 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
       if (event.source !== frameRef.current?.contentWindow || event.origin !== window.location.origin) return;
       if (event.data?.type === "ST_ORDER_DECK_PRODUCT_INDEX") {
         const products = Array.isArray(event.data.products)
-          ? event.data.products.filter((item: unknown): item is { product: string; terms: unknown[] } => Boolean(item && typeof item === "object" && typeof (item as { product?: unknown }).product === "string" && Array.isArray((item as { terms?: unknown }).terms)))
-            .map((item: { product: string; terms: unknown[] }) => ({ product: item.product.slice(0, 120), terms: item.terms.filter((term): term is string => typeof term === "string").slice(0, 32).map(term => term.slice(0, 160)) }))
+          ? event.data.products.filter((item: unknown): item is { product: string; terms: unknown[]; imageUrls?: unknown[]; featured?: boolean } => Boolean(item && typeof item === "object" && typeof (item as { product?: unknown }).product === "string" && Array.isArray((item as { terms?: unknown }).terms)))
+            .map((item: { product: string; terms: unknown[]; imageUrls?: unknown[]; featured?: boolean }) => ({ product: item.product.slice(0, 120), terms: item.terms.filter((term): term is string => typeof term === "string").slice(0, 32).map(term => term.slice(0, 160)), imageUrls: Array.isArray(item.imageUrls) ? item.imageUrls.filter((url): url is string => typeof url === "string" && /^https:\/\//i.test(url)).slice(0, 4) : [], featured: Boolean(item.featured) }))
             .slice(0, 500)
           : [];
         currentProps.current.onProductIndexReady?.(products);
