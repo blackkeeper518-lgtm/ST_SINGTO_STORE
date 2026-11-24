@@ -26,6 +26,14 @@ describe("ORDER DECK product catalog integration", () => {
     expect(deckSource).toContain("window.ST_ORDER_DECK_NOTIFY_PRODUCT_INDEX?.();");
   });
 
+  it("resends an unchanged pinned product index whenever a chat room requests it", () => {
+    const requestHandler = deckPublic.match(/if\(message\.type==='ST_ORDER_DECK_REQUEST_PRODUCT_INDEX'[\s\S]*?return;\}/)?.[0];
+    expect(requestHandler).toBeTruthy();
+    expect(requestHandler).toContain("lastProductIndexSignature=''");
+    expect(requestHandler).toContain("notifyParentProductIndex(activeChatPageName,activeChatPageId)");
+    expect(requestHandler!.indexOf("lastProductIndexSignature=''")).toBeLessThan(requestHandler!.indexOf("notifyParentProductIndex"));
+  });
+
   it("reads active product master rows from ROOM 04 VAULT using server-side project credentials", () => {
     const catalogBranch = deckFrame.match(/operation === "productCatalog"[\s\S]*?\n\s*\} else if \(operation === "scriptCardsList"\)/)?.[0];
     expect(catalogBranch).toBeTruthy();

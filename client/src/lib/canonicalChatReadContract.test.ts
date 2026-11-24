@@ -7,7 +7,7 @@ import {
   fetchChatMessageRows,
   fetchChatThreadRows,
 } from "../../../server/supabase";
-import { mapChatRowsToMessages, mapChatRowsToThreads, reconcileOptimisticMessages } from "./canonical";
+import { extractChatImageUrls, mapChatRowsToMessages, mapChatRowsToThreads, reconcileOptimisticMessages } from "./canonical";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -366,6 +366,15 @@ describe("ChatHub read contract v5", () => {
     expect(message.direction).toBe("outbound");
     expect(message.text).toBe("📷 ส่งรูปภาพ");
     expect(message.attachmentsJson).toContain("https://cdn.example.test/photo.jpg");
+  });
+
+  it("keeps one image when an attachment repeats a thumbs-up URL across preview and signed variants", () => {
+    const images = extractChatImageUrls([
+      { url: "https://cdn.example.test/thumbs-up.png?token=first", preview_url: "https://cdn.example.test/thumbs-up.png?size=small#preview" },
+      "https://cdn.example.test/thumbs-up.png?token=second#original",
+    ]);
+
+    expect(images).toEqual(["https://cdn.example.test/thumbs-up.png?token=first"]);
   });
 
   it("falls back to generic text fields while keeping the source-table speaker", () => {
