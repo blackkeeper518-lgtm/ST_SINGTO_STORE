@@ -30,6 +30,9 @@ describe("Order Deck floating product shortcuts", () => {
     expect(chatHub).toContain("productFloatVisible && !productFloatDismissed && featuredImageProducts.length");
     expect(chatHub).toContain("onClick={() => requestDeckProductImages(item.product, item.imageUrls)}");
     expect(chatHub).toContain("if (replyImages.length > 0) setProductFloatDismissed(true);");
+    expect(chatHub).toContain("if (!selectedRoomKey) return;");
+    expect(chatHub).toContain("window.setTimeout(() => setProductFloatVisible(true), 3000)");
+    expect(chatHub).toContain("absolute bottom-[112px] right-3 z-30 w-[min(420px,calc(100%-1.5rem))]");
   });
 
   it("hands the cached latest customer text into the Deck immediately and checks the server in the background", () => {
