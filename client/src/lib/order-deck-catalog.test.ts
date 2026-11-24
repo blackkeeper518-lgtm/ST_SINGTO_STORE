@@ -34,6 +34,10 @@ describe("ORDER DECK product catalog integration", () => {
     expect(requestHandler!.indexOf("lastProductIndexSignature=''")).toBeLessThan(requestHandler!.indexOf("notifyParentProductIndex"));
   });
 
+  it("opens the pinned product view whenever the main Products tab is entered", () => {
+    expect(deckSource).toContain("if(button.dataset.tab==='tab-products'){activeProductTab='📌';renderImageProducts()}");
+  });
+
   it("reads active product master rows from ROOM 04 VAULT using server-side project credentials", () => {
     const catalogBranch = deckFrame.match(/operation === "productCatalog"[\s\S]*?\n\s*\} else if \(operation === "scriptCardsList"\)/)?.[0];
     expect(catalogBranch).toBeTruthy();

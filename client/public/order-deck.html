@@ -1296,7 +1296,7 @@ renderScripts();renderFiles();$('code').value='-- เขียน SQL, Java, Mar
   fields.when.value=thaiNow();fields.number.value='';fields.carrier.value=carrierOptions[3];fields.cod.value='0';raw.readOnly=false;syncMultiplierButtons();syncChoices();closeChoiceMenus();renderCart();loadProductCatalog();refreshPreview();
 })();
 
-document.querySelectorAll('.bottom-tab').forEach(button=>button.addEventListener('click',()=>{const orderActive=button.dataset.tab==='tab-order';document.body.classList.toggle('order-tab-active',orderActive);document.querySelectorAll('.bottom-tab').forEach(item=>item.classList.toggle('active',item===button));document.querySelectorAll('.tab-page').forEach(page=>page.classList.toggle('active',page.id===button.dataset.tab))}));document.querySelector('.bottom-tab[data-tab="tab-products"]')?.click();
+document.querySelectorAll('.bottom-tab').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.tab==='tab-products'){activeProductTab='📌';renderImageProducts()}const orderActive=button.dataset.tab==='tab-order';document.body.classList.toggle('order-tab-active',orderActive);document.querySelectorAll('.bottom-tab').forEach(item=>item.classList.toggle('active',item===button));document.querySelectorAll('.tab-page').forEach(page=>page.classList.toggle('active',page.id===button.dataset.tab))}));document.querySelector('.bottom-tab[data-tab="tab-products"]')?.click();
 /*
 ⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘⫘
 🧠 DARKSIDE CODE STUDIO : RUNTIME ENGINE
