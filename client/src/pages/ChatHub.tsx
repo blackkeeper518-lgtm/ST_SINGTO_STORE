@@ -9,7 +9,7 @@ import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { buildMetaConversationUrl } from "@/lib/meta-inbox";
 import { metaTransientSendNotice } from "@/lib/meta-send-notice";
 import { getImportableLatestCustomerMessage, getSelectedOrderMessageText, isSelectableCustomerMessage } from "@/lib/order-deck-context";
-import { loadDeckProductIndexForPage, selectFeaturedDeckImageProducts } from "@/lib/order-deck-product-index";
+import { selectFeaturedDeckImageProducts } from "@/lib/order-deck-product-index";
 import { CYBER_FRAME_EVENT, CYBER_FRAME_OPTIONS, readCyberFrame, readCyberFrameRooms, saveCyberFrameRoom } from "@/lib/cyber-frame";
 import { trpc } from "@/lib/trpc";
 import "@/styles/cyber-frames.css";
@@ -202,13 +202,11 @@ export default function ChatHub() {
   useEffect(() => {
     setProductFloatVisible(false);
     setProductFloatDismissed(false);
-    if (!selectedRoomKey) { setDeckImageProducts([]); return; }
-    let cancelled = false;
-    void loadDeckProductIndexForPage(selected?.pageName ?? "").then(products => {
-      if (!cancelled) setDeckImageProducts(products);
-    });
+    setDeckImageProducts([]);
+    setProductImagesRequest(null);
+    if (!selectedRoomKey) return;
     const timer = window.setTimeout(() => setProductFloatVisible(true), 3000);
-    return () => { cancelled = true; window.clearTimeout(timer); };
+    return () => window.clearTimeout(timer);
   }, [selectedRoomKey, selectedPageId, selected?.pageName]);
   useEffect(() => {
     setOptimisticMessages([]);
@@ -589,6 +587,10 @@ export default function ChatHub() {
     if (!imageUrls.length) { setReplyNotice(`ยังไม่มีภาพของ ${product} ในคลังรูปสินค้า`); return; }
     void handleDeckProductImagesSelected(imageUrls, product);
   };
+  const requestProductImagesFromDeck = (product: string) => {
+    productImagesRequestId.current += 1;
+    setProductImagesRequest({ id: productImagesRequestId.current, product });
+  };
   const copySummary = async () => {
     if (!replyText.trim()) return;
     await navigator.clipboard.writeText(replyText);
@@ -650,7 +652,7 @@ export default function ChatHub() {
         </div>;
       })}
     </div>
-    {productFloatVisible && !productFloatDismissed && featuredImageProducts.length ? <aside aria-label="สินค้าไฮไลท์ที่ปักหมุดสำหรับแชท" className="chat-product-float absolute bottom-[112px] right-3 z-30 w-[min(300px,calc(100%-1.5rem))] motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:fade-in motion-safe:duration-500 sm:bottom-[126px] sm:right-5 sm:w-[min(320px,calc(100%-2.5rem))]"><div className="mx-auto max-w-4xl rounded-2xl border border-fuchsia-300/25 bg-[#100b18]/95 p-2.5 shadow-[0_0_28px_rgba(217,70,239,.18)] backdrop-blur-xl"><div className="mb-2 flex items-center justify-between gap-2"><div className="flex min-w-0 items-center gap-2"><Sparkles className="h-3.5 w-3.5 shrink-0 text-fuchsia-300"/><span className="truncate text-[10px] font-semibold tracking-wide text-fuchsia-100">📌 สินค้าไฮไลท์</span><span className="hidden text-[9px] text-fuchsia-100/40 sm:inline">แตะแล้วรูปลงช่องรอส่ง</span></div><button type="button" onClick={() => setProductFloatDismissed(true)} aria-label="ซ่อนแถบรูปแนะนำ" className="rounded-md px-2 py-1 text-[10px] text-fuchsia-100/55 hover:bg-white/10 hover:text-white">ซ่อน ×</button></div><div className="flex max-h-[42vh] flex-col-reverse gap-2 overflow-y-auto pb-0.5">{featuredImageProducts.map(item => <button key={item.product} type="button" onClick={() => requestDeckProductImages(item.product, item.imageUrls)} disabled={imageUploading || sendReply.isPending || replyImages.length >= 4} title={`เตรียมรูป ${item.product} · ยังไม่ส่ง`} className="group flex w-full shrink-0 items-center gap-2 rounded-xl border border-fuchsia-200/15 bg-black/25 p-1.5 text-left transition hover:-translate-y-0.5 hover:border-fuchsia-200/55 hover:shadow-[0_0_18px_rgba(217,70,239,.24)] disabled:opacity-40"><img src={item.imageUrls[0]} alt={item.product} loading="lazy" className="h-10 w-10 shrink-0 rounded-lg bg-black/30 object-cover"/><span className="min-w-0 flex-1 truncate px-1.5 py-1.5 text-[10px] font-medium text-fuchsia-50">{item.product}</span></button>)}</div></div></aside> : null}
+    {productFloatVisible && !productFloatDismissed && featuredImageProducts.length ? <aside aria-label="สินค้าไฮไลท์ที่ปักหมุดสำหรับแชท" className="chat-product-float absolute bottom-[112px] right-3 z-30 w-[min(300px,calc(100%-1.5rem))] motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:fade-in motion-safe:duration-500 sm:bottom-[126px] sm:right-5 sm:w-[min(320px,calc(100%-2.5rem))]"><div className="mx-auto max-w-4xl rounded-2xl border border-fuchsia-300/25 bg-[#100b18]/95 p-2.5 shadow-[0_0_28px_rgba(217,70,239,.18)] backdrop-blur-xl"><div className="mb-2 flex items-center justify-between gap-2"><div className="flex min-w-0 items-center gap-2"><Sparkles className="h-3.5 w-3.5 shrink-0 text-fuchsia-300"/><span className="truncate text-[10px] font-semibold tracking-wide text-fuchsia-100">📌 สินค้าไฮไลท์</span><span className="hidden text-[9px] text-fuchsia-100/40 sm:inline">แตะแล้วรูปลงช่องรอส่ง</span></div><button type="button" onClick={() => setProductFloatDismissed(true)} aria-label="ซ่อนแถบรูปแนะนำ" className="rounded-md px-2 py-1 text-[10px] text-fuchsia-100/55 hover:bg-white/10 hover:text-white">ซ่อน ×</button></div><div className="flex max-h-[42vh] flex-col-reverse gap-2 overflow-y-auto pb-0.5">{featuredImageProducts.map(item => <button key={item.product} type="button" onClick={() => requestProductImagesFromDeck(item.product)} disabled={imageUploading || sendReply.isPending || replyImages.length >= 4} title={`เตรียมรูป ${item.product} · ยังไม่ส่ง`} className="group flex w-full shrink-0 items-center gap-2 rounded-xl border border-fuchsia-200/15 bg-black/25 p-1.5 text-left transition hover:-translate-y-0.5 hover:border-fuchsia-200/55 hover:shadow-[0_0_18px_rgba(217,70,239,.24)] disabled:opacity-40"><img src={item.imageUrls[0]} alt={item.product} loading="lazy" className="h-10 w-10 shrink-0 rounded-lg bg-black/30 object-cover"/><span className="min-w-0 flex-1 truncate px-1.5 py-1.5 text-[10px] font-medium text-fuchsia-50">{item.product}</span></button>)}</div></div></aside> : null}
     {productFloatVisible && !productFloatDismissed && !featuredImageProducts.length ? <aside aria-label="ตั้งค่าสินค้าไฮไลท์" className="chat-product-float absolute bottom-[112px] right-3 z-30 w-[min(300px,calc(100%-1.5rem))] motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:fade-in motion-safe:duration-500 sm:bottom-[126px] sm:right-5 sm:w-[min(320px,calc(100%-2.5rem))]"><div className="mx-auto flex max-w-4xl items-center justify-between gap-3 rounded-2xl border border-amber-300/25 bg-[#100b18]/95 p-3 shadow-[0_0_28px_rgba(217,170,70,.14)] backdrop-blur-xl"><div className="min-w-0"><p className="text-[11px] font-semibold text-amber-100">ยังไม่มีสินค้าที่ไฮไลท์ไว้ในชุด Deck</p><p className="mt-1 text-[9px] text-fuchsia-100/55">เปิด “ไฮไลท์สินค้า” แล้วติ๊กสินค้าที่ต้องการ · ชุดไหนก็ใช้ได้</p></div><div className="flex shrink-0 items-center gap-2"><button type="button" onClick={openOrderSummary} className="rounded-lg border border-amber-200/25 bg-amber-300/10 px-3 py-2 text-[10px] font-semibold text-amber-100 hover:bg-amber-300/20">ตั้งไฮไลท์สินค้า</button><button type="button" onClick={() => setProductFloatDismissed(true)} aria-label="ซ่อนแถบตั้งค่าสินค้าแนะนำ" className="rounded-md px-2 py-1 text-[10px] text-fuchsia-100/55 hover:bg-white/10 hover:text-white">ซ่อน ×</button></div></div></aside> : null}
     <div className={`chat-cosmos-composer mt-auto flex shrink-0 flex-col overflow-hidden border-t border-cyan-300/20 bg-gradient-to-b from-[#111326] to-[#090c14] p-3 shadow-[0_-8px_28px_rgba(34,211,238,.05)] sm:p-4 transition-[height] duration-300 ${composerOpen ? "chat-cosmos-composer--open" : "h-12 min-h-12"}`}><div className="mb-2 flex shrink-0 items-center justify-between gap-2 border-b border-fuchsia-500/10 pb-2">
       <div className="flex min-w-0 flex-1 items-center gap-1.5" aria-live="polite">

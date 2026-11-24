@@ -34,6 +34,12 @@ describe("ORDER DECK product catalog integration", () => {
     expect(requestHandler!.indexOf("lastProductIndexSignature=''")).toBeLessThan(requestHandler!.indexOf("notifyParentProductIndex"));
   });
 
+  it("marks products highlighted in any Deck set, without page-name gating", () => {
+    expect(deckSource).toContain("const pinnedNames=new Set(adPages.flatMap(page=>Array.isArray(page.selected)?page.selected.filter(name=>typeof name==='string'):[]))");
+    expect(deckSource).toContain("const featured=pinnedNames.has(name)");
+    expect(deckSource).not.toContain("const featured=Boolean(matchingPage?.selected?.includes(name))");
+  });
+
   it("opens the pinned product view whenever the main Products tab is entered", () => {
     expect(deckSource).toContain("if(button.dataset.tab==='tab-products'){activeProductTab='📌';renderImageProducts()}");
   });

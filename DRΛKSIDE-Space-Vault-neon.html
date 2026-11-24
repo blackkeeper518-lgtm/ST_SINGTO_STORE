@@ -527,6 +527,7 @@ let images=[];const imageDbPromise=new Promise((resolve,reject)=>{if(!('indexedD
   function notifyParentProductIndex(pageName=activeChatPageName,pageId=activeChatPageId){
     if(window.parent===window)return;
     const matchingCollection=adPages.find(page=>adPageNameKey(page.name)===adPageNameKey(pageName))||currentAdPage();
+    const pinnedNames=new Set(adPages.flatMap(page=>Array.isArray(page.selected)?page.selected.filter(name=>typeof name==='string'):[]));
     const products=imageProducts.slice(0,500).map(name=>{
       const info=productInfo[name]||{};
       const blocks=Array.isArray(info.blocks)?info.blocks:[];
@@ -536,8 +537,7 @@ let images=[];const imageDbPromise=new Promise((resolve,reject)=>{if(!('indexedD
       const catalogRows=productCatalog.filter(row=>identities.includes(normalizeProductText(row.master_sku))||identities.includes(normalizeProductText(row.name_standard)));
       const catalogTerms=catalogRows.flatMap(row=>[row.master_sku,row.th_name,row.name_standard,row.brand,...String(row.alias||'').split(/[,;\r\n]+/)]);
       const terms=[name,info.name,...fields,...catalogTerms].map(value=>String(value||'').trim()).filter(value=>value&&value.length<=160);
-      const matchingPage=matchingCollection;
-      const featured=Boolean(matchingPage?.selected?.includes(name));
+      const featured=pinnedNames.has(name);
       const imageSource=imageForProduct(name).slice(0,1).map(im=>im.vaultUrl||im.src)[0];
       const imageUrl=String(imageSource||'');
       const remoteImage=/^https:\/\//i.test(imageUrl);
