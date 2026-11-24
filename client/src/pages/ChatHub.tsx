@@ -143,8 +143,8 @@ export default function ChatHub() {
   const threadsQuery = trpc.chat.threads.useQuery({ surface: "web" }, {
     enabled: hasServerChatConfig,
     staleTime: 0,
-    // Keep the inbox close to the n8n completion window without reloading the page.
-    refetchInterval: 20_000,
+    // Refresh the room list frequently enough to surface newly ingested conversations.
+    refetchInterval: 15_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -185,7 +185,7 @@ export default function ChatHub() {
   const messagesQuery = trpc.chat.messages.useQuery({ pageId: selectedPageId, threadId: selectedThreadId, surface: "web" }, {
     enabled: hasServerChatConfig && Boolean(selectedPageId && selectedThreadId),
     staleTime: 0,
-    refetchInterval: 20_000,
+    refetchInterval: 8_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
