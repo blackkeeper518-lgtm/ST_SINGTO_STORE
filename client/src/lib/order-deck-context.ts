@@ -50,6 +50,16 @@ export function isImportableLatestCustomerMessage(message: unknown): message is 
   return text.length > 0 && /[\p{L}\p{N}]/u.test(text) && !mediaPlaceholder;
 }
 
+export function getImportableLatestCustomerMessage(messages: readonly unknown[]): { id: string; text: string } | null {
+  const message = getLatestBBChatCustomerMessage(messages);
+  if (!isImportableLatestCustomerMessage(message)) return null;
+  const text = message.customer_message_text.trim();
+  return {
+    id: String(message.id ?? message.messageId ?? `${message.occurredAt ?? ""}:${text}`),
+    text,
+  };
+}
+
 export function buildOrderDeckContextMessage(
   input: OrderDeckContextInput,
   importSelectedCustomerMessage = false,

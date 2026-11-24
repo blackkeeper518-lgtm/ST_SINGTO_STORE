@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOrderDeckContextMessage, getLatestBBChatCustomerMessage, getSelectedOrderMessageText, isImportableLatestCustomerMessage, isSelectableCustomerMessage } from "./order-deck-context";
+import { buildOrderDeckContextMessage, getImportableLatestCustomerMessage, getLatestBBChatCustomerMessage, getSelectedOrderMessageText, isImportableLatestCustomerMessage, isSelectableCustomerMessage } from "./order-deck-context";
 
 describe("Order Deck chat context", () => {
   it("sends the page name when the Order Deck is opened without importing a message", () => {
@@ -62,6 +62,20 @@ describe("Order Deck chat context", () => {
 
     expect(getLatestBBChatCustomerMessage([older, pageReply, newest])).toBe(newest);
     expect(isImportableLatestCustomerMessage(getLatestBBChatCustomerMessage([older, pageReply, newest]))).toBe(false);
+  });
+
+  it("returns the latest importable customer message from already-loaded chat data", () => {
+    const older = { id: "old", direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT", customer_message_text: "ที่อยู่เก่า" };
+    const latest = { id: "new", direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT", customer_message_text: "ที่อยู่ล่าสุด 0812345678" };
+
+    expect(getImportableLatestCustomerMessage([older, latest])).toEqual({ id: "new", text: "ที่อยู่ล่าสุด 0812345678" });
+  });
+
+  it("does not fall back to cached text when the newest customer message is media", () => {
+    const older = { id: "old", direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT", customer_message_text: "ที่อยู่เก่า" };
+    const latest = { id: "new", direction: "inbound", senderType: "customer", source_lane: "🌌ST_CHAT", customer_message_text: "[รูปภาพ]" };
+
+    expect(getImportableLatestCustomerMessage([older, latest])).toBeNull();
   });
 
   it("does not treat media placeholders or emoji-only messages as order text", () => {

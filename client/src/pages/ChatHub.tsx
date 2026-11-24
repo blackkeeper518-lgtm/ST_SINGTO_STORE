@@ -8,7 +8,7 @@ import { extractChatImageUrls, getSupabase, mapChatRowsToMessages, mapChatRowsTo
 import { uploadChatImageToVault } from "@/lib/chat-image-upload";
 import { buildMetaConversationUrl } from "@/lib/meta-inbox";
 import { metaTransientSendNotice } from "@/lib/meta-send-notice";
-import { getLatestBBChatCustomerMessage, getSelectedOrderMessageText, isImportableLatestCustomerMessage, isSelectableCustomerMessage } from "@/lib/order-deck-context";
+import { getImportableLatestCustomerMessage, getSelectedOrderMessageText, isSelectableCustomerMessage } from "@/lib/order-deck-context";
 import { selectFeaturedDeckImageProducts } from "@/lib/order-deck-product-index";
 import { CYBER_FRAME_EVENT, CYBER_FRAME_OPTIONS, readCyberFrame, readCyberFrameRooms, saveCyberFrameRoom } from "@/lib/cyber-frame";
 import { trpc } from "@/lib/trpc";
@@ -95,6 +95,7 @@ export default function ChatHub() {
   const [productImagesRequest, setProductImagesRequest] = useState<{ id: number; product: string } | null>(null);
   const productImagesRequestId = useRef(0);
   const orderDeckMessageRequestIdRef = useRef(0);
+  const orderDeckHandoffRequestIdRef = useRef(0);
   const [imageUploading, setImageUploading] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [stickerId, setStickerId] = useState("");
@@ -314,44 +315,41 @@ export default function ChatHub() {
   const confirmedKeys = new Set((confirmationsQuery.data ?? []).map(row => `${row.pageId}:${row.threadId}`));
   const openOrderSummary = () => {
     if (!selected) return;
-    const requestId = ++orderDeckMessageRequestIdRef.current;
+    const requestGeneration = ++orderDeckMessageRequestIdRef.current;
     const requestRoomKey = orderDeckRequestRoomKeyRef.current;
+    const stageDeckMessage = (message: { id: string; text: string } | null) => {
+      if (message) setSelectedOrderMessage({ ...message, threadKey: selected.key });
+      else setSelectedOrderMessage(null);
+      setOrderDeckMessageRequest({ id: ++orderDeckHandoffRequestIdRef.current, clearMessage: !message });
+    };
+    const cachedLatest = getImportableLatestCustomerMessage(messagesQuery.data ?? []);
     setSummary(null);
     setOrderDeckOpen(true);
     setSummaryOpen(false);
-    setSelectedOrderMessage(null);
     setOrderDeckMessageRequest(null);
-    setReplyNotice("กำลังดึงข้อความลูกค้าล่าสุด…");
+    stageDeckMessage(cachedLatest);
+    setReplyNotice(cachedLatest
+      ? "ใส่ข้อความที่โหลดอยู่เข้า Deck แล้ว · กำลังตรวจข้อความล่าสุดเบื้องหลัง"
+      : "กำลังตรวจข้อความลูกค้าล่าสุดจากเซิร์ฟเวอร์…");
     void (async () => {
-      let latestMessages: typeof messagesQuery.data = undefined;
-      let refreshSucceeded = false;
-      let refreshError = "";
       try {
         const refreshed = await messagesQuery.refetch();
         if (!refreshed.isSuccess) throw refreshed.error ?? new Error("ไม่พบผลการดึงข้อความล่าสุด");
-        latestMessages = refreshed.data ?? [];
-        refreshSucceeded = true;
+        if (requestGeneration !== orderDeckMessageRequestIdRef.current || orderDeckRequestRoomKeyRef.current !== requestRoomKey) return;
+        const freshLatest = getImportableLatestCustomerMessage(refreshed.data ?? []);
+        if (!freshLatest) {
+          stageDeckMessage(null);
+          setReplyNotice("เปิด Order Deck แล้ว · ยังไม่มีข้อความลูกค้าล่าสุดที่ใช้สรุปได้ แต่เลือกสินค้า/ภาพได้ทันที");
+          return;
+        }
+        if (!cachedLatest || freshLatest.id !== cachedLatest.id || freshLatest.text !== cachedLatest.text) stageDeckMessage(freshLatest);
+        setReplyNotice("ตรวจข้อความลูกค้าล่าสุดจากเซิร์ฟเวอร์แล้ว · ยังไม่ส่ง");
       } catch (error) {
-        refreshError = error instanceof Error ? error.message : String(error);
-      }
-      if (requestId !== orderDeckMessageRequestIdRef.current || orderDeckRequestRoomKeyRef.current !== requestRoomKey) return;
-      if (!refreshSucceeded) {
-        setSelectedOrderMessage(null);
-        setOrderDeckMessageRequest({ id: requestId, clearMessage: true });
-        setReplyNotice(`เปิด Deck แล้ว · ดึงข้อความล่าสุดไม่สำเร็จ: ${refreshError}`);
-        return;
-      }
-      const latestCustomerMessage = getLatestBBChatCustomerMessage(latestMessages ?? []);
-      if (isImportableLatestCustomerMessage(latestCustomerMessage)) {
-        const text = latestCustomerMessage.customer_message_text.trim();
-        const id = String(latestCustomerMessage.id ?? latestCustomerMessage.messageId ?? `${latestCustomerMessage.occurredAt ?? ""}:${text}`);
-        setSelectedOrderMessage({ id, threadKey: selected.key, text });
-        setOrderDeckMessageRequest({ id: requestId });
-        setReplyNotice("ดึงข้อความลูกค้าล่าสุด ณ เวลาที่กดแล้ว · ยังไม่ส่ง");
-      } else {
-        setSelectedOrderMessage(null);
-        setOrderDeckMessageRequest({ id: requestId, clearMessage: true });
-        setReplyNotice("เปิด Order Deck แล้ว · ยังไม่มีข้อความลูกค้าล่าสุดที่ใช้สรุปได้ แต่เลือกสินค้า/ภาพได้ทันที");
+        if (requestGeneration !== orderDeckMessageRequestIdRef.current || orderDeckRequestRoomKeyRef.current !== requestRoomKey) return;
+        const refreshError = error instanceof Error ? error.message : String(error);
+        setReplyNotice(cachedLatest
+          ? "ใช้ข้อความที่โหลดไว้ในห้องแชทแล้ว · ตรวจข้อความใหม่จากเซิร์ฟเวอร์ไม่สำเร็จ"
+          : `เปิด Deck แล้ว · ดึงข้อความล่าสุดไม่สำเร็จ: ${refreshError}`);
       }
     })();
   };
