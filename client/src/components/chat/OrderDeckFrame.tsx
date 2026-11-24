@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { buildOrderDeckContextMessage } from "@/lib/order-deck-context";
+import { isUsableDeckProductImageUrl } from "@/lib/order-deck-product-index";
 import { projectApi } from "@/lib/server-project-client";
 import { useGlobalThemeRuntime } from "@/contexts/GlobalThemeRuntime";
 
@@ -155,7 +156,7 @@ export function OrderDeckFrame(props: OrderDeckFrameProps) {
         if (responsePageId && responsePageId !== currentProps.current.pageId) return;
         const products = Array.isArray(event.data.products)
           ? event.data.products.filter((item: unknown): item is { product: string; terms: unknown[]; imageUrls?: unknown[]; featured?: boolean } => Boolean(item && typeof item === "object" && typeof (item as { product?: unknown }).product === "string" && Array.isArray((item as { terms?: unknown }).terms)))
-            .map((item: { product: string; terms: unknown[]; imageUrls?: unknown[]; featured?: boolean }) => ({ product: item.product.slice(0, 120), terms: item.terms.filter((term): term is string => typeof term === "string").slice(0, 32).map(term => term.slice(0, 160)), imageUrls: Array.isArray(item.imageUrls) ? item.imageUrls.filter((url): url is string => typeof url === "string" && /^https:\/\//i.test(url)).slice(0, 4) : [], featured: Boolean(item.featured) }))
+            .map((item: { product: string; terms: unknown[]; imageUrls?: unknown[]; featured?: boolean }) => ({ product: item.product.slice(0, 120), terms: item.terms.filter((term): term is string => typeof term === "string").slice(0, 32).map(term => term.slice(0, 160)), imageUrls: Array.isArray(item.imageUrls) ? item.imageUrls.filter((url): url is string => typeof url === "string" && isUsableDeckProductImageUrl(url)).slice(0, 4) : [], featured: Boolean(item.featured) }))
             .slice(0, 500)
           : [];
         currentProps.current.onProductIndexReady?.(products);

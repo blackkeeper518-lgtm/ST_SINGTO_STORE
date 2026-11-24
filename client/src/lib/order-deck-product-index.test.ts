@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { selectFeaturedDeckImageProducts } from "./order-deck-product-index";
+import { isUsableDeckProductImageUrl, selectFeaturedDeckImageProducts } from "./order-deck-product-index";
 
 const root = process.cwd();
 const chatHub = readFileSync(resolve(root, "client/src/pages/ChatHub.tsx"), "utf8");
 const deckSource = readFileSync(resolve(root, "client/public/order-deck.html"), "utf8");
+const deckFrame = readFileSync(resolve(root, "client/src/components/chat/OrderDeckFrame.tsx"), "utf8");
 
 describe("Order Deck floating product shortcuts", () => {
   it("shows only page-featured products with usable HTTPS images and caps the ribbon at eight", () => {
@@ -24,6 +25,23 @@ describe("Order Deck floating product shortcuts", () => {
     expect(selectFeaturedDeckImageProducts(products).map(item => item.product)).toEqual(
       Array.from({ length: 8 }, (_, index) => `product-${index}`),
     );
+  });
+
+  it("allows a pinned local editor image through the dock and rejects unsafe or oversized data URLs", () => {
+    const localImage = "data:image/webp;base64,dGVzdA==";
+    expect(isUsableDeckProductImageUrl(localImage)).toBe(true);
+    expect(isUsableDeckProductImageUrl("javascript:alert(1)")).toBe(false);
+    expect(isUsableDeckProductImageUrl(`data:image/webp;base64,${"a".repeat(8_100_000)}`)).toBe(false);
+    expect(selectFeaturedDeckImageProducts([
+      { product: "pinned-local", terms: [], imageUrls: [localImage], featured: true },
+      { product: "unpinned-local", terms: [], imageUrls: [localImage], featured: false },
+    ]).map(item => item.product)).toEqual(["pinned-local"]);
+  });
+
+  it("passes local images from pinned editor records through the Deck index and iframe bridge", () => {
+    expect(deckSource).toContain("const embeddedPinnedImage=featured&&imageUrl.length<=8100000");
+    expect(deckSource).toContain("const imageUrls=remoteImage||embeddedPinnedImage?[imageUrl]:[]");
+    expect(deckFrame).toContain("isUsableDeckProductImageUrl(url)");
   });
 
   it("keeps the pinned product shortcuts on the chat and hides them after an image send succeeds", () => {

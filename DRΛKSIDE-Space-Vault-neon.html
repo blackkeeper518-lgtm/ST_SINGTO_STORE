@@ -537,8 +537,13 @@ let images=[];const imageDbPromise=new Promise((resolve,reject)=>{if(!('indexedD
       const catalogTerms=catalogRows.flatMap(row=>[row.master_sku,row.th_name,row.name_standard,row.brand,...String(row.alias||'').split(/[,;\r\n]+/)]);
       const terms=[name,info.name,...fields,...catalogTerms].map(value=>String(value||'').trim()).filter(value=>value&&value.length<=160);
       const matchingPage=matchingCollection;
-      const imageUrls=imageForProduct(name).slice(0,1).map(im=>im.vaultUrl||im.src).filter(url=>/^https?:\/\//i.test(String(url||'')));
-      return {product:name,terms:[...new Set(terms)].slice(0,32),imageUrls,featured:Boolean(matchingPage?.selected?.includes(name))};
+      const featured=Boolean(matchingPage?.selected?.includes(name));
+      const imageSource=imageForProduct(name).slice(0,1).map(im=>im.vaultUrl||im.src)[0];
+      const imageUrl=String(imageSource||'');
+      const remoteImage=/^https:\/\//i.test(imageUrl);
+      const embeddedPinnedImage=featured&&imageUrl.length<=8100000&&/^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+=*$/i.test(imageUrl);
+      const imageUrls=remoteImage||embeddedPinnedImage?[imageUrl]:[];
+      return {product:name,terms:[...new Set(terms)].slice(0,32),imageUrls,featured};
     });
     const responsePageId=typeof pageId==='string'?pageId:'';
     const signature=JSON.stringify({pageId:responsePageId,collectionId:matchingCollection?.id||'',products});
