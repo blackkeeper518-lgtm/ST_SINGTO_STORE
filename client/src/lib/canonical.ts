@@ -586,7 +586,16 @@ export async function readGenesisOrderHistory(date: string) {
 export async function readDailyTrackingHistory(date: string) {
   const api = getSupabase("parcel");
   if (!api) fail({ message: "ยังไม่ได้ตั้งค่า Supabase ฝั่ง Server: ตรวจสอบ TRACKING/PARCEL ที่ /secret-gallery" });
-  const { data, error } = await api.from("📓DEAD_xXx_NOTE").select("*").limit(2000);
+  const { data, error } = await api.from("📓DEAD_xXx_NOTE").select([
+    "parcel_row_id", "tracking_number", "flash_consignee", "matched_phone", "pickup_date", "cod_amount", "parcel_cod_amount",
+    "parcel_address", "delivery_status", "sent_at", "upsert_key", "page_id", "threadId", "customer_id", "page_name",
+    "portal_key", "facebook_name", "customer_name", "phone", "extracted_phone", "order_number", "order_number_display",
+    "order_date", "order_time", "order_time_display", "time_th", "shipping_carrier", "address_display_packer", "addressclean",
+    "district", "amphoe", "province", "zipcode", "sku", "manus_for_packer", "telegram_copy_text", "carton_count",
+    "created_at", "updated_at", "assigned_agent", "chat_age_hours", "is_within_24h", "can_send_standard",
+    "messaging_tag_required", "facebook_tracking_status", "facebook_tracking_sent_at", "delivery_state", "order_delivery_status",
+    "message_id", "send_facebook_route", "target_room", "parcel_status_emoji", "facebook_tracking_message",
+  ].join(",")).limit(2000);
   if (error) fail(error);
   const dayKey = (value: unknown) => {
     const raw = String(value ?? "").trim();

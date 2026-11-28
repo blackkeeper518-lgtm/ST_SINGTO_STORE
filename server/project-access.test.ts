@@ -22,9 +22,13 @@ describe("server-side Supabase project routing", () => {
     expect(canStaffExecuteProjectQuery({ project: "main", table: "🛒product_master", method: "GET", params: { select: "emoji,master_sku,th_name,name_standard,brand,variant,unit_price,alias,status", limit: "500" } })).toBe(true);
     expect(canStaffExecuteProjectQuery({ project: "tracking", table: "thailand_address_master", method: "GET", params: { select: "district,amphoe,province,zipcode", limit: "100" } })).toBe(true);
     expect(canStaffExecuteProjectQuery({ project: "vault", table: "sales_script_cards", method: "GET", params: { select: "id,title,script_text,blocks_json", limit: "500" } })).toBe(true);
+    expect(canStaffExecuteProjectQuery({ project: "main", table: "🌟GENESIS_xXx_HISTORY", method: "GET", params: { select: "upsert_key,order_time_display,order_number,page_id,page_name,threadId,customer_name,phone,full_address,sku,manus_for_packer,cod_amount,shipping_carrier,sent_at", limit: "1000" } })).toBe(true);
+    expect(canStaffExecuteProjectQuery({ project: "parcel", table: "📓DEAD_xXx_NOTE", method: "GET", params: { select: "parcel_row_id,tracking_number,pickup_date,upsert_key,page_id,threadId,page_name,customer_name,phone,order_number,order_time_display,sku,manus_for_packer,cod_amount,shipping_carrier,facebook_tracking_message,facebook_tracking_sent_at", limit: "2000" } })).toBe(true);
     expect(canStaffExecuteProjectQuery({ project: "main", table: "🌍GALACTIC_GATEWAY_TOKEN", method: "GET", params: { select: "*", limit: "500" } })).toBe(false);
     expect(canStaffExecuteProjectQuery({ project: "vault", table: "sales_script_cards", method: "PATCH", params: { select: "id,title", limit: "1" } })).toBe(false);
     expect(canStaffExecuteProjectQuery({ project: "main", table: "🛒product_master", method: "GET", params: { select: "*", limit: "500" } })).toBe(false);
+    expect(canStaffExecuteProjectQuery({ project: "main", table: "🌟GENESIS_xXx_HISTORY", method: "GET", params: { select: "upsert_key,order_time_display", limit: "2001" } })).toBe(false);
+    expect(canStaffExecuteProjectQuery({ project: "parcel", table: "📓DEAD_xXx_NOTE", method: "GET", params: { select: "parcel_row_id,private_token", limit: "100" } })).toBe(false);
   });
 
   it("limits authenticated staff uploads to non-overwriting chat and Order Deck images", () => {

@@ -81,6 +81,26 @@ const STAFF_READ_COLUMNS: Record<string, ReadonlySet<string>> = {
   "tracking:thailand_address_master": new Set(["district", "amphoe", "province", "zipcode"]),
   "vault:thailand_address_master": new Set(["district", "amphoe", "province", "zipcode"]),
   "vault:sales_script_cards": new Set(["id", "sku", "title", "subtitle", "script_text", "ai_context", "ai_instruction", "blocks_json", "status", "version", "updated_at"]),
+  // Daily summaries are read-only views. Keep these explicit so staff can use
+  // the pages without gaining wildcard access to operational or token fields.
+  "main:🌟GENESIS_xXx_HISTORY": new Set([
+    "upsert_key", "order_time_display", "order_number", "order_number_display", "page_id", "page_name", "threadId",
+    "customer_name", "facebook_name", "phone", "extracted_phone", "full_address", "final_address_for_bill",
+    "address_display_packer", "addressclean", "province", "zipcode", "sku", "order_fibo_product",
+    "for_packer_st_display", "manus_for_packer", "google_for_packer", "packer_tag_display", "packer_obj",
+    "telegram_product_display", "telegram_message", "original", "cod_amount", "expected_cod", "shipping_carrier",
+    "source_table", "telegram_status", "telegram_sent", "sent_at", "telegram_sent_at",
+  ]),
+  "parcel:📓DEAD_xXx_NOTE": new Set([
+    "parcel_row_id", "tracking_number", "flash_consignee", "matched_phone", "pickup_date", "cod_amount", "parcel_cod_amount",
+    "parcel_address", "delivery_status", "sent_at", "upsert_key", "page_id", "threadId", "customer_id", "page_name",
+    "portal_key", "facebook_name", "customer_name", "phone", "extracted_phone", "order_number", "order_number_display",
+    "order_date", "order_time", "order_time_display", "time_th", "shipping_carrier", "address_display_packer", "addressclean",
+    "district", "amphoe", "province", "zipcode", "sku", "manus_for_packer", "telegram_copy_text", "carton_count",
+    "created_at", "updated_at", "assigned_agent", "chat_age_hours", "is_within_24h", "can_send_standard",
+    "messaging_tag_required", "facebook_tracking_status", "facebook_tracking_sent_at", "delivery_state", "order_delivery_status",
+    "message_id", "send_facebook_route", "target_room", "parcel_status_emoji", "facebook_tracking_message",
+  ]),
 };
 export function canStaffExecuteProjectQuery(input: { project: SupabaseProject; table: string; method: string; params?: Record<string, string> }) {
   if (input.method !== "GET" && input.method !== "HEAD") return false;
@@ -91,7 +111,8 @@ export function canStaffExecuteProjectQuery(input: { project: SupabaseProject; t
   if (!columns.length || new Set(columns).size !== columns.length || columns.some(column => !allowed.has(column))) return false;
   const limit = Number(input.params?.limit);
   const offset = Number(input.params?.offset ?? "0");
-  return Number.isInteger(limit) && limit > 0 && limit <= 500 && Number.isInteger(offset) && offset >= 0 && offset <= 5000;
+  const maxLimit = input.table === "🌟GENESIS_xXx_HISTORY" || input.table === "📓DEAD_xXx_NOTE" ? 2000 : 500;
+  return Number.isInteger(limit) && limit > 0 && limit <= maxLimit && Number.isInteger(offset) && offset >= 0 && offset <= 5000;
 }
 export function canStaffUploadVaultStorage(input: { operation: string; bucket: string; path?: string; contentBase64?: string; contentType?: string; upsert?: boolean }) {
   const path = (input.path ?? "").trim().replace(/^\/+/, "");
